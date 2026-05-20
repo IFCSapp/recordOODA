@@ -1,19 +1,33 @@
 # recordOODA
 
-OODA型ケース見立て支援ツールのMVPです。観察された事実を入力し、支援仮説を立て、小さな支援を一つ試し、その反応から見立てを更新する補助層として使います。
-
-このアプリは、公式記録、診断支援、請求業務、法定個別支援計画の代替ではありません。
+個人のOODAループを体験的に回すためのlocal-firstアプリです。サーバ、Prisma、SQLite、Server Actionsは使わず、記録はブラウザ内のlocalStorageに保存します。
 
 ## 開発
 
 ```bash
 npm.cmd install
-copy .env.example .env
-npm.cmd run prisma:generate
-npm.cmd run db:init
-npm.cmd run prisma:seed
 npm.cmd run dev
 ```
+
+## GitHub Pages向けビルド
+
+```bash
+npm.cmd run build
+```
+
+`out/` が静的ファイルとして出力されます。GitHubのプロジェクトPagesで `/recordooda` のようなサブパスに配置する場合は、ビルド時に次を設定します。
+
+```bash
+set NEXT_PUBLIC_BASE_PATH=/recordooda
+npm.cmd run build
+```
+
+## 保存とバックアップ
+
+- 通常の入力はブラウザ内に保存されます。
+- `保存先` 画面からJSONを書き出せます。
+- Teams/SharePointに置く場合は、書き出したJSONを手動でアップロードします。
+- 別端末で続ける場合は、同じJSONを `保存先` 画面から読み込みます。
 
 ## 検証
 

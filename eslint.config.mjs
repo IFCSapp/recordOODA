@@ -4,7 +4,7 @@ import tseslint from "typescript-eslint";
 
 export default [
   {
-    ignores: [".next/**", "node_modules/**", "coverage/**", ".npm-cache/**", "prisma/dev.db*"]
+    ignores: [".next/**", "out/**", "output/**", ".playwright-cli/**", "node_modules/**", "coverage/**", ".npm-cache/**", "prisma/**"]
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

@@ -88,13 +88,13 @@ export const actReviewSchema = z.object({
   nextTryCandidate: optionalText
 });
 
-export const teamReviewCommentSchema = z.object({
+export const reflectionMemoSchema = z.object({
   caseId: requiredText("ケースID"),
   observationId: z.string().trim().optional(),
   hypothesisId: z.string().trim().optional(),
   staffId: z.string().trim().optional(),
   columnKey: requiredText("列"),
-  body: requiredText("コメント")
+  body: requiredText("メモ")
 });
 
 export const exportSummarySchema = z.object({
