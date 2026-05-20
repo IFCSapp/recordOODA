@@ -11,7 +11,7 @@ export function SubmitButton({ children, pendingLabel = "処理中..." }: { chil
       type="submit"
       disabled={pending}
       aria-busy={pending}
-      className="focus-ring rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-skyline disabled:cursor-not-allowed disabled:bg-ink/45"
+      className="record-submit-button focus-ring rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-skyline disabled:cursor-not-allowed disabled:bg-ink/45"
     >
       {pending ? pendingLabel : children}
     </button>

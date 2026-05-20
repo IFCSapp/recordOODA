@@ -148,7 +148,7 @@ function DashboardBlock({ title, href, children }: { title: string; href: string
 
 function LinkCard({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="rounded-md border border-ink/10 bg-white p-4 shadow-sm transition hover:border-skyline hover:bg-field/60">
+    <Link href={href} className="record-link-card rounded-md border border-ink/10 bg-white p-4 shadow-sm transition hover:border-skyline hover:bg-field/60">
       {children}
     </Link>
   );

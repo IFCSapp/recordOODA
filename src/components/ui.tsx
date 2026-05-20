@@ -18,20 +18,20 @@ export function PageHeader({
   };
 }) {
   return (
-    <div className="mb-6 flex flex-col gap-4 border-b border-ink/10 pb-5 md:flex-row md:items-center md:justify-between">
-      <div>
-        <h1 className="text-3xl font-bold tracking-normal text-ink">{title}</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-ink/70">{description}</p>
+    <div className="record-page-header mb-6 flex flex-col gap-4 border-b border-ink/10 pb-5 md:flex-row md:items-center md:justify-between">
+      <div className="record-page-copy">
+        <h1 className="record-page-title text-3xl font-bold tracking-normal text-ink">{title}</h1>
+        <p className="record-page-description mt-2 max-w-3xl text-sm leading-6 text-ink/70">{description}</p>
       </div>
       {(image || action) ? (
-        <div className="flex flex-col items-start gap-3 md:items-end">
+        <div className="record-page-aside flex flex-col items-start gap-3 md:items-end">
           {image ? (
             <Image
               src={image.src}
               alt={image.alt}
               width={144}
               height={96}
-              className="h-24 w-36 rounded-md border border-ink/10 bg-white object-cover shadow-sm"
+              className="record-page-illustration h-24 w-36 rounded-md border border-ink/10 bg-white object-cover shadow-sm"
             />
           ) : null}
           {action}
@@ -51,10 +51,10 @@ export function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="mb-8">
-      <div className="mb-3">
-        <h2 className="text-lg font-semibold text-ink">{title}</h2>
-        {description ? <p className="mt-1 text-sm leading-6 text-ink/65">{description}</p> : null}
+    <section className="record-section mb-8">
+      <div className="record-section-heading mb-3">
+        <h2 className="record-section-title text-lg font-semibold text-ink">{title}</h2>
+        {description ? <p className="record-section-description mt-1 text-sm leading-6 text-ink/65">{description}</p> : null}
       </div>
       {children}
     </section>
@@ -62,7 +62,7 @@ export function Section({
 }
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-md border border-ink/10 bg-white p-4 shadow-sm ${className}`}>{children}</div>;
+  return <div className={`record-card rounded-md border border-ink/10 bg-white p-4 shadow-sm ${className}`}>{children}</div>;
 }
 
 export function Notice({ children, tone = "info" }: { children: ReactNode; tone?: "info" | "warn" | "success" }) {
@@ -73,18 +73,18 @@ export function Notice({ children, tone = "info" }: { children: ReactNode; tone?
         ? "border-moss/35 bg-moss/10 text-moss"
         : "border-skyline/30 bg-skyline/10 text-skyline";
 
-  return <div className={`rounded-md border px-4 py-3 text-sm leading-6 ${toneClass}`}>{children}</div>;
+  return <div className={`record-notice rounded-md border px-4 py-3 text-sm leading-6 ${toneClass}`}>{children}</div>;
 }
 
 export function Label({ children }: { children: ReactNode }) {
-  return <label className="block text-sm font-medium text-ink/80">{children}</label>;
+  return <label className="record-label block text-sm font-medium text-ink/80">{children}</label>;
 }
 
 export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className={`focus-ring mt-1 w-full rounded-md border border-ink/15 bg-white px-3 py-2 text-sm shadow-sm ${props.className ?? ""}`}
+      className={`record-field focus-ring mt-1 w-full rounded-md border border-ink/15 bg-white px-3 py-2 text-sm shadow-sm ${props.className ?? ""}`}
     />
   );
 }
@@ -93,7 +93,7 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
       {...props}
-      className={`focus-ring mt-1 w-full rounded-md border border-ink/15 bg-white px-3 py-2 text-sm shadow-sm ${props.className ?? ""}`}
+      className={`record-field focus-ring mt-1 w-full rounded-md border border-ink/15 bg-white px-3 py-2 text-sm shadow-sm ${props.className ?? ""}`}
     />
   );
 }
@@ -102,23 +102,23 @@ export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
   return (
     <textarea
       {...props}
-      className={`focus-ring mt-1 w-full rounded-md border border-ink/15 bg-white px-3 py-2 text-sm leading-6 shadow-sm ${props.className ?? ""}`}
+      className={`record-field focus-ring mt-1 w-full rounded-md border border-ink/15 bg-white px-3 py-2 text-sm leading-6 shadow-sm ${props.className ?? ""}`}
     />
   );
 }
 
 export function LinkButton({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Link href={href} className="focus-ring rounded-md border border-ink/15 bg-white px-3 py-2 text-sm font-medium text-ink transition hover:border-skyline hover:text-skyline">
+    <Link href={href} className="record-link-button focus-ring rounded-md border border-ink/15 bg-white px-3 py-2 text-sm font-medium text-ink transition hover:border-skyline hover:text-skyline">
       {children}
     </Link>
   );
 }
 
 export function EmptyState({ children }: { children: ReactNode }) {
-  return <div className="rounded-md border border-dashed border-ink/20 px-4 py-8 text-center text-sm text-ink/60">{children}</div>;
+  return <div className="record-empty-state rounded-md border border-dashed border-ink/20 px-4 py-8 text-center text-sm text-ink/60">{children}</div>;
 }
 
 export function Tag({ children }: { children: ReactNode }) {
-  return <span className="inline-flex rounded-md bg-field px-2 py-1 text-xs font-medium text-ink/70">{children}</span>;
+  return <span className="record-tag inline-flex rounded-md bg-field px-2 py-1 text-xs font-medium text-ink/70">{children}</span>;
 }

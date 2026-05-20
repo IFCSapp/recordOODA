@@ -1,5 +1,6 @@
 "use client";
 
+import { createCaseAction } from "@/app/actions";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as THREE from "three";
@@ -30,8 +31,31 @@ const PLATE_TEXTURE_WIDTH = 1024;
 const PLATE_TEXTURE_HEIGHT = 640;
 const PLATE_TEXTURE_SCALE = 2;
 const OODA_COLORS = ["#376f8f", "#a45f45", "#55745f", "#b68a2c"];
+const caseDockStages = [
+  { key: "observations", label: "観察" },
+  { key: "hypotheses", label: "仮説" },
+  { key: "smallExperiments", label: "支援" },
+  { key: "actReviews", label: "反応" }
+] as const;
 
 type OodaNavItem = (typeof oodaNavItems)[number];
+type CaseDockStageKey = (typeof caseDockStages)[number]["key"];
+type OodaCaseDockItem = {
+  id: string;
+  displayName: string;
+  memo: string;
+  isActive: boolean;
+  updatedAt: string;
+  latestObservationId: string | null;
+  latestHypothesisId: string | null;
+  latestExperimentId: string | null;
+  counts: Record<CaseDockStageKey, number>;
+};
+export type OodaCaseDockData = {
+  totalCount: number;
+  activeCount: number;
+  items: OodaCaseDockItem[];
+};
 type ThreeCarouselState = {
   camera: THREE.Camera;
   objects: THREE.Object3D[];
@@ -48,11 +72,12 @@ type ThreePlate = {
   textures: THREE.Texture[];
 };
 
-export function OodaWorkflowMenu() {
+export function OodaWorkflowMenu({ caseDock }: { caseDock: OodaCaseDockData }) {
   const pathname = usePathname();
   const router = useRouter();
   const [angle, setAngle] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [selectedCaseId, setSelectedCaseId] = useState(caseDock.items[0]?.id ?? "");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const loopRef = useRef<HTMLDivElement | null>(null);
   const threeStateRef = useRef<ThreeCarouselState | null>(null);
@@ -69,6 +94,16 @@ export function OodaWorkflowMenu() {
   useEffect(() => {
     angleRef.current = angle;
   }, [angle]);
+
+  useEffect(() => {
+    if (caseDock.items.length === 0) {
+      if (selectedCaseId) setSelectedCaseId("");
+      return;
+    }
+    if (!caseDock.items.some((item) => item.id === selectedCaseId)) {
+      setSelectedCaseId(caseDock.items[0]?.id ?? "");
+    }
+  }, [caseDock.items, selectedCaseId]);
 
   useEffect(() => {
     const activeIndex = oodaNavItems.findIndex((item) => pathname.startsWith(item.href));
@@ -111,8 +146,8 @@ export function OodaWorkflowMenu() {
     };
 
     const resize = () => {
-      const width = Math.max(track.clientWidth, 1);
-      const height = Math.max(track.clientHeight, 1);
+      const width = Math.max(canvas.clientWidth || track.clientWidth, 1);
+      const height = Math.max(canvas.clientHeight || track.clientHeight, 1);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.setSize(width, height, false);
       const aspect = width / height;
@@ -126,7 +161,7 @@ export function OodaWorkflowMenu() {
 
     let frame = 0;
     const render = () => {
-      const width = track.clientWidth;
+      const width = canvas.clientWidth || track.clientWidth;
       const isNarrow = width < 480;
       const radiusX = isNarrow ? 1.65 : 2.7;
       const radiusZ = isNarrow ? 1.0 : 1.36;
@@ -165,6 +200,7 @@ export function OodaWorkflowMenu() {
 
     const observer = new ResizeObserver(resize);
     observer.observe(track);
+    observer.observe(canvas);
     resize();
     render();
 
@@ -280,18 +316,7 @@ export function OodaWorkflowMenu() {
 
   return (
     <nav aria-label="OODAの流れ" className="workflow-menu-shell">
-      <Link
-        href={caseNavItem.href}
-        className={`case-entry-card ${caseNavItem.tone}`}
-        data-ooda-drag-surface
-        draggable={false}
-        onDragStart={(event) => event.preventDefault()}
-      >
-        <span className="ooda-orbit-number">0</span>
-        <span className="ooda-orbit-stage">{caseNavItem.stage}</span>
-        <span className="ooda-orbit-label">{caseNavItem.label}</span>
-        <span className="ooda-orbit-helper">{caseNavItem.helper}</span>
-      </Link>
+      <CaseDock data={caseDock} selectedCaseId={selectedCaseId} onSelectedCaseChange={setSelectedCaseId} />
 
       <div
         ref={loopRef}
@@ -329,6 +354,108 @@ export function OodaWorkflowMenu() {
       </div>
     </nav>
   );
+}
+
+function CaseDock({
+  data,
+  selectedCaseId,
+  onSelectedCaseChange
+}: {
+  data: OodaCaseDockData;
+  selectedCaseId: string;
+  onSelectedCaseChange: (value: string) => void;
+}) {
+  const selectedCase = data.items.find((item) => item.id === selectedCaseId) ?? data.items[0] ?? null;
+  const nextAction = selectedCase ? getCaseDockNextAction(selectedCase) : null;
+
+  return (
+    <section className={`case-entry-card case-dock ${caseNavItem.tone}`} aria-label="ケース操作">
+      <div className="case-dock-head">
+        <span className="ooda-orbit-number">{data.totalCount}</span>
+        <div className="case-dock-title">
+          <span className="ooda-orbit-stage">{caseNavItem.stage}</span>
+          <strong className="ooda-orbit-label">{caseNavItem.label}</strong>
+          <small>{data.activeCount}件アクティブ</small>
+        </div>
+        <Link href={caseNavItem.href} className="case-dock-text-link">
+          一覧
+        </Link>
+      </div>
+
+      <label className="case-dock-picker">
+        <span>対象</span>
+        <select value={selectedCase?.id ?? ""} onChange={(event) => onSelectedCaseChange(event.target.value)} disabled={data.items.length === 0}>
+          {data.items.length === 0 ? (
+            <option value="">未作成</option>
+          ) : (
+            data.items.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.displayName}
+              </option>
+            ))
+          )}
+        </select>
+      </label>
+
+      {selectedCase ? (
+        <>
+          <div className="case-dock-status">
+            <span>{selectedCase.isActive ? "アクティブ" : "停止中"}</span>
+            <span>更新 {selectedCase.updatedAt}</span>
+          </div>
+          <p className="case-dock-memo">{selectedCase.memo || "メモはまだありません。"}</p>
+          <div className="case-dock-progress" aria-label="OODA記録数">
+            {caseDockStages.map((stage) => (
+              <span key={stage.key} className={selectedCase.counts[stage.key] > 0 ? "is-filled" : ""}>
+                <b>{selectedCase.counts[stage.key]}</b>
+                <small>{stage.label}</small>
+              </span>
+            ))}
+          </div>
+          <div className="case-dock-actions">
+            <Link href={nextAction?.href ?? caseNavItem.href} className="case-dock-primary">
+              次: {nextAction?.label ?? "確認"}
+            </Link>
+            <Link href={`/observe?caseId=${selectedCase.id}`}>観察</Link>
+            <Link href={`/team-review?caseId=${selectedCase.id}`}>確認</Link>
+          </div>
+        </>
+      ) : (
+        <div className="case-dock-empty">
+          <p>まだケースがありません。</p>
+          <Link href={caseNavItem.href} className="case-dock-primary">
+            ケースページへ
+          </Link>
+        </div>
+      )}
+
+      <details className="case-dock-new">
+        <summary>新規追加</summary>
+        <form action={createCaseAction} className="case-dock-form">
+          <input name="displayName" placeholder="ケースA" required />
+          <input name="memo" placeholder="運用上のメモ" />
+          <input type="hidden" name="isActive" value="on" />
+          <button type="submit">作成</button>
+        </form>
+      </details>
+    </section>
+  );
+}
+
+function getCaseDockNextAction(item: OodaCaseDockItem) {
+  if (item.counts.observations === 0) {
+    return { label: "観察を書く", href: `/observe?caseId=${item.id}` };
+  }
+  if (item.counts.hypotheses === 0) {
+    return { label: "仮説を立てる", href: item.latestObservationId ? `/orient?observationId=${item.latestObservationId}` : "/orient" };
+  }
+  if (item.counts.smallExperiments === 0) {
+    return { label: "支援を決める", href: item.latestHypothesisId ? `/decide?hypothesisId=${item.latestHypothesisId}` : "/decide" };
+  }
+  if (item.counts.actReviews === 0) {
+    return { label: "反応を見る", href: item.latestExperimentId ? `/act?experimentId=${item.latestExperimentId}` : "/act" };
+  }
+  return { label: "チーム確認", href: `/team-review?caseId=${item.id}` };
 }
 
 function createThreePlate(item: OodaNavItem, index: number, textureAnisotropy: number): ThreePlate {
