@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Staff {
+  id                  String              @id @default(cuid())
+  displayName         String
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  cases               Case[]
+  observations        Observation[]
+  hypotheses          Hypothesis[]
+  smallExperiments    SmallExperiment[]
+  actReviews          ActReview[]
+  teamReviewComments  TeamReviewComment[]
+  exportSummaries     ExportSummary[]
+
+  @@map("staff")
+}
+
+model Case {
+  id                  String              @id @default(cuid())
+  displayName         String
+  memo                String              @default("")
+  isActive            Boolean             @default(true)
+  staffId             String?
+  staff               Staff?              @relation(fields: [staffId], references: [id])
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  observations        Observation[]
+  observationTags     ObservationTag[]
+  hypotheses          Hypothesis[]
+  smallExperiments    SmallExperiment[]
+  actReviews          ActReview[]
+  teamReviewComments  TeamReviewComment[]
+  exportSummaries     ExportSummary[]
+
+  @@map("cases")
+}
+
+model Observation {
+  id                    String              @id @default(cuid())
+  staffId               String?
+  staff                 Staff?              @relation(fields: [staffId], references: [id])
+  caseId                String
+  case                  Case                @relation(fields: [caseId], references: [id])
+  observedAt            DateTime
+  location              String
+  programName           String
+  timing                String
+  freeText              String              @default("")
+  factMemo              String
+  behaviorTags          String              @default("")
+  antecedent            String
+  consequence           String
+  startLatencySeconds   Int?
+  stoppedDurationSeconds Int?
+  promptCount           Int?
+  resumeLatencySeconds  Int?
+  workCondition         String              @default("")
+  environmentSensory    String              @default("")
+  interpersonalContext  String              @default("")
+  bodyPsych             String              @default("")
+  protectiveFactors     String              @default("")
+  riskUrgency           String              @default("")
+  unknownMemo           String              @default("")
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  tags                  ObservationTag[]
+  hypotheses            Hypothesis[]
+  teamReviewComments    TeamReviewComment[]
+  exportSummaries       ExportSummary[]
+
+  @@index([caseId, observedAt])
+  @@map("observations")
+}
+
+model ObservationTag {
+  id             String       @id @default(cuid())
+  staffId        String?
+  caseId         String
+  case           Case         @relation(fields: [caseId], references: [id])
+  observationId  String
+  observation    Observation  @relation(fields: [observationId], references: [id])
+  kind           String
+  label          String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([caseId, kind, label])
+  @@map("observation_tags")
+}
+
+model Hypothesis {
+  id                    String              @id @default(cuid())
+  staffId               String?
+  staff                 Staff?              @relation(fields: [staffId], references: [id])
+  caseId                String
+  case                  Case                @relation(fields: [caseId], references: [id])
+  observationId         String?
+  observation           Observation?         @relation(fields: [observationId], references: [id])
+  category              String
+  statement             String
+  evidence              String
+  counterEvidence       String              @default("")
+  unknowns              String              @default("")
+  nextObservationPoints String              @default("")
+  confidence            Int                 @default(50)
+  status                String              @default("未検証")
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  smallExperiments      SmallExperiment[]
+  actReviews            ActReview[]
+  teamReviewComments    TeamReviewComment[]
+  exportSummaries       ExportSummary[]
+
+  @@index([caseId, category, status])
+  @@map("hypotheses")
+}
+
+model SmallExperiment {
+  id                 String       @id @default(cuid())
+  staffId            String?
+  staff              Staff?       @relation(fields: [staffId], references: [id])
+  caseId             String
+  case               Case         @relation(fields: [caseId], references: [id])
+  hypothesisId       String
+  hypothesis         Hypothesis   @relation(fields: [hypothesisId], references: [id])
+  support            String
+  supportCategory    String
+  targetChange       String
+  metric             String
+  reviewDueAt        DateTime
+  plannedAt          DateTime
+  cautions           String       @default("")
+  nextTryCandidate   String       @default("")
+  status             String       @default("予定")
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  actReviews         ActReview[]
+  exportSummaries    ExportSummary[]
+
+  @@index([caseId, status, reviewDueAt])
+  @@map("small_experiments")
+}
+
+model ActReview {
+  id                   String           @id @default(cuid())
+  staffId              String?
+  staff                Staff?           @relation(fields: [staffId], references: [id])
+  caseId               String
+  case                 Case             @relation(fields: [caseId], references: [id])
+  experimentId         String
+  experiment           SmallExperiment  @relation(fields: [experimentId], references: [id])
+  hypothesisId         String
+  hypothesis           Hypothesis       @relation(fields: [hypothesisId], references: [id])
+  implementation       String
+  implementationStatus String
+  immediateResponse    String
+  laterResponse        String           @default("")
+  measuredValue        String           @default("")
+  comparison           String           @default("")
+  hypothesisUpdate     String
+  nextObservationPoint String           @default("")
+  nextTryCandidate     String           @default("")
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  @@index([caseId, hypothesisUpdate])
+  @@map("act_reviews")
+}
+
+model TeamReviewComment {
+  id             String       @id @default(cuid())
+  staffId        String?
+  staff          Staff?       @relation(fields: [staffId], references: [id])
+  caseId         String
+  case           Case         @relation(fields: [caseId], references: [id])
+  observationId  String?
+  observation    Observation? @relation(fields: [observationId], references: [id])
+  hypothesisId   String?
+  hypothesis     Hypothesis?  @relation(fields: [hypothesisId], references: [id])
+  columnKey      String
+  body           String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([caseId, columnKey])
+  @@map("team_review_comments")
+}
+
+model ExportSummary {
+  id             String           @id @default(cuid())
+  staffId        String?
+  staff          Staff?           @relation(fields: [staffId], references: [id])
+  caseId         String
+  case           Case             @relation(fields: [caseId], references: [id])
+  observationId  String
+  observation    Observation      @relation(fields: [observationId], references: [id])
+  hypothesisId   String?
+  hypothesis     Hypothesis?      @relation(fields: [hypothesisId], references: [id])
+  experimentId   String?
+  experiment     SmallExperiment? @relation(fields: [experimentId], references: [id])
+  summary        String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([caseId, createdAt])
+  @@map("export_summaries")
+}
