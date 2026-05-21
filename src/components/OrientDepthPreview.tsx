@@ -11,6 +11,8 @@ type ObservationPreview = {
   antecedent: string;
   consequence: string;
   behaviorTags: string[];
+  observationChecklist: string[];
+  personWords: string;
 };
 
 type HypothesisPreview = {
@@ -20,6 +22,10 @@ type HypothesisPreview = {
   counterEvidence: string;
   unknowns: string;
   nextObservationPoints: string;
+  valueDirection: string;
+  avoidancePattern: string;
+  fusedStory: string;
+  smallStep: string;
 };
 
 const emptyHypotheses = [0, 1, 2].map((index) => ({
@@ -28,7 +34,11 @@ const emptyHypotheses = [0, 1, 2].map((index) => ({
   evidence: "",
   counterEvidence: "",
   unknowns: "",
-  nextObservationPoints: ""
+  nextObservationPoints: "",
+  valueDirection: "",
+  avoidancePattern: "",
+  fusedStory: "",
+  smallStep: ""
 }));
 
 export function OrientDepthPreview({ observation }: { observation: ObservationPreview }) {
@@ -41,7 +51,11 @@ export function OrientDepthPreview({ observation }: { observation: ObservationPr
       `evidence-${index}`,
       `counterEvidence-${index}`,
       `unknowns-${index}`,
-      `nextObservationPoints-${index}`
+      `nextObservationPoints-${index}`,
+      `valueDirection-${index}`,
+      `avoidancePattern-${index}`,
+      `fusedStory-${index}`,
+      `smallStep-${index}`
     ]);
 
     const read = () => {
@@ -52,7 +66,11 @@ export function OrientDepthPreview({ observation }: { observation: ObservationPr
           evidence: valueOf(`evidence-${index}`),
           counterEvidence: valueOf(`counterEvidence-${index}`),
           unknowns: valueOf(`unknowns-${index}`),
-          nextObservationPoints: valueOf(`nextObservationPoints-${index}`)
+          nextObservationPoints: valueOf(`nextObservationPoints-${index}`),
+          valueDirection: valueOf(`valueDirection-${index}`),
+          avoidancePattern: valueOf(`avoidancePattern-${index}`),
+          fusedStory: valueOf(`fusedStory-${index}`),
+          smallStep: valueOf(`smallStep-${index}`)
         }))
       );
     };
@@ -87,6 +105,7 @@ export function OrientDepthPreview({ observation }: { observation: ObservationPr
             <span className="rounded-md bg-white/80 px-2 py-1 text-xs text-ink/60">{observation.timing}</span>
           </div>
           <p className="mt-4 text-sm leading-6 text-ink/80">{observation.factMemo}</p>
+          {observation.personWords ? <p className="mt-2 rounded-md bg-white/75 p-2 text-xs leading-5 text-ink/65">本人の言葉: {observation.personWords}</p> : null}
           <div className="mt-4 grid gap-2 text-xs text-ink/65">
             <div>
               <span className="font-semibold text-ink">直前</span> {observation.antecedent}
@@ -96,6 +115,11 @@ export function OrientDepthPreview({ observation }: { observation: ObservationPr
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
+            {observation.observationChecklist.slice(0, 6).map((item) => (
+              <span key={item} className="rounded-md bg-white/90 px-2 py-1 text-xs font-semibold text-skyline">
+                {item}
+              </span>
+            ))}
             {observation.behaviorTags.slice(0, 4).map((tag) => (
               <span key={tag} className="rounded-md bg-white/80 px-2 py-1 text-xs text-ink/65">
                 {tag}
@@ -115,6 +139,11 @@ export function OrientDepthPreview({ observation }: { observation: ObservationPr
               <div className="mt-3 rounded-md bg-white/70 p-2 text-xs leading-5 text-ink/60">
                 根拠: {hypothesis.evidence || "どの事実からそう考えたか"}
               </div>
+              <div className="mt-2 grid gap-1 text-xs leading-5 text-ink/60">
+                <PreviewLine label="大事な方向" value={hypothesis.valueDirection} />
+                <PreviewLine label="回避" value={hypothesis.avoidancePattern} />
+                <PreviewLine label="小さな一歩" value={hypothesis.smallStep} />
+              </div>
             </div>
           ))}
         </div>
@@ -125,6 +154,10 @@ export function OrientDepthPreview({ observation }: { observation: ObservationPr
             <CheckRow
               label="反証・別解釈"
               value={firstFilled(hypotheses.map((item) => item.counterEvidence)) || "合わない事実や別の可能性を置く"}
+            />
+            <CheckRow
+              label="強く働く考え"
+              value={firstFilled(hypotheses.map((item) => item.fusedStory)) || "本人を縛っていそうなルールや物語を仮に置く"}
             />
             <CheckRow
               label="未確認点"
@@ -170,6 +203,15 @@ function CheckRow({ label, value }: { label: string; value: string }) {
     <div className="rounded-md bg-white/75 p-3">
       <div className="text-xs font-semibold text-clay">{label}</div>
       <p className="mt-1 text-ink/70">{value}</p>
+    </div>
+  );
+}
+
+function PreviewLine({ label, value }: { label: string; value: string }) {
+  if (!value) return null;
+  return (
+    <div>
+      <span className="font-semibold text-ink/70">{label}:</span> {value}
     </div>
   );
 }

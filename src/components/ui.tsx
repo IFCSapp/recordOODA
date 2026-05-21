@@ -18,22 +18,24 @@ export function PageHeader({
   };
 }) {
   return (
-    <div className="record-page-header mb-6 flex flex-col gap-4 border-b border-ink/10 pb-5 md:flex-row md:items-center md:justify-between">
-      <div className="record-page-copy">
-        <h1 className="record-page-title text-3xl font-bold tracking-normal text-ink">{title}</h1>
-        <p className="record-page-description mt-2 max-w-3xl text-sm leading-6 text-ink/70">{description}</p>
+    <div className="record-page-header mb-6 border-b border-ink/10 pb-5">
+      <div className="record-page-main">
+        {image ? (
+          <Image
+            src={image.src}
+            alt={image.alt}
+            width={144}
+            height={96}
+            className="record-page-illustration h-24 w-36 rounded-md border border-ink/10 bg-white object-cover shadow-sm"
+          />
+        ) : null}
+        <div className="record-page-copy">
+          <h1 className="record-page-title text-3xl font-bold tracking-normal text-ink">{title}</h1>
+          <p className="record-page-description mt-2 max-w-3xl text-sm leading-6 text-ink/70">{description}</p>
+        </div>
       </div>
-      {(image || action) ? (
-        <div className="record-page-aside flex flex-col items-start gap-3 md:items-end">
-          {image ? (
-            <Image
-              src={image.src}
-              alt={image.alt}
-              width={144}
-              height={96}
-              className="record-page-illustration h-24 w-36 rounded-md border border-ink/10 bg-white object-cover shadow-sm"
-            />
-          ) : null}
+      {action ? (
+        <div className="record-page-aside">
           {action}
         </div>
       ) : null}

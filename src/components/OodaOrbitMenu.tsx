@@ -8,6 +8,7 @@ import * as THREE from "three";
 export type OodaOrbitItem = {
   href: string;
   stage: string;
+  stageLabel?: string;
   label: string;
   helper: string;
   tone: string;
@@ -28,6 +29,12 @@ const DRAG_THRESHOLD_PX = 10;
 const INERTIA_DECAY = 4.2;
 const MIN_INERTIA_DEGREES_PER_SECOND = 2;
 const MAX_INERTIA_DEGREES_PER_SECOND = 240;
+const EXPERIENCE_LABELS: Record<string, string> = {
+  Observe: "見る",
+  Orient: "見立てる",
+  Decide: "選ぶ",
+  Act: "返す"
+};
 
 export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbitItem[]; currentPath: string }) {
   const router = useRouter();
@@ -215,6 +222,10 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
 
   return (
     <div className="ooda-loop-shell" aria-label="OODAの3Dループ">
+      <div className="ooda-loop-caption">
+        <span>OODAは一巡して戻る</span>
+        <strong>見る → 見立てる → 選ぶ → 反応で戻す</strong>
+      </div>
       <div className="ooda-orbit-grid" aria-hidden="true" />
       <div className="ooda-orbit-track">
         <canvas ref={canvasRef} className="ooda-three-canvas" aria-label="OODA loop" />
@@ -225,6 +236,18 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
             </Link>
           ))}
         </div>
+      </div>
+      <div className="ooda-experience-rail" aria-label="OODAの体験順序">
+        {items.map((item, index) => {
+          const isCurrent = currentPath.startsWith(item.href);
+          return (
+            <Link key={item.href} href={item.href} aria-current={isCurrent ? "step" : undefined} className={`ooda-experience-step ooda-tone-${item.tone}`}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <strong>{EXPERIENCE_LABELS[item.stage] ?? item.stageLabel ?? item.stage}</strong>
+              <small>{item.helper}</small>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

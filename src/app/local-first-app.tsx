@@ -31,6 +31,10 @@ type ObservationRecord = {
   antecedent: string;
   consequence: string;
   unknownMemo: string;
+  observationChecklist: string[];
+  personWords: string;
+  consentScope: string;
+  shareScope: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -45,6 +49,10 @@ type HypothesisRecord = {
   counterEvidence: string;
   unknowns: string;
   nextObservationPoints: string;
+  valueDirection: string;
+  avoidancePattern: string;
+  fusedStory: string;
+  smallStep: string;
   confidence: number;
   status: HypothesisStatus;
   createdAt: string;
@@ -63,6 +71,7 @@ type SmallExperimentRecord = {
   reviewDueAt: string;
   cautions: string;
   nextTryCandidate: string;
+  decisionChecks: string[];
   status: ExperimentStatus;
   createdAt: string;
   updatedAt: string;
@@ -131,12 +140,14 @@ type ImplementationStatus = "予定通り" | "一部変更" | "未実施";
 
 const STORAGE_KEY = "recordooda.local.v1";
 const BEHAVIOR_TAGS = ["開始できない", "手が止まる", "席を離れる", "返事のみ", "質問しない", "確認を繰り返す", "表情が硬い", "自分から話す"];
+const OBSERVATION_CHECK_ITEMS = ["行動", "表情・身体", "環境変化", "本人の言葉", "直前の支援者行動", "安全リスク"];
 const HYPOTHESIS_CATEGORIES = ["予定変更への弱さ", "理解・段取り負荷", "感覚・環境負荷", "対人・評価負荷", "疲労・体調", "援助要求の難しさ", "好み・価値とのずれ"];
 const HYPOTHESIS_STATUSES: HypothesisStatus[] = ["未検証", "検証中", "強まった", "弱まった", "保留"];
 const EXPERIMENT_STATUSES: ExperimentStatus[] = ["予定", "実施中", "完了", "中止"];
 const IMPLEMENTATION_STATUSES: ImplementationStatus[] = ["予定通り", "一部変更", "未実施"];
 const METRIC_OPTIONS = ["開始までの時間", "再開までの時間", "停止回数", "声かけ回数", "継続時間", "質問回数", "離席回数", "本人の楽さ", "その他"];
 const SUPPORT_CATEGORIES = ["見通し支援", "環境調整", "課題調整", "声かけ調整", "休憩・回復", "援助要求支援", "選択肢提示", "その他"];
+const DECISION_CHECK_ITEMS = ["本人の価値に沿う", "後戻りできる", "当日中に試せる", "失敗しても再挑戦できる"];
 
 const stageLinks = [
   { href: "/observe", stage: "Observe", stageLabel: "観察", label: "観察を書く", helper: "事実を残す", tone: "observe" },
@@ -451,6 +462,7 @@ function HomeStartBar({
     <section className="home-start-bar" aria-label="今日の開始">
       <div className="home-start-main">
         <span>今日の一手</span>
+        {selected ? <small className="home-start-selected">対象: {selected.displayName}</small> : null}
         <strong>{nextAction?.reason ?? "最初の対象を作ると、観察から始められます。"}</strong>
         {selected && nextAction ? (
           <Link href={nextAction.href} className="case-primary-action">
@@ -471,25 +483,8 @@ function HomeStartBar({
                 ))}
               </select>
             </label>
-            <span className="case-dock-progress-label">記録数</span>
-            <div className="case-dock-progress" aria-label="OODA記録数">
-              <span className={selected.counts.observations > 0 ? "is-filled" : ""}>
-                <b>{selected.counts.observations}</b>
-                <small>観察</small>
-              </span>
-              <span className={selected.counts.hypotheses > 0 ? "is-filled" : ""}>
-                <b>{selected.counts.hypotheses}</b>
-                <small>仮説</small>
-              </span>
-              <span className={selected.counts.experiments > 0 ? "is-filled" : ""}>
-                <b>{selected.counts.experiments}</b>
-                <small>支援</small>
-              </span>
-              <span className={selected.counts.actReviews > 0 ? "is-filled" : ""}>
-                <b>{selected.counts.actReviews}</b>
-                <small>反応</small>
-              </span>
-            </div>
+            <span className="case-dock-progress-label">OODA進捗</span>
+            <CaseProgressRail item={selected} dense />
           </>
         ) : (
           <>
@@ -557,35 +552,13 @@ function WorkflowMenu({
 
         {selected ? (
           <>
-            <div className="case-dock-status">
-              <span>{selected.isActive ? "アクティブ" : "停止中"}</span>
-              <span>更新 {formatShortDateTime(selected.updatedAt)}</span>
-            </div>
-            <p className="case-dock-memo">{selected.memo || "メモはまだありません。"}</p>
-            <div className="case-dock-progress" aria-label="OODA記録数">
-              <span className={selected.counts.observations > 0 ? "is-filled" : ""}>
-                <b>{selected.counts.observations}</b>
-                <small>観察</small>
-              </span>
-              <span className={selected.counts.hypotheses > 0 ? "is-filled" : ""}>
-                <b>{selected.counts.hypotheses}</b>
-                <small>仮説</small>
-              </span>
-              <span className={selected.counts.experiments > 0 ? "is-filled" : ""}>
-                <b>{selected.counts.experiments}</b>
-                <small>支援</small>
-              </span>
-              <span className={selected.counts.actReviews > 0 ? "is-filled" : ""}>
-                <b>{selected.counts.actReviews}</b>
-                <small>反応</small>
-              </span>
-            </div>
+            <span className="case-dock-progress-label">OODA進捗</span>
+            <CaseProgressRail item={selected} currentPath={currentPath} dense />
             <p className="case-dock-next-reason">{nextAction?.reason}</p>
             <div className="case-dock-actions">
               <Link href={nextAction?.href ?? "/cases"} className="case-dock-primary">
                 次: {nextAction?.label ?? "ケース作成"}
               </Link>
-              <Link href={`/observe?caseId=${selected.id}`}>観察</Link>
               <Link href={`/reflect?caseId=${selected.id}`}>履歴</Link>
             </div>
           </>
@@ -655,9 +628,65 @@ function QuickCaseForm({
   );
 }
 
+function CaseProgressRail({
+  item,
+  currentPath,
+  dense = false
+}: {
+  item: CaseDockItem | null;
+  currentPath?: string;
+  dense?: boolean;
+}) {
+  const nextStageIndex = item ? getNextStageIndex(item) : 0;
+
+  return (
+    <div className={`case-progress-rail ${dense ? "case-progress-rail-dense" : ""}`} aria-label="OODA進捗">
+      {stageLinks.map((stage, index) => {
+        const count = item ? countForCaseStage(item, stage.stage) : 0;
+        const isDone = count > 0;
+        const isNext = nextStageIndex === index;
+        const isCurrent = Boolean(currentPath && currentPath.startsWith(stage.href));
+        const stateLabel = isCurrent ? "表示中" : isNext ? "次にやる" : isDone ? `${count}件` : "未入力";
+        const className = [
+          "case-progress-step",
+          `case-progress-step-${stage.tone}`,
+          isDone ? "is-done" : "",
+          isNext ? "is-next" : "",
+          isCurrent ? "is-current" : "",
+          item ? "" : "is-disabled"
+        ]
+          .filter(Boolean)
+          .join(" ");
+        const content = (
+          <>
+            <span className="case-progress-step-number">{String(index + 1).padStart(2, "0")}</span>
+            <span className="case-progress-step-copy">
+              <strong>{stage.stageLabel}</strong>
+              <small>{stateLabel}</small>
+            </span>
+          </>
+        );
+
+        return item ? (
+          <Link key={stage.href} href={hrefForCaseStage(item, stage.href)} aria-current={isCurrent ? "step" : undefined} className={className}>
+            {content}
+          </Link>
+        ) : (
+          <span key={stage.href} className={className}>
+            {content}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 function HomeView({ data }: { data: AppData }) {
   const hasCases = data.cases.length > 0;
-  const hasAnyRecords = data.observations.length > 0 || data.hypotheses.length > 0 || data.experiments.length > 0 || data.actReviews.length > 0;
+  const caseItems = buildCaseDockItems(data);
+  const selectedCase = caseItems.find((item) => item.id === data.settings.currentCaseId) ?? caseItems[0] ?? null;
+  const nextAction = selectedCase ? getCaseNextAction(selectedCase) : null;
+  const nextStageIndex = selectedCase ? getNextStageIndex(selectedCase) : 0;
   const recentObservations = [...data.observations].sort(byNewest).slice(0, 4);
   const activeHypotheses = data.hypotheses.filter((item) => item.status === "未検証" || item.status === "検証中").sort(byUpdated).slice(0, 4);
   const dueExperiments = data.experiments.filter((item) => item.status === "予定" || item.status === "実施中").sort((a, b) => a.reviewDueAt.localeCompare(b.reviewDueAt)).slice(0, 4);
@@ -667,7 +696,7 @@ function HomeView({ data }: { data: AppData }) {
     <>
       <PageHeader
         title="今日のOODA"
-        description={hasCases ? "今は観察から始めます。" : "ケースを作ると、観察からOODAを始められます。"}
+        description={selectedCase && nextAction ? `${selectedCase.displayName}: ${nextAction.reason}` : hasCases ? "対象ケースを選び、次の一手から始めます。" : "ケースを作ると、観察からOODAを始められます。"}
         image={hasCases ? "home.png" : undefined}
         imageClassName="home-page-illustration"
       />
@@ -676,21 +705,24 @@ function HomeView({ data }: { data: AppData }) {
         {!hasCases ? <h2 className="today-loop-preview-title">作成後の流れ</h2> : null}
         <div className="today-loop-rail">
           {stageLinks.map((item, index) => {
-            const isCurrentStart = hasCases && !hasAnyRecords && item.stage === "Observe";
+            const count = selectedCase ? countForCaseStage(selectedCase, item.stage) : countForStage(data, item.stage);
+            const isCurrentStart = Boolean(hasCases && selectedCase && nextStageIndex === index);
+            const isComplete = hasCases && count > 0;
+            const href = selectedCase ? hrefForCaseStage(selectedCase, item.href) : item.href;
             const stepContent = (
               <>
                 <span>{String(index + 1).padStart(2, "0")}</span>
                 <div>
                   <small>{item.stageLabel}</small>
-                  <strong>{isCurrentStart ? "今はここ" : item.label}</strong>
-                  <em>{isCurrentStart ? "上のボタンから始める" : item.helper}</em>
+                  <strong>{isCurrentStart ? `次: ${item.label}` : item.label}</strong>
+                  <em>{isCurrentStart ? nextAction?.reason : isComplete ? `${count}件記録済み` : item.helper}</em>
                 </div>
-                {hasCases ? <b>{countForStage(data, item.stage)}</b> : null}
+                {hasCases ? <b>{count}件</b> : null}
               </>
             );
 
             return hasCases ? (
-              <Link key={item.href} href={item.href} className={`today-loop-step today-loop-step-${item.tone}`}>
+              <Link key={item.href} href={href} className={`today-loop-step today-loop-step-${item.tone} ${isCurrentStart ? "is-next" : ""} ${isComplete ? "is-complete" : ""}`}>
                 {stepContent}
               </Link>
             ) : (
@@ -817,27 +849,35 @@ function CasesView({ data, commit, onNavigate }: { data: AppData; commit: Commit
           <div className="grid gap-4 lg:grid-cols-2">
             {caseItems.map((item) => {
               const nextAction = getCaseNextAction(item);
+              const nextStageIndex = getNextStageIndex(item);
+              const nextStage = stageLinks.find((_, index) => index === nextStageIndex) ?? null;
               return (
                 <article key={item.id} className="case-record-card rounded-md border border-ink/10 bg-white p-4 shadow-sm">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-lg font-semibold">{item.displayName}</h2>
-                        <Tag>{item.isActive ? "アクティブ" : "停止中"}</Tag>
+                  <div className="case-record-head">
+                    <div className="case-record-title-block">
+                      <span className={`case-record-step-mark case-record-step-mark-${nextStage?.tone ?? "act"}`}>{nextStage ? String(nextStageIndex + 1).padStart(2, "0") : "OK"}</span>
+                      <div className="case-record-title-copy">
+                        <div className="case-record-title-row">
+                          <h2 className="case-record-title">{item.displayName}</h2>
+                          <Tag>{item.isActive ? "アクティブ" : "停止中"}</Tag>
+                        </div>
+                        <p className="case-record-meta">作成 {formatShortDate(item.createdAt)} / 更新 {formatShortDate(item.updatedAt)}</p>
                       </div>
-                      <p className="mt-1 text-xs text-ink/55">作成 {formatShortDate(item.createdAt)} / 更新 {formatShortDate(item.updatedAt)}</p>
+                    </div>
+                    <div className="case-record-stage-pill">
+                      <span>{nextStage ? "次" : "一巡"}</span>
+                      <strong>{nextStage?.stageLabel ?? "振り返り"}</strong>
                     </div>
                   </div>
-                  <p className="mt-3 min-h-12 text-sm leading-6 text-ink/70">{item.memo || "メモはまだありません。"}</p>
-                  <div className="mt-4 grid grid-cols-4 gap-2 text-center text-xs text-ink/65">
-                    <ProgressCount label="観察" value={item.counts.observations} done={item.counts.observations > 0} />
-                    <ProgressCount label="仮説" value={item.counts.hypotheses} done={item.counts.hypotheses > 0} />
-                    <ProgressCount label="支援" value={item.counts.experiments} done={item.counts.experiments > 0} />
-                    <ProgressCount label="反応" value={item.counts.actReviews} done={item.counts.actReviews > 0} />
+                  <p className="case-record-memo">{item.memo || "メモはまだありません。"}</p>
+                  <div className="case-record-progress">
+                    <CaseProgressRail item={item} />
                   </div>
                   <div className="case-next-action-panel">
-                    <div className="text-xs font-semibold text-skyline">次の一手</div>
-                    <p className="mt-1 text-sm leading-6 text-ink/75">{nextAction.reason}</p>
+                    <div className="case-next-action-copy">
+                      <span>次の一手</span>
+                      <p>{nextAction.reason}</p>
+                    </div>
                     <Link href={nextAction.href} className="case-primary-action">
                       {nextAction.label}
                     </Link>
@@ -916,6 +956,10 @@ function ObserveView({
       antecedent: requiredText(form, "antecedent"),
       consequence: requiredText(form, "consequence"),
       unknownMemo: text(form, "unknownMemo"),
+      observationChecklist: allText(form, "observationChecklist"),
+      personWords: text(form, "personWords"),
+      consentScope: text(form, "consentScope"),
+      shareScope: text(form, "shareScope"),
       createdAt: now,
       updatedAt: now
     };
@@ -966,6 +1010,14 @@ function ObserveView({
                 <Textarea name="factMemo" rows={4} placeholder="見えた行動、時間、場面、直前直後の変化として書く" required />
               </Label>
 
+              <div className="record-context-panel">
+                <div className="record-context-panel-head">
+                  <strong>観察の6点チェック</strong>
+                  <span>抜けやすい観察対象を先にそろえる</span>
+                </div>
+                <CheckboxGroup name="observationChecklist" title="今回見たもの" options={OBSERVATION_CHECK_ITEMS} />
+              </div>
+
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <Label>
                   日時 <RequiredMark />
@@ -1001,6 +1053,11 @@ function ObserveView({
               </Label>
 
               <Label>
+                本人の言葉・反応の言い方 <OptionalMark />
+                <Textarea name="personWords" rows={3} placeholder="本人が言った言葉、沈黙、首振り、表情の変化など" />
+              </Label>
+
+              <Label>
                 まず一行メモ <OptionalMark />
                 <Textarea name="freeText" rows={3} placeholder="見えた流れを一行で置く" />
               </Label>
@@ -1012,6 +1069,23 @@ function ObserveView({
               未確認メモ
               <Textarea name="unknownMemo" rows={3} placeholder="まだ分からない点、次に確認する点" />
             </Label>
+
+            <div className="record-context-panel record-context-panel-ethics">
+              <div className="record-context-panel-head">
+                <strong>同意と共有範囲</strong>
+                <span>支援記録として扱う前に最小限を確認する</span>
+              </div>
+              <div className="record-context-grid">
+                <Label>
+                  扱ってよい範囲 <OptionalMark />
+                  <Input name="consentScope" placeholder="例: 本人に確認済み / 次回確認する" />
+                </Label>
+                <Label>
+                  共有範囲 <OptionalMark />
+                  <Input name="shareScope" placeholder="例: 支援チーム内のみ / 記録者のみ" />
+                </Label>
+              </div>
+            </div>
 
             <SubmitButton>観察を保存して、仮説を立てる</SubmitButton>
           </form>
@@ -1069,6 +1143,10 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
         counterEvidence: text(form, `counterEvidence-${index}`),
         unknowns: text(form, `unknowns-${index}`),
         nextObservationPoints: text(form, `nextObservationPoints-${index}`),
+        valueDirection: text(form, `valueDirection-${index}`),
+        avoidancePattern: text(form, `avoidancePattern-${index}`),
+        fusedStory: text(form, `fusedStory-${index}`),
+        smallStep: text(form, `smallStep-${index}`),
         confidence: Number(text(form, `confidence-${index}`) || 50),
         status: parseHypothesisStatus(text(form, `status-${index}`)),
         createdAt: now,
@@ -1131,7 +1209,7 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
 
             <div className="orient-workbench">
               <div className="orient-input-panel">
-                <Notice>主な仮説を1つ書く。別案は余裕があれば。</Notice>
+                <Notice>見立ては結論ではなく仮置きです。価値、回避、強く働く考え、今できる一歩を分けてから、主な仮説を1つに絞ります。</Notice>
                 <div id="task-form" className="orient-entry-layout">
                   <HypothesisEditor index={0} role="primary" />
                   <details className="optional-hypothesis-details">
@@ -1155,7 +1233,9 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
                       factMemo: selected.factMemo,
                       antecedent: selected.antecedent,
                       consequence: selected.consequence,
-                      behaviorTags: selected.behaviorTags
+                      behaviorTags: selected.behaviorTags,
+                      observationChecklist: selected.observationChecklist,
+                      personWords: selected.personWords
                     }}
                   />
                 </aside>
@@ -1222,6 +1302,7 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
       reviewDueAt: toIsoFromLocal(text(form, "reviewDueAt")) || now,
       cautions: text(form, "cautions"),
       nextTryCandidate: text(form, "nextTryCandidate"),
+      decisionChecks: allText(form, "decisionChecks"),
       status: parseExperimentStatus(text(form, "status")),
       createdAt: now,
       updatedAt: now
@@ -1278,6 +1359,13 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
                 </div>
                 <p className="mt-2">{selected.statement}</p>
                 <p className="mt-2 text-ink/55">根拠: {selected.evidence}</p>
+                {selected.valueDirection || selected.avoidancePattern || selected.smallStep ? (
+                  <div className="decision-context-strip">
+                    {selected.valueDirection ? <span>大事な方向: {selected.valueDirection}</span> : null}
+                    {selected.avoidancePattern ? <span>回避: {selected.avoidancePattern}</span> : null}
+                    {selected.smallStep ? <span>小さな一歩: {selected.smallStep}</span> : null}
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -1295,6 +1383,14 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
               </div>
             </details>
             <Notice>ここでは支援を一つに絞ります。複数を同時に変えると、反応を見立てに戻しにくくなります。</Notice>
+
+            <div className="record-context-panel record-context-panel-decision">
+              <div className="record-context-panel-head">
+                <strong>小さく試す条件</strong>
+                <span>価値に沿い、戻せて、当日試せる単位にする</span>
+              </div>
+              <CheckboxGroup name="decisionChecks" title="今回満たす条件" options={DECISION_CHECK_ITEMS} />
+            </div>
 
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <Label>
@@ -1624,13 +1720,13 @@ function ReflectView({
                   <tbody className="divide-y divide-ink/10">
                     {rows.map((row) => (
                       <tr key={row.id} className="align-top">
-                        <td className="w-56 px-3 py-3">{row.fact}</td>
-                        <td className="w-56 px-3 py-3">{row.hypothesis}</td>
-                        <td className="w-48 px-3 py-3">{row.evidence}</td>
-                        <td className="w-48 px-3 py-3">{row.counter}</td>
-                        <td className="w-56 px-3 py-3">{row.support}</td>
-                        <td className="w-56 px-3 py-3">{row.response}</td>
-                        <td className="w-48 px-3 py-3">{row.next}</td>
+                        <td className="w-56 whitespace-pre-line px-3 py-3">{row.fact}</td>
+                        <td className="w-56 whitespace-pre-line px-3 py-3">{row.hypothesis}</td>
+                        <td className="w-48 whitespace-pre-line px-3 py-3">{row.evidence}</td>
+                        <td className="w-48 whitespace-pre-line px-3 py-3">{row.counter}</td>
+                        <td className="w-56 whitespace-pre-line px-3 py-3">{row.support}</td>
+                        <td className="w-56 whitespace-pre-line px-3 py-3">{row.response}</td>
+                        <td className="w-48 whitespace-pre-line px-3 py-3">{row.next}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1911,23 +2007,25 @@ function PageHeader({
   imageClassName?: string;
 }) {
   return (
-    <div className={`record-page-header mb-6 flex flex-col gap-4 border-b border-ink/10 pb-5 md:flex-row md:items-center md:justify-between ${compact ? "record-page-header-task" : ""}`}>
-      <div className="record-page-copy">
-        <h1 className="record-page-title text-3xl font-bold tracking-normal text-ink">{title}</h1>
-        <p className="record-page-description mt-2 max-w-3xl text-sm leading-6 text-ink/70">{description}</p>
+    <div className={`record-page-header mb-6 border-b border-ink/10 pb-5 ${compact ? "record-page-header-task" : ""}`}>
+      <div className="record-page-main">
+        {image ? (
+          <Image
+            src={`/illustrations/${image}`}
+            alt=""
+            width={144}
+            height={96}
+            priority
+            className={`record-page-illustration h-24 w-36 rounded-md border border-ink/10 bg-white object-cover shadow-sm ${imageClassName}`}
+          />
+        ) : null}
+        <div className="record-page-copy">
+          <h1 className="record-page-title text-3xl font-bold tracking-normal text-ink">{title}</h1>
+          <p className="record-page-description mt-2 max-w-3xl text-sm leading-6 text-ink/70">{description}</p>
+        </div>
       </div>
-      {(image || action) ? (
-        <div className="record-page-aside flex flex-col items-start gap-3 md:items-end">
-          {image ? (
-            <Image
-              src={`/illustrations/${image}`}
-              alt=""
-              width={144}
-              height={96}
-              priority
-              className={`record-page-illustration h-24 w-36 rounded-md border border-ink/10 bg-white object-cover shadow-sm ${imageClassName}`}
-            />
-          ) : null}
+      {action ? (
+        <div className="record-page-aside">
           {action}
         </div>
       ) : null}
@@ -1949,14 +2047,15 @@ function Section({ title, description, children }: { title: string; description?
 
 function DashboardBlock({ title, href, actionLabel, children }: { title: string; href: string; actionLabel: string; children: ReactNode }) {
   return (
-    <Section title={title}>
-      <div className="mb-3 flex justify-end">
-        <Link href={href} className="text-sm font-medium text-skyline hover:underline">
+    <section className="record-section dashboard-block mb-8">
+      <div className="record-section-heading dashboard-block-heading mb-3">
+        <h2 className="record-section-title text-lg font-semibold text-ink">{title}</h2>
+        <Link href={href} className="dashboard-block-action">
           {actionLabel}
         </Link>
       </div>
-      <div className="grid min-h-80 gap-3">{children}</div>
-    </Section>
+      <div className="dashboard-block-list grid min-h-80 gap-3">{children}</div>
+    </section>
   );
 }
 
@@ -2050,9 +2149,9 @@ function LinkCard({ href, children }: { href: string; children: ReactNode }) {
 
 function CardTop({ title, meta }: { title: string; meta: string }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <strong>{title}</strong>
-      <span className="text-xs text-ink/55">{meta}</span>
+    <div className="record-card-top">
+      <strong className="record-card-title">{title}</strong>
+      <span className="record-card-meta">{meta}</span>
     </div>
   );
 }
@@ -2075,15 +2174,6 @@ function GuideCard({ step, title, body }: { step: string; title: string; body: s
       <span>{step}</span>
       <strong>{title}</strong>
       <small>{body}</small>
-    </div>
-  );
-}
-
-function ProgressCount({ label, value, done }: { label: string; value: number; done: boolean }) {
-  return (
-    <div className={`rounded-md p-2 ${done ? "bg-moss/10 text-moss" : "bg-field text-ink/55"}`}>
-      <div className="text-base font-semibold">{value}</div>
-      <div>{label}</div>
     </div>
   );
 }
@@ -2120,6 +2210,31 @@ function HypothesisEditor({ index, role }: { index: number; role: "primary" | "a
         <span className="rounded-md bg-clay/10 px-2 py-1 text-clay">反証</span>
       </div>
       <div className="grid gap-3">
+        <div className="record-context-panel record-context-panel-act">
+          <div className="record-context-panel-head">
+            <strong>ACTの見立て軸</strong>
+            <span>本人の価値と回避を混ぜずに置く</span>
+          </div>
+          <div className="record-context-grid">
+            <Label>
+              大事な方向 <OptionalMark />
+              <Textarea name={`valueDirection-${index}`} rows={2} placeholder="本人が大事にしたいこと、向かいたい方向" />
+            </Label>
+            <Label>
+              避けたい体験 <OptionalMark />
+              <Textarea name={`avoidancePattern-${index}`} rows={2} placeholder="不安、失敗感、刺激、評価など避けていそうな体験" />
+            </Label>
+            <Label>
+              強く働く考え <OptionalMark />
+              <Textarea name={`fusedStory-${index}`} rows={2} placeholder="こうしないといけない、無理、失敗できない等" />
+            </Label>
+            <Label>
+              今できる小さな一歩 <OptionalMark />
+              <Textarea name={`smallStep-${index}`} rows={2} placeholder="その場で試せる最小の行動" />
+            </Label>
+          </div>
+        </div>
+
         <Label>
           仮説文 {isRequired ? <RequiredMark /> : null}
           <Textarea name={`statement-${index}`} rows={3} placeholder="何が影響している可能性があるか" required={isRequired} />
@@ -2195,12 +2310,12 @@ function normalizeData(value: unknown): AppData {
       currentCaseId: isRecord(parsed.settings) && typeof parsed.settings.currentCaseId === "string" ? parsed.settings.currentCaseId : "",
       storageNote: isRecord(parsed.settings) && typeof parsed.settings.storageNote === "string" ? parsed.settings.storageNote : ""
     },
-    cases: Array.isArray(parsed.cases) ? (parsed.cases as OodaCase[]) : [],
-    observations: Array.isArray(parsed.observations) ? (parsed.observations as ObservationRecord[]) : [],
-    hypotheses: Array.isArray(parsed.hypotheses) ? (parsed.hypotheses as HypothesisRecord[]) : [],
-    experiments: Array.isArray(parsed.experiments) ? (parsed.experiments as SmallExperimentRecord[]) : [],
-    actReviews: Array.isArray(parsed.actReviews) ? (parsed.actReviews as ActReviewRecord[]) : [],
-    reflectionMemos: Array.isArray(parsed.reflectionMemos) ? (parsed.reflectionMemos as ReflectionMemo[]) : []
+    cases: Array.isArray(parsed.cases) ? parsed.cases.map(normalizeCase).filter(isDefined) : [],
+    observations: Array.isArray(parsed.observations) ? parsed.observations.map(normalizeObservation).filter(isDefined) : [],
+    hypotheses: Array.isArray(parsed.hypotheses) ? parsed.hypotheses.map(normalizeHypothesis).filter(isDefined) : [],
+    experiments: Array.isArray(parsed.experiments) ? parsed.experiments.map(normalizeExperiment).filter(isDefined) : [],
+    actReviews: Array.isArray(parsed.actReviews) ? parsed.actReviews.map(normalizeActReview).filter(isDefined) : [],
+    reflectionMemos: Array.isArray(parsed.reflectionMemos) ? parsed.reflectionMemos.map(normalizeReflectionMemo).filter(isDefined) : []
   };
 }
 
@@ -2214,6 +2329,165 @@ function stampData(data: AppData): AppData {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function isDefined<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined;
+}
+
+function stringField(record: Record<string, unknown>, key: string) {
+  const value = record[key];
+  return typeof value === "string" ? value : "";
+}
+
+function booleanField(record: Record<string, unknown>, key: string, fallback = false) {
+  const value = record[key];
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function numberField(record: Record<string, unknown>, key: string, fallback: number) {
+  const value = record[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function stringArrayField(record: Record<string, unknown>, key: string) {
+  const value = record[key];
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function normalizeCase(value: unknown): OodaCase | null {
+  if (!isRecord(value)) return null;
+  const id = stringField(value, "id");
+  if (!id) return null;
+  return {
+    id,
+    displayName: stringField(value, "displayName"),
+    memo: stringField(value, "memo"),
+    isActive: booleanField(value, "isActive", true),
+    createdAt: stringField(value, "createdAt"),
+    updatedAt: stringField(value, "updatedAt")
+  };
+}
+
+function normalizeObservation(value: unknown): ObservationRecord | null {
+  if (!isRecord(value)) return null;
+  const id = stringField(value, "id");
+  const caseId = stringField(value, "caseId");
+  if (!id || !caseId) return null;
+  return {
+    id,
+    caseId,
+    observedAt: stringField(value, "observedAt"),
+    location: stringField(value, "location"),
+    programName: stringField(value, "programName"),
+    timing: stringField(value, "timing"),
+    freeText: stringField(value, "freeText"),
+    factMemo: stringField(value, "factMemo"),
+    behaviorTags: stringArrayField(value, "behaviorTags"),
+    antecedent: stringField(value, "antecedent"),
+    consequence: stringField(value, "consequence"),
+    unknownMemo: stringField(value, "unknownMemo"),
+    observationChecklist: stringArrayField(value, "observationChecklist"),
+    personWords: stringField(value, "personWords"),
+    consentScope: stringField(value, "consentScope"),
+    shareScope: stringField(value, "shareScope"),
+    createdAt: stringField(value, "createdAt"),
+    updatedAt: stringField(value, "updatedAt")
+  };
+}
+
+function normalizeHypothesis(value: unknown): HypothesisRecord | null {
+  if (!isRecord(value)) return null;
+  const id = stringField(value, "id");
+  const caseId = stringField(value, "caseId");
+  const observationId = stringField(value, "observationId");
+  if (!id || !caseId || !observationId) return null;
+  return {
+    id,
+    caseId,
+    observationId,
+    category: stringField(value, "category") || HYPOTHESIS_CATEGORIES[0],
+    statement: stringField(value, "statement"),
+    evidence: stringField(value, "evidence"),
+    counterEvidence: stringField(value, "counterEvidence"),
+    unknowns: stringField(value, "unknowns"),
+    nextObservationPoints: stringField(value, "nextObservationPoints"),
+    valueDirection: stringField(value, "valueDirection"),
+    avoidancePattern: stringField(value, "avoidancePattern"),
+    fusedStory: stringField(value, "fusedStory"),
+    smallStep: stringField(value, "smallStep"),
+    confidence: numberField(value, "confidence", 50),
+    status: parseHypothesisStatus(stringField(value, "status")),
+    createdAt: stringField(value, "createdAt"),
+    updatedAt: stringField(value, "updatedAt")
+  };
+}
+
+function normalizeExperiment(value: unknown): SmallExperimentRecord | null {
+  if (!isRecord(value)) return null;
+  const id = stringField(value, "id");
+  const caseId = stringField(value, "caseId");
+  const hypothesisId = stringField(value, "hypothesisId");
+  if (!id || !caseId || !hypothesisId) return null;
+  return {
+    id,
+    caseId,
+    hypothesisId,
+    support: stringField(value, "support"),
+    supportCategory: stringField(value, "supportCategory") || SUPPORT_CATEGORIES[0],
+    targetChange: stringField(value, "targetChange"),
+    metric: stringField(value, "metric") || METRIC_OPTIONS[0],
+    plannedAt: stringField(value, "plannedAt"),
+    reviewDueAt: stringField(value, "reviewDueAt"),
+    cautions: stringField(value, "cautions"),
+    nextTryCandidate: stringField(value, "nextTryCandidate"),
+    decisionChecks: stringArrayField(value, "decisionChecks"),
+    status: parseExperimentStatus(stringField(value, "status")),
+    createdAt: stringField(value, "createdAt"),
+    updatedAt: stringField(value, "updatedAt")
+  };
+}
+
+function normalizeActReview(value: unknown): ActReviewRecord | null {
+  if (!isRecord(value)) return null;
+  const id = stringField(value, "id");
+  const caseId = stringField(value, "caseId");
+  const experimentId = stringField(value, "experimentId");
+  const hypothesisId = stringField(value, "hypothesisId");
+  if (!id || !caseId || !experimentId || !hypothesisId) return null;
+  return {
+    id,
+    caseId,
+    experimentId,
+    hypothesisId,
+    implementation: stringField(value, "implementation"),
+    implementationStatus: parseImplementationStatus(stringField(value, "implementationStatus")),
+    immediateResponse: stringField(value, "immediateResponse"),
+    laterResponse: stringField(value, "laterResponse"),
+    measuredValue: stringField(value, "measuredValue"),
+    comparison: stringField(value, "comparison"),
+    hypothesisUpdate: parseHypothesisStatus(stringField(value, "hypothesisUpdate")),
+    nextObservationPoint: stringField(value, "nextObservationPoint"),
+    nextTryCandidate: stringField(value, "nextTryCandidate"),
+    createdAt: stringField(value, "createdAt"),
+    updatedAt: stringField(value, "updatedAt")
+  };
+}
+
+function normalizeReflectionMemo(value: unknown): ReflectionMemo | null {
+  if (!isRecord(value)) return null;
+  const id = stringField(value, "id");
+  const caseId = stringField(value, "caseId");
+  if (!id || !caseId) return null;
+  return {
+    id,
+    caseId,
+    targetRef: stringField(value, "targetRef"),
+    columnKey: stringField(value, "columnKey"),
+    body: stringField(value, "body"),
+    createdAt: stringField(value, "createdAt"),
+    updatedAt: stringField(value, "updatedAt")
+  };
 }
 
 function buildCaseDockItems(data: AppData): CaseDockItem[] {
@@ -2255,6 +2529,66 @@ function getCaseNextAction(item: CaseDockItem) {
   return { label: "振り返る", href: `/reflect?caseId=${item.id}`, reason: "OODAが一巡しています。次に見る点を整理します。" };
 }
 
+function getNextStageIndex(item: CaseDockItem) {
+  if (item.counts.observations === 0) return 0;
+  if (item.counts.hypotheses === 0) return 1;
+  if (item.counts.experiments === 0) return 2;
+  if (item.counts.actReviews === 0) return 3;
+  return -1;
+}
+
+function countForCaseStage(item: CaseDockItem, stage: string) {
+  if (stage === "Observe") return item.counts.observations;
+  if (stage === "Orient") return item.counts.hypotheses;
+  if (stage === "Decide") return item.counts.experiments;
+  return item.counts.actReviews;
+}
+
+function hrefForCaseStage(item: CaseDockItem, href: string) {
+  if (href === "/observe") return `/observe?caseId=${item.id}`;
+  if (href === "/orient" && item.latestObservationId) return `/orient?observationId=${item.latestObservationId}`;
+  if (href === "/decide" && item.latestHypothesisId) return `/decide?hypothesisId=${item.latestHypothesisId}`;
+  if (href === "/act" && item.latestExperimentId) return `/act?experimentId=${item.latestExperimentId}`;
+  return href;
+}
+
+function compactLines(lines: Array<string | false | null | undefined>) {
+  return lines.filter((line): line is string => typeof line === "string" && line.trim().length > 0).map((line) => line.trim());
+}
+
+function labeledLine(label: string, value: string | undefined) {
+  return value?.trim() ? `${label}: ${value.trim()}` : "";
+}
+
+function listLine(label: string, values: string[] | undefined) {
+  return values && values.length > 0 ? `${label}: ${values.join(" / ")}` : "";
+}
+
+function observationFactText(observation: ObservationRecord) {
+  return compactLines([
+    observation.factMemo,
+    listLine("確認", observation.observationChecklist),
+    labeledLine("本人の言葉", observation.personWords),
+    labeledLine("扱える範囲", observation.consentScope),
+    labeledLine("共有", observation.shareScope)
+  ]).join("\n");
+}
+
+function hypothesisContextText(hypothesis: HypothesisRecord) {
+  return compactLines([
+    hypothesis.statement,
+    labeledLine("大事な方向", hypothesis.valueDirection),
+    labeledLine("避けたい体験", hypothesis.avoidancePattern),
+    labeledLine("強く働く考え", hypothesis.fusedStory),
+    labeledLine("小さな一歩", hypothesis.smallStep)
+  ]).join("\n");
+}
+
+function experimentSupportText(experiment: SmallExperimentRecord | undefined) {
+  if (!experiment) return "未入力";
+  return compactLines([experiment.support, listLine("条件", experiment.decisionChecks)]).join("\n");
+}
+
 function buildReflectionRows(data: AppData, caseId: string) {
   return data.observations
     .filter((observation) => observation.caseId === caseId)
@@ -2266,7 +2600,7 @@ function buildReflectionRows(data: AppData, caseId: string) {
           {
             id: observation.id,
             label: `${formatShortDate(observation.observedAt)} 観察`,
-            fact: observation.factMemo,
+            fact: observationFactText(observation),
             hypothesis: "未入力",
             evidence: observation.antecedent,
             counter: observation.unknownMemo || "未入力",
@@ -2282,12 +2616,16 @@ function buildReflectionRows(data: AppData, caseId: string) {
         return {
           id: `${observation.id}-${hypothesis.id}`,
           label: `${formatShortDate(observation.observedAt)} ${hypothesis.category}`,
-          fact: observation.factMemo,
-          hypothesis: hypothesis.statement,
+          fact: observationFactText(observation),
+          hypothesis: hypothesisContextText(hypothesis),
           evidence: hypothesis.evidence,
-          counter: hypothesis.counterEvidence || hypothesis.unknowns || "未入力",
-          support: experiment?.support ?? "未入力",
-          response: review?.immediateResponse ?? observation.consequence,
+          counter: compactLines([labeledLine("反証", hypothesis.counterEvidence), labeledLine("未確認", hypothesis.unknowns)]).join("\n") || "未入力",
+          support: experimentSupportText(experiment),
+          response: compactLines([
+            review?.immediateResponse ?? observation.consequence,
+            labeledLine("後続", review?.laterResponse),
+            labeledLine("比較", review?.comparison)
+          ]).join("\n"),
           next: review?.nextObservationPoint || hypothesis.nextObservationPoints || observation.unknownMemo || "次の観察で確認"
         };
       });
@@ -2302,14 +2640,29 @@ function buildSummary(data: AppData, observation: ObservationRecord) {
   const hypothesisText = hypothesis?.statement ?? "仮説は未入力";
   const support = experiment?.support ?? "支援は未入力";
   const response = review?.immediateResponse ?? observation.consequence;
-  return `本日は${scene}で、「${observation.factMemo}」が見られた。直前には「${observation.antecedent}」があり、直後には「${observation.consequence}」があった。「${hypothesisText}」の可能性を置き、次に「${support}」を試す。反応として「${response}」を確認し、次回は「${review?.nextObservationPoint || hypothesis?.nextObservationPoints || observation.unknownMemo || "未確認点"}」を見る。`;
+  const observationDetails = compactLines([
+    listLine("確認した観察", observation.observationChecklist),
+    labeledLine("本人の言葉", observation.personWords),
+    labeledLine("扱える範囲", observation.consentScope),
+    labeledLine("共有", observation.shareScope)
+  ]).join("。");
+  const orientContext = hypothesis
+    ? compactLines([
+        labeledLine("大事な方向", hypothesis.valueDirection),
+        labeledLine("避けたい体験", hypothesis.avoidancePattern),
+        labeledLine("強く働く考え", hypothesis.fusedStory),
+        labeledLine("小さな一歩", hypothesis.smallStep)
+      ]).join("。")
+    : "";
+  const decisionContext = experiment?.decisionChecks.length ? `試す条件は「${experiment.decisionChecks.join("、")}」。` : "";
+  return `本日は${scene}で、「${observation.factMemo}」が見られた。直前には「${observation.antecedent}」があり、直後には「${observation.consequence}」があった。${observationDetails ? `${observationDetails}。` : ""}「${hypothesisText}」の可能性を置いた。${orientContext ? `${orientContext}。` : ""}次に「${support}」を試す。${decisionContext}反応として「${response}」を確認し、次回は「${review?.nextObservationPoint || hypothesis?.nextObservationPoints || observation.unknownMemo || "未確認点"}」を見る。`;
 }
 
 function countForStage(data: AppData, stage: string) {
-  if (stage === "Observe") return `${data.observations.length}件`;
-  if (stage === "Orient") return `${data.hypotheses.length}件`;
-  if (stage === "Decide") return `${data.experiments.length}件`;
-  return `${data.actReviews.length}件`;
+  if (stage === "Observe") return data.observations.length;
+  if (stage === "Orient") return data.hypotheses.length;
+  if (stage === "Decide") return data.experiments.length;
+  return data.actReviews.length;
 }
 
 function caseName(data: AppData, caseId: string) {
