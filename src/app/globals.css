@@ -208,6 +208,33 @@ main a.rounded-md.border:hover {
   line-height: 1.45;
 }
 
+.record-required-mark {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  border: 1px solid rgba(164, 95, 69, 0.24);
+  border-radius: 999px;
+  background: rgba(164, 95, 69, 0.09);
+  color: #a45f45;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  padding: 3px 6px;
+  vertical-align: 1px;
+}
+
+.record-form-error {
+  margin: 0;
+  border-left: 4px solid #a45f45;
+  border-radius: 8px;
+  background: rgba(164, 95, 69, 0.08);
+  color: #7d4430;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.6;
+  padding: 11px 13px;
+}
+
 .record-field {
   min-height: 42px;
   border-color: var(--line-strong);
@@ -949,6 +976,152 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   align-items: stretch;
 }
 
+.task-context-bar {
+  --accent: #376f8f;
+  display: grid;
+  grid-template-columns: minmax(200px, 0.8fr) minmax(210px, 0.72fr) minmax(240px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, rgba(31, 41, 51, 0.1));
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 253, 250, 0.84)),
+    color-mix(in srgb, var(--accent) 8%, white);
+  box-shadow: var(--shadow-card);
+  padding: 12px;
+}
+
+.task-context-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.task-context-index {
+  display: grid;
+  min-width: 64px;
+  min-height: 44px;
+  place-items: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 16%, white);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.task-context-main div,
+.task-context-action,
+.task-context-case {
+  min-width: 0;
+}
+
+.task-context-main span:not(.task-context-index),
+.task-context-case span {
+  display: block;
+  color: rgba(31, 41, 51, 0.52);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.task-context-main strong {
+  display: block;
+  overflow: hidden;
+  color: #1f2933;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-context-main small {
+  display: block;
+  overflow: hidden;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-context-case {
+  display: grid;
+  gap: 4px;
+}
+
+.task-context-case select {
+  min-width: 0;
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid rgba(31, 41, 51, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #1f2933;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 6px 9px;
+}
+
+.task-context-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.task-context-action span {
+  overflow: hidden;
+  color: rgba(31, 41, 51, 0.62);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-context-action a {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #1f2933;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 8px 11px;
+  white-space: nowrap;
+}
+
+.task-context-jump {
+  display: grid;
+  grid-template-columns: repeat(4, max-content);
+  gap: 5px;
+}
+
+.task-context-jump a {
+  border: 1px solid rgba(31, 41, 51, 0.1);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.76);
+  color: rgba(31, 41, 51, 0.7);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  padding: 8px 9px;
+}
+
+.task-context-jump a[aria-current="step"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, white);
+  color: var(--accent);
+}
+
 .case-entry-card {
   --accent: #1f2933;
   position: relative;
@@ -1234,6 +1407,46 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   cursor: pointer;
   font-size: 12px;
   font-weight: 900;
+}
+
+.observe-minimum-group {
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgba(55, 111, 143, 0.18);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(242, 245, 241, 0.66)),
+    rgba(55, 111, 143, 0.04);
+  padding: 14px;
+}
+
+.observe-minimum-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(31, 41, 51, 0.08);
+  padding-bottom: 10px;
+}
+
+.observe-minimum-head span {
+  display: inline-flex;
+  border-radius: 999px;
+  background: #1f2933;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  padding: 7px 10px;
+}
+
+.observe-minimum-head p {
+  margin: 0;
+  color: rgba(31, 41, 51, 0.62);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 .case-admin-details summary {
@@ -2154,6 +2367,54 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   box-shadow: 0 12px 0 rgba(164, 95, 69, 0.12), 0 1px 3px rgba(31, 41, 51, 0.08);
 }
 
+.orient-entry-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.hypothesis-input-card-primary {
+  grid-row: span 2;
+  border-color: rgba(55, 111, 143, 0.24);
+}
+
+.hypothesis-role-badge {
+  display: inline-flex;
+  margin-left: 6px;
+  border-radius: 999px;
+  background: rgba(55, 111, 143, 0.1);
+  color: #376f8f;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  padding: 4px 7px;
+  vertical-align: 2px;
+}
+
+.optional-hypothesis-details,
+.secondary-field-details {
+  border: 1px solid rgba(31, 41, 51, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.68);
+  padding: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
+}
+
+.optional-hypothesis-details summary,
+.secondary-field-details summary {
+  cursor: pointer;
+  color: #1f2933;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.4;
+}
+
+.optional-hypothesis-details .hypothesis-input-card {
+  margin-top: 12px;
+  box-shadow: none;
+}
+
 @media (max-width: 1023px) {
   .app-top-container {
     gap: 12px;
@@ -2192,6 +2453,29 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   .workflow-menu-shell {
     grid-template-columns: 1fr;
     gap: 12px;
+  }
+
+  .task-context-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .task-context-action {
+    grid-template-columns: 1fr;
+  }
+
+  .task-context-action span {
+    white-space: normal;
+  }
+
+  .task-context-jump {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .task-context-jump a {
+    display: inline-flex;
+    justify-content: center;
+    min-width: 0;
+    text-align: center;
   }
 
   .case-entry-card {
@@ -2261,6 +2545,14 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   .orient-depth-card-check {
     transform: none;
   }
+
+  .orient-entry-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .hypothesis-input-card-primary {
+    grid-row: auto;
+  }
 }
 
 @media (max-width: 639px) {
@@ -2297,6 +2589,19 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 
   .review-nav-link {
     white-space: nowrap;
+  }
+
+  .task-context-jump {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .task-context-main {
+    grid-template-columns: 1fr;
+  }
+
+  .task-context-index {
+    min-width: 0;
+    min-height: 34px;
   }
 
   .case-dock {
