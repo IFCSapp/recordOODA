@@ -120,6 +120,43 @@ button {
   outline-color: #376f8f;
 }
 
+.review-nav-menu {
+  position: relative;
+  display: grid;
+  min-width: 0;
+}
+
+.review-nav-menu summary {
+  cursor: pointer;
+  list-style: none;
+  white-space: nowrap;
+}
+
+.review-nav-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.review-nav-menu summary::after {
+  content: " +";
+  color: #376f8f;
+  font-weight: 900;
+}
+
+.review-nav-menu[open] summary::after {
+  content: " -";
+}
+
+.review-nav-menu-list {
+  display: grid;
+  grid-template-columns: repeat(3, max-content);
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.review-nav-mobile-menu {
+  display: none;
+}
+
 .record-main {
   padding-top: 32px;
 }
@@ -223,6 +260,21 @@ main a.rounded-md.border:hover {
   vertical-align: 1px;
 }
 
+.record-optional-mark {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  border: 1px solid rgba(31, 41, 51, 0.12);
+  border-radius: 999px;
+  background: rgba(31, 41, 51, 0.05);
+  color: rgba(31, 41, 51, 0.58);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  padding: 3px 6px;
+  vertical-align: 1px;
+}
+
 .record-form-error {
   margin: 0;
   border-left: 4px solid #a45f45;
@@ -291,6 +343,16 @@ main a.rounded-md.border:hover {
   margin-bottom: 28px;
 }
 
+.today-loop-panel-rail-only {
+  grid-template-columns: 1fr;
+}
+
+.home-empty-illustration {
+  display: flex;
+  justify-content: flex-start;
+  margin: -12px 0 28px;
+}
+
 .today-loop-action {
   display: grid;
   gap: 10px;
@@ -327,6 +389,15 @@ main a.rounded-md.border:hover {
   gap: 8px;
 }
 
+.today-loop-preview-title {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: rgba(31, 41, 51, 0.62);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
 .today-loop-step {
   --accent: #376f8f;
   position: relative;
@@ -361,6 +432,10 @@ main a.rounded-md.border:hover {
 
 .today-loop-step:focus-visible {
   outline-color: var(--accent);
+}
+
+.today-loop-step-preview {
+  pointer-events: none;
 }
 
 .today-loop-step > span {
@@ -976,6 +1051,93 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   align-items: stretch;
 }
 
+.home-start-bar {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.82fr) minmax(260px, 1.18fr);
+  gap: 12px;
+  align-items: stretch;
+  border: 1px solid rgba(31, 41, 51, 0.1);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 253, 250, 0.82)),
+    rgba(55, 111, 143, 0.04);
+  box-shadow: var(--shadow-card);
+  padding: 12px;
+}
+
+.home-start-main {
+  display: grid;
+  gap: 8px;
+  align-content: center;
+  min-width: 0;
+}
+
+.home-start-main span {
+  color: #376f8f;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.home-start-main strong {
+  color: #1f2933;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.home-start-main .case-primary-action {
+  width: fit-content;
+  min-height: 36px;
+}
+
+.home-start-secondary-link {
+  width: fit-content;
+  color: #376f8f;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.3;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.home-start-secondary-link:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid #376f8f;
+  outline-offset: 3px;
+}
+
+.home-start-alternative {
+  display: grid;
+  gap: 6px;
+}
+
+.home-start-alternative summary {
+  width: fit-content;
+  cursor: pointer;
+  color: rgba(31, 41, 51, 0.55);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.home-start-case {
+  display: grid;
+  gap: 8px;
+  align-content: center;
+  min-width: 0;
+  border-left: 1px solid rgba(31, 41, 51, 0.08);
+  padding-left: 12px;
+}
+
+.home-start-case p {
+  margin: 0;
+  color: rgba(31, 41, 51, 0.62);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
 .task-context-bar {
   --accent: #376f8f;
   display: grid;
@@ -1068,6 +1230,22 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   padding: 6px 9px;
 }
 
+.task-context-case-empty strong {
+  display: inline-flex;
+  min-width: 0;
+  width: fit-content;
+  min-height: 24px;
+  align-items: center;
+  border: 1px solid rgba(31, 41, 51, 0.1);
+  border-radius: 999px;
+  background: rgba(31, 41, 51, 0.06);
+  color: rgba(31, 41, 51, 0.62);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  padding: 5px 9px;
+}
+
 .task-context-action {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -1101,11 +1279,47 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 
 .task-context-jump {
   display: grid;
-  grid-template-columns: repeat(4, max-content);
-  gap: 5px;
+  gap: 6px;
+  justify-items: end;
+  min-width: 0;
 }
 
-.task-context-jump a {
+.task-context-jump summary {
+  cursor: pointer;
+  border: 1px solid rgba(31, 41, 51, 0.12);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(31, 41, 51, 0.7);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  list-style: none;
+  padding: 9px 10px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.task-context-jump summary::-webkit-details-marker {
+  display: none;
+}
+
+.task-context-jump summary::after {
+  content: " +";
+  color: var(--accent);
+}
+
+.task-context-jump[open] summary::after {
+  content: " -";
+}
+
+.task-context-jump-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  min-width: 220px;
+}
+
+.task-context-jump-list a {
   border: 1px solid rgba(31, 41, 51, 0.1);
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.76);
@@ -1116,7 +1330,7 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   padding: 8px 9px;
 }
 
-.task-context-jump a[aria-current="step"] {
+.task-context-jump-list a[aria-current="step"] {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 12%, white);
   color: var(--accent);
@@ -1304,30 +1518,38 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   gap: 5px;
 }
 
+.case-dock-progress-label {
+  color: rgba(31, 41, 51, 0.56);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
 .case-dock-progress span {
   display: grid;
   min-width: 0;
   place-items: center;
-  border: 1px solid rgba(31, 41, 51, 0.08);
-  border-radius: 7px;
-  background: rgba(242, 245, 241, 0.76);
-  padding: 5px 3px;
+  min-height: 32px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(31, 41, 51, 0.04);
+  color: rgba(31, 41, 51, 0.58);
+  padding: 3px 2px;
 }
 
 .case-dock-progress span.is-filled {
-  border-color: rgba(85, 116, 95, 0.22);
-  background: rgba(85, 116, 95, 0.1);
+  background: rgba(85, 116, 95, 0.08);
   color: #55745f;
 }
 
 .case-dock-progress b {
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1;
 }
 
 .case-dock-progress small {
   margin-top: 2px;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
   line-height: 1;
 }
@@ -1392,6 +1614,30 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   display: grid;
   gap: 6px;
   margin-top: 8px;
+}
+
+.case-dock-form label {
+  display: grid;
+  gap: 3px;
+}
+
+.case-dock-form label > span {
+  color: rgba(31, 41, 51, 0.56);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.case-dock-form-error {
+  margin: 0;
+  border-left: 3px solid #a45f45;
+  border-radius: 7px;
+  background: rgba(164, 95, 69, 0.08);
+  color: #7d4430;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+  padding: 7px 9px;
 }
 
 .case-dock-form input {
@@ -2341,6 +2587,25 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   transform: translateY(18px);
 }
 
+.orient-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.orient-input-panel,
+.orient-preview-panel {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.orient-preview-panel {
+  position: sticky;
+  top: 16px;
+}
+
 .hypothesis-input-card {
   transition:
     transform 180ms ease,
@@ -2369,13 +2634,14 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 
 .orient-entry-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
+  grid-template-columns: 1fr;
   gap: 14px;
   align-items: start;
+  padding-top: 8px;
+  scroll-margin-top: 16px;
 }
 
 .hypothesis-input-card-primary {
-  grid-row: span 2;
   border-color: rgba(55, 111, 143, 0.24);
 }
 
@@ -2450,6 +2716,17 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .home-start-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .home-start-case {
+    border-left: 0;
+    border-top: 1px solid rgba(31, 41, 51, 0.08);
+    padding-top: 10px;
+    padding-left: 0;
+  }
+
   .workflow-menu-shell {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -2468,10 +2745,15 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   }
 
   .task-context-jump {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    justify-items: stretch;
   }
 
-  .task-context-jump a {
+  .task-context-jump-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    min-width: 0;
+  }
+
+  .task-context-jump-list a {
     display: inline-flex;
     justify-content: center;
     min-width: 0;
@@ -2546,6 +2828,14 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     transform: none;
   }
 
+  .orient-workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .orient-preview-panel {
+    position: static;
+  }
+
   .orient-entry-layout {
     grid-template-columns: 1fr;
   }
@@ -2565,6 +2855,19 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     padding-bottom: 18px;
   }
 
+  .record-page-header-task {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+  }
+
+  .record-page-header-task .record-page-aside {
+    display: none;
+  }
+
+  .record-brand-subtitle-task {
+    display: none;
+  }
+
   .record-page-title {
     font-size: 28px;
   }
@@ -2579,6 +2882,10 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     aspect-ratio: 3 / 2;
   }
 
+  .home-page-illustration {
+    display: none;
+  }
+
   .record-section {
     margin-bottom: 28px;
   }
@@ -2591,8 +2898,39 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     white-space: nowrap;
   }
 
+  .review-nav-responsive-compact .review-nav-mobile-secondary {
+    display: none;
+  }
+
+  .review-nav-responsive-compact .review-nav-mobile-menu {
+    display: grid;
+  }
+
+  .review-nav-menu-list {
+    grid-template-columns: repeat(2, max-content);
+  }
+
   .task-context-jump {
+    gap: 4px;
+  }
+
+  .task-context-jump summary {
+    padding: 8px 9px;
+  }
+
+  .task-context-jump-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .task-context-jump-list a {
+    padding: 7px 5px;
+    font-size: 10px;
+  }
+
+  .task-context-bar {
+    gap: 8px;
+    padding: 10px;
   }
 
   .task-context-main {
@@ -2602,6 +2940,19 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   .task-context-index {
     min-width: 0;
     min-height: 34px;
+  }
+
+  .home-start-bar {
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .home-start-main strong {
+    font-size: 15px;
+  }
+
+  .home-start-case .case-dock-progress {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .case-dock {
