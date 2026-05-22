@@ -202,7 +202,7 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
   const selectedCase = data.cases.find((item) => item.id === selectedCaseId) ?? data.cases[0] ?? null;
   const isTaskPage = view === "observe" || view === "orient" || view === "decide" || view === "act";
   const isHomePage = view === "home";
-  const shouldShowWorkflowMenu = caseItems.length > 0;
+  const shouldShowWorkflowMenu = view === "cases" && caseItems.length > 0;
   const shouldCompactNav = isTaskPage || (isHomePage && caseItems.length === 0);
   const shouldCompactNavOnMobile = isHomePage && caseItems.length > 0;
 
@@ -288,7 +288,7 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
               onCaseChange={(caseId) => setCurrentCase(caseId)}
               onCreateCase={createQuickCase}
             />
-          ) : isHomePage ? null : !shouldShowWorkflowMenu ? null : (
+          ) : isHomePage ? null : shouldShowWorkflowMenu ? (
             <WorkflowMenu
               items={caseItems}
               selectedCaseId={selectedCase?.id ?? ""}
@@ -296,7 +296,7 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
               onCaseChange={(caseId) => setCurrentCase(caseId)}
               onCreateCase={createQuickCase}
             />
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -1883,7 +1883,7 @@ function SearchView({ data }: { data: AppData }) {
 
   return (
     <>
-      <PageHeader title="類似場面" description="過去の観察を探し、同じ原因だと決めつけずに材料として使います。" image="search.png" action={<LinkButton href={data.cases.length === 0 ? "/cases" : "/observe"}>{data.cases.length === 0 ? "ケースを作る" : "観察を入力"}</LinkButton>} />
+      <PageHeader title="類似場面" description="過去の観察を探し、同じ原因だと決めつけずに材料として使います。" image="search.png" />
 
       <Section title="検索">
         <div className="rounded-md border border-ink/10 bg-white p-4 shadow-sm">
@@ -1899,7 +1899,7 @@ function SearchView({ data }: { data: AppData }) {
           <EmptyState>
             {data.observations.length === 0 ? (
               <>
-                まだ探せる観察がありません。<Link href={data.cases.length === 0 ? "/cases" : "/observe"} className="font-medium text-skyline">{data.cases.length === 0 ? "ケースを作る" : "観察を入力"}</Link>と、ここに場面が並びます。
+                まだ探せる観察がありません。<Link href="/" className="font-medium text-skyline">今日の入力</Link>から観察を残すと、ここに場面が並びます。
               </>
             ) : (
               <>一致する観察はありません。</>
