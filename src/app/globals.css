@@ -1833,6 +1833,10 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   line-height: 1;
 }
 
+.case-dock-current-link {
+  cursor: default;
+}
+
 .case-dock-picker {
   display: grid;
   gap: 4px;

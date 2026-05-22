@@ -169,7 +169,7 @@ const caseOverviewItems = stageLinks.map((item) => ({
 
 const topNavItems = [
   { href: "/", label: "今日" },
-  { href: "/cases", label: "ケース" },
+  { href: "/cases", label: "ケース選択" },
   { href: "/search", label: "類似場面" },
   { href: "/reflect", label: "振り返り" },
   { href: "/files", label: "バックアップ" },
@@ -549,21 +549,27 @@ function WorkflowMenu({
 
   return (
     <nav aria-label="OODAの流れ" className="workflow-menu-shell">
-      <section className="case-entry-card case-dock ooda-tone-case" aria-label="ケース操作">
+      <section className="case-entry-card case-dock ooda-tone-case" aria-label="ケース選択">
         <div className="case-dock-head">
           <span className="ooda-orbit-number">{totalCount}</span>
           <div className="case-dock-title">
-            <span className="ooda-orbit-stage">Case</span>
-            <strong className="ooda-orbit-label">ケース</strong>
-            <small>現在 {activeCount}件</small>
+            <span className="ooda-orbit-stage">ケース選択</span>
+            <strong className="ooda-orbit-label">選択中のケース</strong>
+            <small>利用中 {activeCount}件</small>
           </div>
-          <Link href="/cases" className="case-dock-text-link">
-            一覧
-          </Link>
+          {isCasesPage ? (
+            <span className="case-dock-text-link case-dock-current-link" aria-current="page">
+              ケース選択
+            </span>
+          ) : (
+            <Link href="/cases" className="case-dock-text-link">
+              ケース選択
+            </Link>
+          )}
         </div>
 
         <label className="case-dock-picker">
-          <span>ケース</span>
+          <span>使うケース</span>
           <select value={selected?.id ?? ""} onChange={(event) => onCaseChange(event.target.value)} disabled={items.length === 0}>
             {items.length === 0 ? (
               <option value="">ケースなし</option>
@@ -906,7 +912,7 @@ function CasesView({ data, commit, onNavigate }: { data: AppData; commit: Commit
 
   return (
     <>
-      <PageHeader title="ケース" description="個人で見返しやすい単位を一つ作り、OODAを回します。" image="cases.png" />
+      <PageHeader title="ケース選択" description="使うケースを選び、新しいケースを作ります。個人で見返しやすい単位ごとにOODAを回します。" image="cases.png" />
 
       <div id="new-case" className="scroll-mt-24">
         <Section title={caseItems.length === 0 ? "最初のケース" : "新しいケース"} description={caseItems.length === 0 ? "名前だけで始められます。詳しい記録は観察画面で入力します。" : undefined}>
