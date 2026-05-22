@@ -3689,12 +3689,22 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     grid-template-columns: 1fr;
   }
 
+  .task-context-bar-utility,
+  .task-context-bar-utility.task-context-bar-with-action {
+    grid-template-columns: 1fr;
+  }
+
   .task-context-action {
     grid-template-columns: 1fr;
+    width: 100%;
   }
 
   .task-context-action span {
     white-space: normal;
+  }
+
+  .task-context-action a {
+    width: 100%;
   }
 
   .task-context-jump {
