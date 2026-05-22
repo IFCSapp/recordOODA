@@ -54,6 +54,8 @@ button {
 }
 
 .app-top-shell {
+  position: relative;
+  z-index: 50;
   border-bottom: 1px solid var(--line);
   background:
     linear-gradient(180deg, rgba(255, 253, 250, 0.94), rgba(249, 249, 244, 0.9)),
@@ -221,6 +223,8 @@ button {
 }
 
 .record-main {
+  position: relative;
+  z-index: 1;
   padding-top: 22px;
 }
 
