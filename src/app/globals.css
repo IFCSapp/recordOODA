@@ -4022,17 +4022,51 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   }
 
   .task-context-bar {
-    gap: 8px;
+    gap: 9px;
     padding: 10px;
   }
 
   .task-context-main {
-    grid-template-columns: 1fr;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
   }
 
   .task-context-index {
-    min-width: 0;
+    width: 42px;
+    min-width: 42px;
+    min-height: 30px;
+    align-self: start;
+    border-radius: 999px;
+  }
+
+  .task-context-main span:not(.task-context-index),
+  .task-context-case span {
+    font-size: 10px;
+  }
+
+  .task-context-main strong {
+    font-size: 15px;
+    line-height: 1.18;
+  }
+
+  .task-context-main small {
+    line-height: 1.25;
+  }
+
+  .task-context-case {
+    gap: 3px;
+  }
+
+  .task-context-case select {
     min-height: 34px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+
+  .task-context-jump summary {
+    width: 100%;
+    min-height: 34px;
+    justify-content: space-between;
   }
 
   .home-start-bar {
