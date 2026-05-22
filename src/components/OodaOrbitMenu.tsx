@@ -17,11 +17,17 @@ export type OodaOrbitItem = {
 type Plate = {
   group: THREE.Group;
   geometry: THREE.BoxGeometry;
+  basePositions: Float32Array;
   materials: THREE.Material[];
   textures: THREE.Texture[];
 };
 
 const CARD_SPACING = 90;
+const PLATE_WIDTH = 2.36;
+const PLATE_HEIGHT = 1.34;
+const PLATE_DEPTH = 0.16;
+const PLATE_WIDTH_SEGMENTS = 22;
+const SIDE_PLATE_MAX_BEND = 0.36;
 const COLORS = ["#376f8f", "#a45f45", "#55745f", "#b68a2c"];
 const AUTO_ROTATE_DEGREES_PER_SECOND = 6;
 const DRAG_DEGREES_PER_PX = 0.42;
@@ -184,8 +190,8 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
       }
       const baseDegrees = angle;
       const isNarrow = width < 520;
-      const radiusX = isNarrow ? 1.36 : 1.9;
-      const radiusZ = isNarrow ? 0.78 : 1.04;
+      const radiusX = isNarrow ? 1.58 : 2.06;
+      const radiusZ = isNarrow ? 0.86 : 1.12;
 
       plates.forEach((plate, index) => {
         const degrees = baseDegrees + index * CARD_SPACING;
@@ -193,7 +199,11 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
         const side = Math.sin(radians);
         const front = Math.cos(radians);
         const depth = (front + 1) / 2;
-        const scale = 0.72 + depth * 0.28;
+        const sideDepth = Math.pow(Math.abs(side), 1.35);
+        const bend = sideDepth * SIDE_PLATE_MAX_BEND;
+        const bendDirection = front >= 0 ? -1 : 1;
+        const scale = 0.7 + depth * 0.3 - sideDepth * 0.05;
+        bendPlateGeometry(plate, bend, bendDirection);
         plate.group.position.set(side * radiusX, -0.02 - (1 - depth) * 0.12, front * radiusZ);
         plate.group.rotation.set(0, radians, 0);
         plate.group.scale.setScalar(scale);
@@ -252,7 +262,8 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
 
 function createPlate(item: OodaOrbitItem, index: number): Plate {
   const accent = COLORS[index % COLORS.length];
-  const geometry = new THREE.BoxGeometry(2.36, 1.34, 0.16, 1, 1, 1);
+  const geometry = new THREE.BoxGeometry(PLATE_WIDTH, PLATE_HEIGHT, PLATE_DEPTH, PLATE_WIDTH_SEGMENTS, 1, 1);
+  const basePositions = new Float32Array(geometry.attributes.position.array as Float32Array);
   const front = createPlateTexture(item, index, accent, false);
   const back = createPlateTexture(item, index, accent, true);
   const sideColor = new THREE.Color(accent).lerp(new THREE.Color("#f6faf8"), 0.74);
@@ -276,7 +287,35 @@ function createPlate(item: OodaOrbitItem, index: number): Plate {
   group.userData.href = item.href;
   group.add(mesh);
 
-  return { group, geometry, materials, textures: [front, back] };
+  return { group, geometry, basePositions, materials, textures: [front, back] };
+}
+
+function bendPlateGeometry(plate: Plate, bend: number, direction: number) {
+  const position = plate.geometry.attributes.position;
+  const halfWidth = PLATE_WIDTH / 2;
+  const shouldBend = bend > 0.001;
+  const radius = shouldBend ? halfWidth / bend : 0;
+
+  for (let index = 0; index < position.count; index += 1) {
+    const offset = index * 3;
+    const x = plate.basePositions[offset];
+    const y = plate.basePositions[offset + 1];
+    const z = plate.basePositions[offset + 2];
+
+    if (!shouldBend) {
+      position.setXYZ(index, x, y, z);
+      continue;
+    }
+
+    const normalizedX = clamp(x / halfWidth, -1, 1);
+    const theta = normalizedX * bend;
+    const curvedX = Math.sin(theta) * radius;
+    const curvedZ = z + direction * (Math.cos(theta) * radius - radius);
+    position.setXYZ(index, curvedX, y, curvedZ);
+  }
+
+  position.needsUpdate = true;
+  plate.geometry.computeVertexNormals();
 }
 
 function createLoopRing(activeIndex: number) {
