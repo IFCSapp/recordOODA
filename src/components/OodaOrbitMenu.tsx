@@ -27,16 +27,13 @@ const PLATE_WIDTH = 2.36;
 const PLATE_HEIGHT = 1.34;
 const PLATE_DEPTH = 0.16;
 const PLATE_WIDTH_SEGMENTS = 22;
-const PLATE_EDGE_GAP_DEGREES = 12;
+const PLATE_EDGE_GAP_DEGREES = 22;
 const SIDE_PLATE_MAX_BEND = degreesToRadians((CARD_SPACING - PLATE_EDGE_GAP_DEGREES) / 2);
-const SIDE_PLATE_BEND_EXPONENT = 1.12;
-const FRONT_LATERAL_BIAS = 0.26;
-const FRONT_CENTER_BEND_REDUCTION = 0.72;
 const ORBIT_RADIUS_X_NARROW = 1.7;
 const ORBIT_RADIUS_Z_NARROW = 0.64;
 const ORBIT_RADIUS_X_WIDE = 2.18;
 const ORBIT_RADIUS_Z_WIDE = 0.88;
-const ORBIT_GUIDE_Y = -0.74;
+const ORBIT_GUIDE_Y = -0.69;
 const COLORS = ["#376f8f", "#a45f45", "#55745f", "#b68a2c"];
 const AUTO_ROTATE_DEGREES_PER_SECOND = 6;
 const DRAG_DEGREES_PER_PX = 0.42;
@@ -208,14 +205,10 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
         const side = Math.sin(radians);
         const front = Math.cos(radians);
         const depth = (front + 1) / 2;
-        const sideDepth = Math.pow(Math.abs(side), SIDE_PLATE_BEND_EXPONENT);
-        const bend = sideDepth * SIDE_PLATE_MAX_BEND;
-        const lateralBias = Math.sign(side) * Math.max(front, 0) * Math.pow(1 - Math.abs(side), 0.8);
-        const scale = 0.7 + depth * 0.3 - sideDepth * 0.05;
-        bendPlateGeometry(plate, bend, lateralBias);
-        plate.group.position.set(side * radiusX, -0.02 - (1 - depth) * 0.12, front * radiusZ);
+        shapePlateAsOrbitBand(plate, radians, radiusX, radiusZ);
+        plate.group.position.set(side * radiusX, ORBIT_GUIDE_Y + PLATE_HEIGHT / 2, front * radiusZ);
         plate.group.rotation.set(0, radians, 0);
-        plate.group.scale.setScalar(scale);
+        plate.group.scale.set(1, 1, 1);
         plate.group.renderOrder = 10 + Math.round(depth * 10);
       });
 
@@ -300,13 +293,15 @@ function createPlate(item: OodaOrbitItem, index: number): Plate {
   return { group, geometry, basePositions, materials, textures: [front, back] };
 }
 
-function bendPlateGeometry(plate: Plate, bend: number, lateralBias: number) {
+function shapePlateAsOrbitBand(plate: Plate, orbitAngle: number, radiusX: number, radiusZ: number) {
   const position = plate.geometry.attributes.position;
   const halfWidth = PLATE_WIDTH / 2;
-  const shouldBend = bend > 0.001;
-  const radius = shouldBend ? halfWidth / Math.sin(bend) : 0;
-  const lateralDirection = Math.sign(lateralBias);
-  const lateralStrength = Math.min(Math.abs(lateralBias), 1);
+  const sin = Math.sin(orbitAngle);
+  const cos = Math.cos(orbitAngle);
+  const centerX = sin * radiusX;
+  const centerZ = cos * radiusZ;
+  const tangentScale = Math.max(Math.hypot(radiusX * cos, radiusZ * sin), 0.001);
+  const halfAngle = Math.min(halfWidth / tangentScale, SIDE_PLATE_MAX_BEND);
 
   for (let index = 0; index < position.count; index += 1) {
     const offset = index * 3;
@@ -314,19 +309,13 @@ function bendPlateGeometry(plate: Plate, bend: number, lateralBias: number) {
     const y = plate.basePositions[offset + 1];
     const z = plate.basePositions[offset + 2];
 
-    if (!shouldBend) {
-      position.setXYZ(index, x, y, z);
-      continue;
-    }
-
     const normalizedX = clamp(x / halfWidth, -1, 1);
-    const theta = normalizedX * bend;
-    const nearSide = lateralDirection === 0 ? 0 : Math.max(0, normalizedX * lateralDirection);
-    const sideEscape = lateralDirection * nearSide * nearSide * lateralStrength * FRONT_LATERAL_BIAS * halfWidth;
-    const centerBend = 1 - nearSide * lateralStrength * FRONT_CENTER_BEND_REDUCTION;
-    const curvedX = Math.sin(theta) * radius + sideEscape;
-    const curvedZ = z + (Math.cos(theta) * radius - radius) * centerBend;
-    position.setXYZ(index, curvedX, y, curvedZ);
+    const pointAngle = orbitAngle + normalizedX * halfAngle;
+    const deltaX = Math.sin(pointAngle) * radiusX - centerX;
+    const deltaZ = Math.cos(pointAngle) * radiusZ - centerZ;
+    const localX = deltaX * cos - deltaZ * sin;
+    const localZ = deltaX * sin + deltaZ * cos;
+    position.setXYZ(index, localX, y, localZ + z);
   }
 
   position.needsUpdate = true;
