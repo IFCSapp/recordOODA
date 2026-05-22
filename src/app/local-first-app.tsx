@@ -594,7 +594,7 @@ function WorkflowMenu({
           </div>
         )}
 
-        {selected ? (
+        {selected && !isCasesPage ? (
           <details className="case-dock-new">
             <summary>新しいケース</summary>
             <QuickCaseForm onCreateCase={onCreateCase} submitLabel="ケースを作る" />
@@ -908,6 +908,33 @@ function CasesView({ data, commit, onNavigate }: { data: AppData; commit: Commit
     <>
       <PageHeader title="ケース" description="個人で見返しやすい単位を一つ作り、OODAを回します。" image="cases.png" />
 
+      <div id="new-case" className="scroll-mt-24">
+        <Section title={caseItems.length === 0 ? "最初のケース" : "新しいケース"} description={caseItems.length === 0 ? "名前だけで始められます。詳しい記録は観察画面で入力します。" : undefined}>
+          <form onSubmit={handleCreateCase} className="grid gap-4 rounded-md border border-ink/10 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr_auto] md:items-end" noValidate>
+            {formError ? (
+              <div className="md:col-span-3">
+                <FormError>{formError}</FormError>
+              </div>
+            ) : null}
+            <Label>
+              ケース名 <RequiredMark />
+              <Input name="displayName" placeholder="ケースA、利用者01など" required />
+            </Label>
+            <Label>
+              メモ
+              <Input name="memo" placeholder="自分が後で見返しやすい補足" />
+            </Label>
+            <label className="flex items-center gap-2 text-sm text-ink/75">
+              <input name="isActive" type="checkbox" defaultChecked className="h-4 w-4 rounded border-ink/20" />
+              現在使う
+            </label>
+            <div className="md:col-span-3">
+              <SubmitButton>ケースを作る</SubmitButton>
+            </div>
+          </form>
+        </Section>
+      </div>
+
       {caseItems.length === 0 ? null : (
         <Section title="ケース一覧">
           <div className="grid gap-4 lg:grid-cols-2">
@@ -945,30 +972,6 @@ function CasesView({ data, commit, onNavigate }: { data: AppData; commit: Commit
         </Section>
       )}
 
-      <Section title={caseItems.length === 0 ? "最初のケース" : "新しいケース"} description={caseItems.length === 0 ? "名前だけで始められます。詳しい記録は観察画面で入力します。" : undefined}>
-        <form onSubmit={handleCreateCase} className="grid gap-4 rounded-md border border-ink/10 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr_auto] md:items-end" noValidate>
-          {formError ? (
-            <div className="md:col-span-3">
-              <FormError>{formError}</FormError>
-            </div>
-          ) : null}
-          <Label>
-            ケース名 <RequiredMark />
-            <Input name="displayName" placeholder="ケースA、利用者01など" required />
-          </Label>
-          <Label>
-            メモ
-            <Input name="memo" placeholder="自分が後で見返しやすい補足" />
-          </Label>
-          <label className="flex items-center gap-2 text-sm text-ink/75">
-            <input name="isActive" type="checkbox" defaultChecked className="h-4 w-4 rounded border-ink/20" />
-            現在使う
-          </label>
-          <div className="md:col-span-3">
-            <SubmitButton>ケースを作る</SubmitButton>
-          </div>
-        </form>
-      </Section>
     </>
   );
 }
