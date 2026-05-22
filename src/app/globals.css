@@ -3924,6 +3924,14 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     white-space: nowrap;
   }
 
+  .review-nav {
+    position: relative;
+  }
+
+  .review-nav-menu {
+    position: static;
+  }
+
   .brand-link {
     gap: 3px;
   }
@@ -3952,10 +3960,12 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   }
 
   .review-nav-menu-list {
-    right: 0;
-    left: auto;
+    top: calc(100% + 8px);
+    right: auto;
+    left: 0;
     grid-template-columns: minmax(150px, 1fr);
-    min-width: min(250px, calc(100vw - 40px));
+    width: min(176px, calc(100vw - 40px));
+    min-width: 0;
   }
 
   .task-context-jump {
