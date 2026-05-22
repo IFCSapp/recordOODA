@@ -549,23 +549,19 @@ function WorkflowMenu({
 
   return (
     <nav aria-label="OODAの流れ" className="workflow-menu-shell">
-      <section className="case-entry-card case-dock ooda-tone-case" aria-label="ケース選択">
+      <section className="case-entry-card case-dock ooda-tone-case" aria-label="選択中のケース">
         <div className="case-dock-head">
           <span className="ooda-orbit-number">{totalCount}</span>
           <div className="case-dock-title">
-            <span className="ooda-orbit-stage">ケース選択</span>
+            <span className="ooda-orbit-stage">現在の対象</span>
             <strong className="ooda-orbit-label">選択中のケース</strong>
             <small>利用中 {activeCount}件</small>
           </div>
-          {isCasesPage ? (
-            <span className="case-dock-text-link case-dock-current-link" aria-current="page">
-              ケース選択
-            </span>
-          ) : (
+          {!isCasesPage ? (
             <Link href="/cases" className="case-dock-text-link">
               ケース選択
             </Link>
-          )}
+          ) : null}
         </div>
 
         <label className="case-dock-picker">
