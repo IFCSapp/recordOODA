@@ -27,7 +27,8 @@ const PLATE_WIDTH = 2.36;
 const PLATE_HEIGHT = 1.34;
 const PLATE_DEPTH = 0.16;
 const PLATE_WIDTH_SEGMENTS = 22;
-const SIDE_PLATE_MAX_BEND = 0.54;
+const PLATE_EDGE_GAP_DEGREES = 36;
+const SIDE_PLATE_MAX_BEND = degreesToRadians((CARD_SPACING - PLATE_EDGE_GAP_DEGREES) / 2);
 const SIDE_PLATE_BEND_EXPONENT = 1.12;
 const ORBIT_RADIUS_X_NARROW = 1.7;
 const ORBIT_RADIUS_Z_NARROW = 0.64;
@@ -298,7 +299,7 @@ function bendPlateGeometry(plate: Plate, bend: number) {
   const position = plate.geometry.attributes.position;
   const halfWidth = PLATE_WIDTH / 2;
   const shouldBend = bend > 0.001;
-  const radius = shouldBend ? halfWidth / bend : 0;
+  const radius = shouldBend ? halfWidth / Math.sin(bend) : 0;
 
   for (let index = 0; index < position.count; index += 1) {
     const offset = index * 3;
