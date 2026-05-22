@@ -1514,6 +1514,16 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   grid-template-columns: minmax(200px, 0.8fr) minmax(210px, 0.72fr) auto;
 }
 
+.task-context-bar-utility {
+  grid-template-columns: minmax(210px, 1fr) auto;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.task-context-bar-utility.task-context-bar-with-action {
+  grid-template-columns: minmax(210px, 0.72fr) minmax(240px, 1fr) auto;
+}
+
 .task-context-main {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

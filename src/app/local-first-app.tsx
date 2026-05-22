@@ -401,24 +401,27 @@ function CompactWorkflowBar({
   const hasCases = items.length > 0;
   const selected = items.find((item) => item.id === selectedCaseId) ?? items[0] ?? null;
   const currentStep = stageLinks.find((item) => currentPath.startsWith(item.href)) ?? stageLinks[0];
-  const currentStepIndex = Math.max(0, stageLinks.findIndex((item) => currentPath.startsWith(item.href)));
   const nextAction = selected ? getCaseNextAction(selected) : null;
   const nextActionPath = nextAction?.href.split("?")[0] ?? "";
   const actionIsCurrentStep = Boolean(nextAction && nextActionPath && currentPath.startsWith(nextActionPath));
+  const showAction = !actionIsCurrentStep;
+  const showStepSummary = !hasCases;
   const actionHref = nextAction?.href ?? "/cases";
   const actionCopy = nextAction?.reason ?? "ケースを作ると、観察から始められます。";
   const actionLabel = nextAction?.label ?? "ケースを作る";
 
   return (
-    <section className={`task-context-bar ${actionIsCurrentStep ? "task-context-bar-current" : ""} ooda-tone-${hasCases ? currentStep.tone : "case"}`} aria-label="現在の作業">
-      <div className="task-context-main">
-        <span className="task-context-index">{hasCases ? String(currentStepIndex + 1).padStart(2, "0") : "準備"}</span>
-        <div>
-          <span>現在のステップ</span>
-          <strong>{hasCases ? currentStep.label : "ケースを作る"}</strong>
-          <small>{hasCases ? currentStep.helper : "まずケースを用意"}</small>
+    <section className={`task-context-bar ${actionIsCurrentStep ? "task-context-bar-current" : ""} ${hasCases ? "task-context-bar-utility" : ""} ${showAction ? "task-context-bar-with-action" : ""} ooda-tone-${hasCases ? currentStep.tone : "case"}`} aria-label="現在の作業">
+      {showStepSummary ? (
+        <div className="task-context-main">
+          <span className="task-context-index">準備</span>
+          <div>
+            <span>現在のステップ</span>
+            <strong>ケースを作る</strong>
+            <small>まずケースを用意</small>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {!hasCases ? (
         <div className="task-context-case task-context-case-empty" aria-label="ケース">
@@ -438,7 +441,7 @@ function CompactWorkflowBar({
         </label>
       )}
 
-      {!actionIsCurrentStep ? (
+      {showAction ? (
         <div className="task-context-action">
           <span>{actionCopy}</span>
           <Link href={actionHref}>{actionLabel}</Link>
