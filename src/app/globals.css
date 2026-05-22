@@ -534,7 +534,10 @@ main a.rounded-md.border:hover {
 }
 
 .record-label {
+  display: block;
   line-height: 1.45;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .record-required-mark {
@@ -580,6 +583,11 @@ main a.rounded-md.border:hover {
 }
 
 .record-field {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: 42px;
   border-color: var(--line-strong);
   background:
@@ -633,6 +641,21 @@ main a.rounded-md.border:hover {
   gap: 14px;
   align-items: stretch;
   margin-bottom: 20px;
+}
+
+input.record-field[type="date"],
+input.record-field[type="datetime-local"],
+input.record-field[type="time"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+}
+
+input.record-field[type="date"]::-webkit-date-and-time-value,
+input.record-field[type="datetime-local"]::-webkit-date-and-time-value,
+input.record-field[type="time"]::-webkit-date-and-time-value {
+  min-height: 1.3em;
+  text-align: left;
 }
 
 .today-loop-panel-rail-only {
@@ -2157,6 +2180,8 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 .observe-form-shell {
   display: grid;
   gap: 12px;
+  min-width: 0;
+  overflow: hidden;
   border: 1px solid rgba(31, 41, 51, 0.1);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.92);
@@ -2167,6 +2192,8 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 .observe-minimum-group {
   display: grid;
   gap: 14px;
+  min-width: 0;
+  overflow: hidden;
   border: 1px solid rgba(55, 111, 143, 0.18);
   border-radius: 8px;
   background:
@@ -3846,6 +3873,14 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     width: 22px;
     height: 22px;
     font-size: 10px;
+  }
+
+  input.record-field[type="date"],
+  input.record-field[type="datetime-local"],
+  input.record-field[type="time"] {
+    font-size: 16px;
+    padding-right: 9px;
+    padding-left: 9px;
   }
 
   .observe-form-actions .record-submit-button {

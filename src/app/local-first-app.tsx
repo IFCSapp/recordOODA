@@ -1,7 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element -- Public PNGs need explicit GitHub Pages paths on mobile Safari. */
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { OodaOrbitMenu } from "@/components/OodaOrbitMenu";
@@ -139,6 +139,12 @@ type ExperimentStatus = "予定" | "実施中" | "完了" | "中止";
 type ImplementationStatus = "予定通り" | "一部変更" | "未実施";
 
 const STORAGE_KEY = "recordooda.local.v1";
+const PUBLIC_BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
+function publicAssetPath(path: string) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${PUBLIC_BASE_PATH}${normalizedPath}`;
+}
 const BEHAVIOR_TAGS = ["開始できない", "手が止まる", "席を離れる", "返事のみ", "質問しない", "確認を繰り返す", "表情が硬い", "自分から話す"];
 const OBSERVATION_CHECK_ITEMS = ["行動", "表情・身体", "環境変化", "本人の言葉", "直前の支援者行動", "安全リスク"];
 const HYPOTHESIS_CATEGORIES = ["予定変更への弱さ", "理解・段取り負荷", "感覚・環境負荷", "対人・評価負荷", "疲労・体調", "援助要求の難しさ", "好み・価値とのずれ"];
@@ -2070,12 +2076,13 @@ function PageHeader({
     <div className={`record-page-header mb-6 border-b border-ink/10 pb-5 ${compact ? "record-page-header-task" : ""}`}>
       <div className="record-page-main">
         {image ? (
-          <Image
-            src={`/illustrations/${image}`}
+          <img
+            src={publicAssetPath(`/illustrations/${image}`)}
             alt=""
             width={144}
             height={96}
-            priority
+            loading={compact ? "eager" : "lazy"}
+            decoding="async"
             className={`record-page-illustration h-24 w-36 rounded-md border border-ink/10 bg-white object-cover shadow-sm ${imageClassName}`}
           />
         ) : null}

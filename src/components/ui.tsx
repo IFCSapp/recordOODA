@@ -1,7 +1,14 @@
+/* eslint-disable @next/next/no-img-element -- Public PNGs need explicit GitHub Pages paths on mobile Safari. */
 import Link from "next/link";
-import Image from "next/image";
 import type { ReactNode } from "react";
 export { SubmitButton } from "./SubmitButton";
+
+const PUBLIC_BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
+function publicAssetPath(src: string) {
+  if (!src.startsWith("/")) return src;
+  return `${PUBLIC_BASE_PATH}${src}`;
+}
 
 export function PageHeader({
   title,
@@ -21,11 +28,13 @@ export function PageHeader({
     <div className="record-page-header mb-6 border-b border-ink/10 pb-5">
       <div className="record-page-main">
         {image ? (
-          <Image
-            src={image.src}
+          <img
+            src={publicAssetPath(image.src)}
             alt={image.alt}
             width={144}
             height={96}
+            loading="lazy"
+            decoding="async"
             className="record-page-illustration h-24 w-36 rounded-md border border-ink/10 bg-white object-cover shadow-sm"
           />
         ) : null}
