@@ -725,9 +725,9 @@ function HomeView({ data }: { data: AppData }) {
 
       {hasCases ? (
         <div className="grid gap-5 lg:grid-cols-2">
-        <DashboardBlock title="最近の観察" href="/observe" actionLabel="観察を入力">
+        <DashboardBlock title="観察" href="/observe" actionLabel="観察を入力">
           {recentObservations.length === 0 ? (
-            <EmptyState>まだ観察はありません。</EmptyState>
+            <EmptyState>観察はまだありません。</EmptyState>
           ) : (
             recentObservations.map((item) => (
               <LinkCard key={item.id} href={`/orient?observationId=${item.id}`}>
@@ -739,9 +739,9 @@ function HomeView({ data }: { data: AppData }) {
           )}
         </DashboardBlock>
 
-        <DashboardBlock title="見直す見立て" href="/orient" actionLabel="見立てを見る">
+        <DashboardBlock title="見立て" href="/orient" actionLabel="見立てを入力">
           {activeHypotheses.length === 0 ? (
-            <EmptyState>見直す見立てはありません。</EmptyState>
+            <EmptyState>見立てはまだありません。</EmptyState>
           ) : (
             activeHypotheses.map((item) => (
               <LinkCard key={item.id} href={`/decide?hypothesisId=${item.id}`}>
@@ -753,9 +753,9 @@ function HomeView({ data }: { data: AppData }) {
           )}
         </DashboardBlock>
 
-        <DashboardBlock title="反応待ちの支援" href="/act" actionLabel="反応を入力">
+        <DashboardBlock title="支援" href="/decide" actionLabel="支援を選ぶ">
           {dueExperiments.length === 0 ? (
-            <EmptyState>実施待ちの支援はありません。</EmptyState>
+            <EmptyState>支援はまだありません。</EmptyState>
           ) : (
             dueExperiments.map((item) => (
               <LinkCard key={item.id} href={`/act?experimentId=${item.id}`}>
@@ -767,9 +767,9 @@ function HomeView({ data }: { data: AppData }) {
           )}
         </DashboardBlock>
 
-        <DashboardBlock title="最近の反応" href="/reflect" actionLabel="振り返る">
+        <DashboardBlock title="反応" href="/act" actionLabel="反応を入力">
           {recentReviews.length === 0 ? (
-            <EmptyState>反応の記録はまだありません。</EmptyState>
+            <EmptyState>反応はまだありません。</EmptyState>
           ) : (
             recentReviews.map((item) => (
               <LinkCard key={item.id} href={`/reflect?caseId=${item.caseId}`}>
