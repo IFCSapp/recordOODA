@@ -539,6 +539,7 @@ function WorkflowMenu({
   const nextAction = selected ? getCaseNextAction(selected) : null;
   const totalCount = items.length;
   const activeCount = items.filter((item) => item.isActive).length;
+  const showDockProgress = !currentPath.startsWith("/cases");
 
   return (
     <nav aria-label="OODAの流れ" className="workflow-menu-shell">
@@ -572,7 +573,7 @@ function WorkflowMenu({
 
         {selected ? (
           <>
-            <CaseProgressRail item={selected} currentPath={currentPath} dense />
+            {showDockProgress ? <CaseProgressRail item={selected} currentPath={currentPath} dense /> : null}
             <div className="case-dock-actions">
               <Link href={nextAction?.href ?? "/cases"} className="case-dock-primary">
                 {nextAction?.label ?? "ケース作成"}
