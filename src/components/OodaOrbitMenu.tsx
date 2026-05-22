@@ -36,6 +36,7 @@ const ORBIT_RADIUS_X_NARROW = 1.7;
 const ORBIT_RADIUS_Z_NARROW = 0.64;
 const ORBIT_RADIUS_X_WIDE = 2.18;
 const ORBIT_RADIUS_Z_WIDE = 0.88;
+const ORBIT_GUIDE_Y = -0.74;
 const COLORS = ["#376f8f", "#a45f45", "#55745f", "#b68a2c"];
 const AUTO_ROTATE_DEGREES_PER_SECOND = 6;
 const DRAG_DEGREES_PER_PX = 0.42;
@@ -69,8 +70,8 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
 
     const scene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 80);
-    camera.position.set(0, 0.42, 7.2);
-    camera.lookAt(0, 0, 0);
+    camera.position.set(0, 1.1, 7.15);
+    camera.lookAt(0, -0.08, 0);
 
     const ambient = new THREE.HemisphereLight(0xffffff, 0xd8e1dd, 2.2);
     const key = new THREE.DirectionalLight(0xffffff, 2.6);
@@ -218,7 +219,8 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
         plate.group.renderOrder = 10 + Math.round(depth * 10);
       });
 
-      loop.group.rotation.z = degreesToRadians(baseDegrees * 0.2);
+      loop.group.position.set(0, ORBIT_GUIDE_Y, 0);
+      loop.group.scale.set(radiusX, 1, radiusZ);
       renderer.render(scene, camera);
       frame = window.requestAnimationFrame(render);
     };
@@ -335,18 +337,24 @@ function createLoopRing(activeIndex: number) {
   const group = new THREE.Group();
   const geometries: THREE.BufferGeometry[] = [];
   const materials: THREE.Material[] = [];
-  const radiusX = 1.58;
-  const radiusY = 0.66;
   const activeLoopIndex = activeIndex % COLORS.length;
 
-  const addLoopMesh = (geometry: THREE.BufferGeometry, material: THREE.Material) => {
+  const addLoopMesh = (geometry: THREE.BufferGeometry, material: THREE.Material, renderOrder = 1) => {
     geometries.push(geometry);
     materials.push(material);
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.renderOrder = 1;
+    mesh.renderOrder = renderOrder;
     group.add(mesh);
     return mesh;
   };
+
+  const guideMaterial = new THREE.MeshBasicMaterial({
+    color: "#6f8f99",
+    depthWrite: false,
+    opacity: 0.3,
+    transparent: true
+  });
+  addLoopMesh(createLoopArcGeometry(0, 360, 0.011, true), guideMaterial, 0);
 
   COLORS.forEach((color, index) => {
     const isCurrent = index === activeLoopIndex;
@@ -356,18 +364,18 @@ function createLoopRing(activeIndex: number) {
     const arcMaterial = new THREE.MeshBasicMaterial({
       color,
       depthWrite: false,
-      opacity: baseOpacity,
+      opacity: baseOpacity * 0.9,
       transparent: true
     });
-    addLoopMesh(createLoopArcGeometry(startDegrees, endDegrees, radiusX, radiusY, isCurrent ? 0.014 : 0.012), arcMaterial);
+    addLoopMesh(createLoopArcGeometry(startDegrees, endDegrees, isCurrent ? 0.014 : 0.012), arcMaterial);
 
     const streamMaterial = new THREE.MeshBasicMaterial({
       color,
       depthWrite: false,
-      opacity: isCurrent ? 0.64 : 0.42,
+      opacity: isCurrent ? 0.58 : 0.34,
       transparent: true
     });
-    addLoopMesh(createLoopArcGeometry(endDegrees - 10, endDegrees - 3, radiusX * 0.94, radiusY * 0.94, isCurrent ? 0.015 : 0.012), streamMaterial);
+    addLoopMesh(createLoopArcGeometry(endDegrees - 10, endDegrees - 3, isCurrent ? 0.015 : 0.012), streamMaterial);
 
     const nodeGeometry = new THREE.SphereGeometry(isCurrent ? 0.042 : 0.034, 16, 8);
     const nodeMaterial = new THREE.MeshBasicMaterial({
@@ -378,24 +386,22 @@ function createLoopRing(activeIndex: number) {
     });
     const node = addLoopMesh(nodeGeometry, nodeMaterial);
     const nodeAngle = degreesToRadians(startDegrees - 5);
-    node.position.set(Math.sin(nodeAngle) * radiusX, Math.cos(nodeAngle) * radiusY, 0);
+    node.position.set(Math.sin(nodeAngle), 0, Math.cos(nodeAngle));
   });
 
-  group.position.set(0, -0.04, 0.84);
-  group.scale.set(0.98, 0.98, 0.98);
   return { group, geometries, materials };
 }
 
-function createLoopArcGeometry(startDegrees: number, endDegrees: number, radiusX: number, radiusY: number, tubeRadius: number) {
+function createLoopArcGeometry(startDegrees: number, endDegrees: number, tubeRadius: number, closed = false) {
   const points: THREE.Vector3[] = [];
-  const steps = 28;
+  const steps = closed ? 96 : 28;
   for (let step = 0; step <= steps; step += 1) {
     const progress = step / steps;
     const angle = degreesToRadians(startDegrees + (endDegrees - startDegrees) * progress);
-    points.push(new THREE.Vector3(Math.sin(angle) * radiusX, Math.cos(angle) * radiusY, 0));
+    points.push(new THREE.Vector3(Math.sin(angle), 0, Math.cos(angle)));
   }
-  const curve = new THREE.CatmullRomCurve3(points);
-  return new THREE.TubeGeometry(curve, 36, tubeRadius, 8, false);
+  const curve = new THREE.CatmullRomCurve3(points, closed);
+  return new THREE.TubeGeometry(curve, closed ? 80 : 36, tubeRadius, 8, closed);
 }
 
 function createPlateTexture(item: OodaOrbitItem, index: number, accent: string, isBack: boolean) {
