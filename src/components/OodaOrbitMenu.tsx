@@ -206,9 +206,8 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
         const depth = (front + 1) / 2;
         const sideDepth = Math.pow(Math.abs(side), SIDE_PLATE_BEND_EXPONENT);
         const bend = sideDepth * SIDE_PLATE_MAX_BEND;
-        const bendDirection = side >= 0 ? 1 : -1;
         const scale = 0.7 + depth * 0.3 - sideDepth * 0.05;
-        bendPlateGeometry(plate, bend, bendDirection);
+        bendPlateGeometry(plate, bend);
         plate.group.position.set(side * radiusX, -0.02 - (1 - depth) * 0.12, front * radiusZ);
         plate.group.rotation.set(0, radians, 0);
         plate.group.scale.setScalar(scale);
@@ -295,7 +294,7 @@ function createPlate(item: OodaOrbitItem, index: number): Plate {
   return { group, geometry, basePositions, materials, textures: [front, back] };
 }
 
-function bendPlateGeometry(plate: Plate, bend: number, direction: number) {
+function bendPlateGeometry(plate: Plate, bend: number) {
   const position = plate.geometry.attributes.position;
   const halfWidth = PLATE_WIDTH / 2;
   const shouldBend = bend > 0.001;
@@ -315,7 +314,7 @@ function bendPlateGeometry(plate: Plate, bend: number, direction: number) {
     const normalizedX = clamp(x / halfWidth, -1, 1);
     const theta = normalizedX * bend;
     const curvedX = Math.sin(theta) * radius;
-    const curvedZ = z + direction * (Math.cos(theta) * radius - radius);
+    const curvedZ = z + Math.cos(theta) * radius - radius;
     position.setXYZ(index, curvedX, y, curvedZ);
   }
 
