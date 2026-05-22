@@ -168,7 +168,7 @@ const caseOverviewItems = stageLinks.map((item) => ({
 }));
 
 const topNavItems = [
-  { href: "/", label: "今日" },
+  { href: "/", label: "今日の入力" },
   { href: "/cases", label: "ケース選択" },
   { href: "/search", label: "類似場面" },
   { href: "/reflect", label: "振り返り" },
@@ -586,12 +586,14 @@ function WorkflowMenu({
         {selected ? (
           <>
             {showDockProgress ? <CaseProgressRail item={selected} currentPath={currentPath} dense /> : null}
-            <div className="case-dock-actions">
-              <Link href={nextAction?.href ?? "/cases"} className="case-dock-primary">
-                {nextAction?.label ?? "ケース作成"}
-              </Link>
-              <Link href={`/reflect?caseId=${selected.id}`}>履歴</Link>
-            </div>
+            {!isCasesPage ? (
+              <div className="case-dock-actions">
+                <Link href={nextAction?.href ?? "/cases"} className="case-dock-primary">
+                  {nextAction?.label ?? "ケース作成"}
+                </Link>
+                <Link href={`/reflect?caseId=${selected.id}`}>履歴</Link>
+              </div>
+            ) : null}
           </>
         ) : (
           <div className="case-dock-empty">
