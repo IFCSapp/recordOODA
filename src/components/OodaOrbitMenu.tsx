@@ -27,7 +27,12 @@ const PLATE_WIDTH = 2.36;
 const PLATE_HEIGHT = 1.34;
 const PLATE_DEPTH = 0.16;
 const PLATE_WIDTH_SEGMENTS = 22;
-const SIDE_PLATE_MAX_BEND = 0.36;
+const SIDE_PLATE_MAX_BEND = 0.54;
+const SIDE_PLATE_BEND_EXPONENT = 1.12;
+const ORBIT_RADIUS_X_NARROW = 1.7;
+const ORBIT_RADIUS_Z_NARROW = 0.64;
+const ORBIT_RADIUS_X_WIDE = 2.18;
+const ORBIT_RADIUS_Z_WIDE = 0.88;
 const COLORS = ["#376f8f", "#a45f45", "#55745f", "#b68a2c"];
 const AUTO_ROTATE_DEGREES_PER_SECOND = 6;
 const DRAG_DEGREES_PER_PX = 0.42;
@@ -190,8 +195,8 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
       }
       const baseDegrees = angle;
       const isNarrow = width < 520;
-      const radiusX = isNarrow ? 1.58 : 2.06;
-      const radiusZ = isNarrow ? 0.86 : 1.12;
+      const radiusX = isNarrow ? ORBIT_RADIUS_X_NARROW : ORBIT_RADIUS_X_WIDE;
+      const radiusZ = isNarrow ? ORBIT_RADIUS_Z_NARROW : ORBIT_RADIUS_Z_WIDE;
 
       plates.forEach((plate, index) => {
         const degrees = baseDegrees + index * CARD_SPACING;
@@ -199,7 +204,7 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
         const side = Math.sin(radians);
         const front = Math.cos(radians);
         const depth = (front + 1) / 2;
-        const sideDepth = Math.pow(Math.abs(side), 1.35);
+        const sideDepth = Math.pow(Math.abs(side), SIDE_PLATE_BEND_EXPONENT);
         const bend = sideDepth * SIDE_PLATE_MAX_BEND;
         const bendDirection = front >= 0 ? 1 : -1;
         const scale = 0.7 + depth * 0.3 - sideDepth * 0.05;
@@ -322,8 +327,8 @@ function createLoopRing(activeIndex: number) {
   const group = new THREE.Group();
   const geometries: THREE.BufferGeometry[] = [];
   const materials: THREE.Material[] = [];
-  const radiusX = 1.48;
-  const radiusY = 0.82;
+  const radiusX = 1.58;
+  const radiusY = 0.66;
   const activeLoopIndex = activeIndex % COLORS.length;
 
   const addLoopMesh = (geometry: THREE.BufferGeometry, material: THREE.Material) => {
