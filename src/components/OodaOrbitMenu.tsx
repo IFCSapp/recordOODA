@@ -201,7 +201,7 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
         const depth = (front + 1) / 2;
         const sideDepth = Math.pow(Math.abs(side), 1.35);
         const bend = sideDepth * SIDE_PLATE_MAX_BEND;
-        const bendDirection = front >= 0 ? -1 : 1;
+        const bendDirection = front >= 0 ? 1 : -1;
         const scale = 0.7 + depth * 0.3 - sideDepth * 0.05;
         bendPlateGeometry(plate, bend, bendDirection);
         plate.group.position.set(side * radiusX, -0.02 - (1 - depth) * 0.12, front * radiusZ);
