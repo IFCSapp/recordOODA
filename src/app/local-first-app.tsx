@@ -162,6 +162,11 @@ const stageLinks = [
   { href: "/act", stage: "Act", stageLabel: "反応", label: "反応を入力", helper: "反応で更新", tone: "act" }
 ] as const;
 
+const caseOverviewItems = stageLinks.map((item) => ({
+  ...item,
+  label: item.stageLabel
+}));
+
 const topNavItems = [
   { href: "/", label: "今日" },
   { href: "/cases", label: "ケース" },
@@ -539,7 +544,8 @@ function WorkflowMenu({
   const nextAction = selected ? getCaseNextAction(selected) : null;
   const totalCount = items.length;
   const activeCount = items.filter((item) => item.isActive).length;
-  const showDockProgress = !currentPath.startsWith("/cases");
+  const isCasesPage = currentPath.startsWith("/cases");
+  const showDockProgress = !isCasesPage;
 
   return (
     <nav aria-label="OODAの流れ" className="workflow-menu-shell">
@@ -596,7 +602,7 @@ function WorkflowMenu({
         ) : null}
       </section>
 
-      <OodaOrbitMenu items={stageLinks} currentPath={currentPath} />
+      <OodaOrbitMenu items={isCasesPage ? caseOverviewItems : stageLinks} currentPath={currentPath} interactive={!isCasesPage} />
     </nav>
   );
 }
@@ -900,7 +906,7 @@ function CasesView({ data, commit, onNavigate }: { data: AppData; commit: Commit
 
   return (
     <>
-      <PageHeader title="ケース" description="個人で見返しやすい単位を一つ作り、OODAを回します。" image="cases.png" action={caseItems.length > 0 ? <LinkButton href="/observe">観察を入力</LinkButton> : undefined} />
+      <PageHeader title="ケース" description="個人で見返しやすい単位を一つ作り、OODAを回します。" image="cases.png" />
 
       {caseItems.length === 0 ? null : (
         <Section title="ケース一覧">

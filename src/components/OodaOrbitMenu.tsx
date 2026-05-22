@@ -48,7 +48,15 @@ const EXPERIENCE_LABELS: Record<string, string> = {
   Act: "反応"
 };
 
-export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbitItem[]; currentPath: string }) {
+export function OodaOrbitMenu({
+  items,
+  currentPath,
+  interactive = true
+}: {
+  items: readonly OodaOrbitItem[];
+  currentPath: string;
+  interactive?: boolean;
+}) {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const activeIndex = Math.max(
@@ -171,7 +179,7 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
       isDragging = false;
       if (!dragMoved) {
         const href = getPlateHref(event);
-        if (href) {
+        if (href && interactive) {
           router.push(href);
         }
       }
@@ -231,31 +239,47 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
       disposeLoop(loop);
       renderer.dispose();
     };
-  }, [activeIndex, items, router]);
+  }, [activeIndex, interactive, items, router]);
 
   return (
-    <div className="ooda-loop-shell" aria-label="OODAの3Dループ">
+    <div className={`ooda-loop-shell ${interactive ? "" : "ooda-loop-shell-static"}`} aria-label="OODAの3Dループ">
       <span className="sr-only">OODAは一巡して戻る。見る、見立てる、選ぶ、反応で戻す。</span>
       <div className="ooda-orbit-grid" aria-hidden="true" />
       <div className="ooda-orbit-track">
         <canvas ref={canvasRef} className="ooda-three-canvas" aria-label="OODA loop" />
         <div className="ooda-three-link-list">
           {items.map((item) => (
-            <Link key={item.href} href={item.href} aria-current={currentPath.startsWith(item.href) ? "page" : undefined}>
-              {item.stageLabel ?? item.stage}: {item.label}
-            </Link>
+            interactive ? (
+              <Link key={item.href} href={item.href} aria-current={currentPath.startsWith(item.href) ? "page" : undefined}>
+                {item.stageLabel ?? item.stage}: {item.label}
+              </Link>
+            ) : (
+              <span key={item.href}>
+                {item.stageLabel ?? item.stage}: {item.label}
+              </span>
+            )
           ))}
         </div>
       </div>
       <div className="ooda-experience-rail" aria-label="OODAの体験順序">
         {items.map((item, index) => {
           const isCurrent = currentPath.startsWith(item.href);
-          return (
-            <Link key={item.href} href={item.href} aria-current={isCurrent ? "step" : undefined} className={`ooda-experience-step ooda-tone-${item.tone}`}>
+          const content = (
+            <>
               <span>{String(index + 1).padStart(2, "0")}</span>
               <strong>{EXPERIENCE_LABELS[item.stage] ?? item.stageLabel ?? item.stage}</strong>
               <small>{item.helper}</small>
+            </>
+          );
+
+          return interactive ? (
+            <Link key={item.href} href={item.href} aria-current={isCurrent ? "step" : undefined} className={`ooda-experience-step ooda-tone-${item.tone}`}>
+              {content}
             </Link>
+          ) : (
+            <div key={item.href} className={`ooda-experience-step ooda-tone-${item.tone}`}>
+              {content}
+            </div>
           );
         })}
       </div>

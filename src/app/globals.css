@@ -3066,6 +3066,16 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   outline-color: var(--accent);
 }
 
+.ooda-loop-shell-static .ooda-experience-step {
+  cursor: default;
+}
+
+.ooda-loop-shell-static .ooda-experience-step:hover {
+  border-color: color-mix(in srgb, var(--accent) 18%, rgba(31, 41, 51, 0.12));
+  box-shadow: none;
+  transform: none;
+}
+
 .ooda-experience-step[aria-current="step"]::after {
   content: "";
   position: absolute;
