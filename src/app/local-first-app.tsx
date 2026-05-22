@@ -2565,7 +2565,7 @@ function buildCaseDockItems(data: AppData): CaseDockItem[] {
 
 function getCaseNextAction(item: CaseDockItem) {
   if (item.counts.observations === 0) {
-    return { label: "観察を入力", href: `/observe?caseId=${item.id}`, reason: "見立ての前に、観察を1件入力します。" };
+    return { label: "観察を入力", href: `/observe?caseId=${item.id}`, reason: "見立てる材料がまだないため、先に観察を残します。" };
   }
   if (item.counts.hypotheses === 0) {
     return { label: "見立てを入力", href: item.latestObservationId ? `/orient?observationId=${item.latestObservationId}` : "/orient", reason: "観察があります。見立てを整理します。" };
