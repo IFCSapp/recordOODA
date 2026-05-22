@@ -30,6 +30,8 @@ const PLATE_WIDTH_SEGMENTS = 22;
 const PLATE_EDGE_GAP_DEGREES = 12;
 const SIDE_PLATE_MAX_BEND = degreesToRadians((CARD_SPACING - PLATE_EDGE_GAP_DEGREES) / 2);
 const SIDE_PLATE_BEND_EXPONENT = 1.12;
+const FRONT_LATERAL_BIAS = 0.26;
+const FRONT_CENTER_BEND_REDUCTION = 0.72;
 const ORBIT_RADIUS_X_NARROW = 1.7;
 const ORBIT_RADIUS_Z_NARROW = 0.64;
 const ORBIT_RADIUS_X_WIDE = 2.18;
@@ -207,8 +209,9 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
         const depth = (front + 1) / 2;
         const sideDepth = Math.pow(Math.abs(side), SIDE_PLATE_BEND_EXPONENT);
         const bend = sideDepth * SIDE_PLATE_MAX_BEND;
+        const lateralBias = Math.sign(side) * Math.max(front, 0) * Math.pow(1 - Math.abs(side), 0.8);
         const scale = 0.7 + depth * 0.3 - sideDepth * 0.05;
-        bendPlateGeometry(plate, bend);
+        bendPlateGeometry(plate, bend, lateralBias);
         plate.group.position.set(side * radiusX, -0.02 - (1 - depth) * 0.12, front * radiusZ);
         plate.group.rotation.set(0, radians, 0);
         plate.group.scale.setScalar(scale);
@@ -295,11 +298,13 @@ function createPlate(item: OodaOrbitItem, index: number): Plate {
   return { group, geometry, basePositions, materials, textures: [front, back] };
 }
 
-function bendPlateGeometry(plate: Plate, bend: number) {
+function bendPlateGeometry(plate: Plate, bend: number, lateralBias: number) {
   const position = plate.geometry.attributes.position;
   const halfWidth = PLATE_WIDTH / 2;
   const shouldBend = bend > 0.001;
   const radius = shouldBend ? halfWidth / Math.sin(bend) : 0;
+  const lateralDirection = Math.sign(lateralBias);
+  const lateralStrength = Math.min(Math.abs(lateralBias), 1);
 
   for (let index = 0; index < position.count; index += 1) {
     const offset = index * 3;
@@ -314,8 +319,11 @@ function bendPlateGeometry(plate: Plate, bend: number) {
 
     const normalizedX = clamp(x / halfWidth, -1, 1);
     const theta = normalizedX * bend;
-    const curvedX = Math.sin(theta) * radius;
-    const curvedZ = z + Math.cos(theta) * radius - radius;
+    const nearSide = lateralDirection === 0 ? 0 : Math.max(0, normalizedX * lateralDirection);
+    const sideEscape = lateralDirection * nearSide * nearSide * lateralStrength * FRONT_LATERAL_BIAS * halfWidth;
+    const centerBend = 1 - nearSide * lateralStrength * FRONT_CENTER_BEND_REDUCTION;
+    const curvedX = Math.sin(theta) * radius + sideEscape;
+    const curvedZ = z + (Math.cos(theta) * radius - radius) * centerBend;
     position.setXYZ(index, curvedX, y, curvedZ);
   }
 
