@@ -7,7 +7,7 @@ const reviewNavItems = [
   { href: "/", label: "ホーム" },
   { href: "/search", label: "類似場面" },
   { href: "/reflect", label: "振り返り" },
-  { href: "/files", label: "保存先" },
+  { href: "/files", label: "バックアップ" },
   { href: "/export", label: "要約" }
 ];
 
@@ -15,7 +15,7 @@ export function ReviewNav() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="OODAの振り返り" className="flex flex-wrap gap-2 text-sm">
+    <nav aria-label="主要ナビゲーション" className="flex flex-wrap gap-2 text-sm">
       {reviewNavItems.map((item) => {
         const isCurrent = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
 

@@ -134,7 +134,7 @@ export function OrientDepthPreview({ observation }: { observation: ObservationPr
               <LayerLabel number={`0${index + 2}`} label={`可能性 ${index + 1}`} />
               <div className="mt-2 text-xs font-semibold text-skyline">{hypothesis.category}</div>
               <p className="mt-2 min-h-12 text-sm leading-6 text-ink/80">
-                {hypothesis.statement || "ここに仮説文を書くと、観察から浮かぶ可能性として見えます。"}
+                {hypothesis.statement || "ここに見立て文を入力すると、観察から浮かぶ可能性として見えます。"}
               </p>
               <div className="mt-3 rounded-md bg-white/70 p-2 text-xs leading-5 text-ink/60">
                 根拠: {hypothesis.evidence || "どの事実からそう考えたか"}
@@ -173,7 +173,7 @@ export function OrientDepthPreview({ observation }: { observation: ObservationPr
 
       <div className="relative mt-5 grid gap-2 text-xs text-ink/60 md:grid-cols-3">
         <AxisNote title="横軸" body="事実から、可能性、次の確認へ進む" />
-        <AxisNote title="奥行き" body="仮説を複数並べ、単一原因に寄せすぎない" />
+        <AxisNote title="奥行き" body="見立てを複数並べ、単一原因に寄せすぎない" />
         <AxisNote title="高さ" body="確信度は反応を見るまで仮置きにする" />
       </div>
     </div>

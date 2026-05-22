@@ -33,7 +33,7 @@ const EXPERIENCE_LABELS: Record<string, string> = {
   Observe: "見る",
   Orient: "見立てる",
   Decide: "選ぶ",
-  Act: "返す"
+  Act: "反応"
 };
 
 export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbitItem[]; currentPath: string }) {
@@ -69,7 +69,7 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
     plates.forEach((plate) => scene.add(plate.group));
     const plateMeshes = plates.map((plate) => plate.group.children[0]).filter((object): object is THREE.Object3D => Boolean(object));
 
-    const loop = createLoopRing();
+    const loop = createLoopRing(activeIndex);
     scene.add(loop.group);
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
@@ -82,7 +82,7 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.setSize(width, height, false);
       const aspect = width / height;
-      const viewHeight = width < 480 ? 4.15 : 3.45;
+      const viewHeight = width < 480 ? 2.05 : 3.08;
       camera.left = (-viewHeight * aspect) / 2;
       camera.right = (viewHeight * aspect) / 2;
       camera.top = viewHeight / 2;
@@ -184,8 +184,8 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
       }
       const baseDegrees = angle;
       const isNarrow = width < 520;
-      const radiusX = isNarrow ? 1.55 : 2.22;
-      const radiusZ = isNarrow ? 0.86 : 1.18;
+      const radiusX = isNarrow ? 1.36 : 1.9;
+      const radiusZ = isNarrow ? 0.78 : 1.04;
 
       plates.forEach((plate, index) => {
         const degrees = baseDegrees + index * CARD_SPACING;
@@ -222,17 +222,14 @@ export function OodaOrbitMenu({ items, currentPath }: { items: readonly OodaOrbi
 
   return (
     <div className="ooda-loop-shell" aria-label="OODAの3Dループ">
-      <div className="ooda-loop-caption">
-        <span>OODAは一巡して戻る</span>
-        <strong>見る → 見立てる → 選ぶ → 反応で戻す</strong>
-      </div>
+      <span className="sr-only">OODAは一巡して戻る。見る、見立てる、選ぶ、反応で戻す。</span>
       <div className="ooda-orbit-grid" aria-hidden="true" />
       <div className="ooda-orbit-track">
         <canvas ref={canvasRef} className="ooda-three-canvas" aria-label="OODA loop" />
         <div className="ooda-three-link-list">
           {items.map((item) => (
             <Link key={item.href} href={item.href} aria-current={currentPath.startsWith(item.href) ? "page" : undefined}>
-              {item.stage}: {item.label}
+              {item.stageLabel ?? item.stage}: {item.label}
             </Link>
           ))}
         </div>
@@ -282,27 +279,71 @@ function createPlate(item: OodaOrbitItem, index: number): Plate {
   return { group, geometry, materials, textures: [front, back] };
 }
 
-function createLoopRing() {
+function createLoopRing(activeIndex: number) {
   const group = new THREE.Group();
-  const ringGeometry = new THREE.TorusGeometry(1.72, 0.018, 12, 120);
-  const ringMaterial = new THREE.MeshBasicMaterial({ color: "#55745f", opacity: 0.34, transparent: true });
-  const ring = new THREE.Mesh(ringGeometry, ringMaterial);
-  ring.rotation.x = Math.PI / 2;
-  group.add(ring);
+  const geometries: THREE.BufferGeometry[] = [];
+  const materials: THREE.Material[] = [];
+  const radiusX = 1.48;
+  const radiusY = 0.82;
+  const activeLoopIndex = activeIndex % COLORS.length;
 
-  const arrowGeometry = new THREE.ConeGeometry(0.09, 0.24, 24);
-  const arrowMaterial = new THREE.MeshBasicMaterial({ color: "#376f8f", opacity: 0.74, transparent: true });
-  for (let index = 0; index < 4; index += 1) {
-    const angle = degreesToRadians(index * 90 + 42);
-    const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial.clone());
-    arrow.position.set(Math.sin(angle) * 1.72, 0, Math.cos(angle) * 1.72);
-    arrow.rotation.set(Math.PI / 2, 0, -angle);
-    group.add(arrow);
+  const addLoopMesh = (geometry: THREE.BufferGeometry, material: THREE.Material) => {
+    geometries.push(geometry);
+    materials.push(material);
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.renderOrder = 1;
+    group.add(mesh);
+    return mesh;
+  };
+
+  COLORS.forEach((color, index) => {
+    const isCurrent = index === activeLoopIndex;
+    const startDegrees = index * 90 + 4;
+    const endDegrees = index * 90 + 83;
+    const baseOpacity = isCurrent ? 0.5 : 0.32;
+    const arcMaterial = new THREE.MeshBasicMaterial({
+      color,
+      depthWrite: false,
+      opacity: baseOpacity,
+      transparent: true
+    });
+    addLoopMesh(createLoopArcGeometry(startDegrees, endDegrees, radiusX, radiusY, isCurrent ? 0.014 : 0.012), arcMaterial);
+
+    const streamMaterial = new THREE.MeshBasicMaterial({
+      color,
+      depthWrite: false,
+      opacity: isCurrent ? 0.64 : 0.42,
+      transparent: true
+    });
+    addLoopMesh(createLoopArcGeometry(endDegrees - 10, endDegrees - 3, radiusX * 0.94, radiusY * 0.94, isCurrent ? 0.015 : 0.012), streamMaterial);
+
+    const nodeGeometry = new THREE.SphereGeometry(isCurrent ? 0.042 : 0.034, 16, 8);
+    const nodeMaterial = new THREE.MeshBasicMaterial({
+      color,
+      depthWrite: false,
+      opacity: isCurrent ? 0.66 : 0.46,
+      transparent: true
+    });
+    const node = addLoopMesh(nodeGeometry, nodeMaterial);
+    const nodeAngle = degreesToRadians(startDegrees - 5);
+    node.position.set(Math.sin(nodeAngle) * radiusX, Math.cos(nodeAngle) * radiusY, 0);
+  });
+
+  group.position.set(0, -0.04, 0.84);
+  group.scale.set(0.98, 0.98, 0.98);
+  return { group, geometries, materials };
+}
+
+function createLoopArcGeometry(startDegrees: number, endDegrees: number, radiusX: number, radiusY: number, tubeRadius: number) {
+  const points: THREE.Vector3[] = [];
+  const steps = 28;
+  for (let step = 0; step <= steps; step += 1) {
+    const progress = step / steps;
+    const angle = degreesToRadians(startDegrees + (endDegrees - startDegrees) * progress);
+    points.push(new THREE.Vector3(Math.sin(angle) * radiusX, Math.cos(angle) * radiusY, 0));
   }
-
-  group.position.y = -0.14;
-  group.scale.set(1.08, 1.08, 1.08);
-  return { group, ringGeometry, ringMaterial, arrowGeometry };
+  const curve = new THREE.CatmullRomCurve3(points);
+  return new THREE.TubeGeometry(curve, 36, tubeRadius, 8, false);
 }
 
 function createPlateTexture(item: OodaOrbitItem, index: number, accent: string, isBack: boolean) {
@@ -335,7 +376,7 @@ function createPlateTexture(item: OodaOrbitItem, index: number, accent: string, 
     context.font = '900 156px "Yu Gothic", Meiryo, sans-serif';
     context.textAlign = "center";
     context.textBaseline = "middle";
-    context.fillText(item.stage, 512, 320);
+    context.fillText(item.stageLabel ?? item.stage, 512, 320);
   } else {
     context.fillStyle = dark;
     context.textAlign = "left";
@@ -344,7 +385,7 @@ function createPlateTexture(item: OodaOrbitItem, index: number, accent: string, 
     context.fillText(String(index + 1).padStart(2, "0"), 76, 118);
     context.fillStyle = accent;
     context.font = '900 66px "Yu Gothic", Meiryo, sans-serif';
-    context.fillText(item.stage, 196, 118);
+    context.fillText(item.stageLabel ?? item.stage, 196, 118);
     context.fillStyle = dark;
     context.font = '900 112px "Yu Gothic", Meiryo, sans-serif';
     drawWrappedText(context, item.label, 76, 332, 872, 118, 2);
@@ -400,16 +441,8 @@ function disposePlate(plate: Plate) {
 }
 
 function disposeLoop(loop: ReturnType<typeof createLoopRing>) {
-  loop.ringGeometry.dispose();
-  loop.ringMaterial.dispose();
-  loop.arrowGeometry.dispose();
-  loop.group.traverse((object) => {
-    if (object instanceof THREE.Mesh && Array.isArray(object.material)) {
-      object.material.forEach((material) => material.dispose());
-    } else if (object instanceof THREE.Mesh) {
-      object.material.dispose();
-    }
-  });
+  loop.geometries.forEach((geometry) => geometry.dispose());
+  loop.materials.forEach((material) => material.dispose());
 }
 
 function degreesToRadians(value: number) {

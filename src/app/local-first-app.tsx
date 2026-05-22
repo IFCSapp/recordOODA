@@ -150,18 +150,18 @@ const SUPPORT_CATEGORIES = ["見通し支援", "環境調整", "課題調整", "
 const DECISION_CHECK_ITEMS = ["本人の価値に沿う", "後戻りできる", "当日中に試せる", "失敗しても再挑戦できる"];
 
 const stageLinks = [
-  { href: "/observe", stage: "Observe", stageLabel: "観察", label: "観察を書く", helper: "事実を残す", tone: "observe" },
-  { href: "/orient", stage: "Orient", stageLabel: "見立て", label: "仮説を立てる", helper: "見方をほぐす", tone: "orient" },
-  { href: "/decide", stage: "Decide", stageLabel: "支援", label: "支援を決める", helper: "一つ選ぶ", tone: "decide" },
-  { href: "/act", stage: "Act", stageLabel: "反応", label: "反応を見る", helper: "結果で更新", tone: "act" }
+  { href: "/observe", stage: "Observe", stageLabel: "観察", label: "観察を入力", helper: "事実を残す", tone: "observe" },
+  { href: "/orient", stage: "Orient", stageLabel: "見立て", label: "見立てを入力", helper: "見方を整理", tone: "orient" },
+  { href: "/decide", stage: "Decide", stageLabel: "支援", label: "支援を選ぶ", helper: "1つ選ぶ", tone: "decide" },
+  { href: "/act", stage: "Act", stageLabel: "反応", label: "反応を入力", helper: "反応で更新", tone: "act" }
 ] as const;
 
 const topNavItems = [
-  { href: "/", label: "ホーム" },
-  { href: "/cases", label: "ケース一覧" },
+  { href: "/", label: "今日" },
+  { href: "/cases", label: "ケース" },
   { href: "/search", label: "類似場面" },
   { href: "/reflect", label: "振り返り" },
-  { href: "/files", label: "保存先" },
+  { href: "/files", label: "バックアップ" },
   { href: "/export", label: "要約" }
 ] as const;
 
@@ -191,6 +191,7 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
   const selectedCase = data.cases.find((item) => item.id === selectedCaseId) ?? data.cases[0] ?? null;
   const isTaskPage = view === "observe" || view === "orient" || view === "decide" || view === "act";
   const isHomePage = view === "home";
+  const shouldShowWorkflowMenu = caseItems.length > 0;
   const shouldCompactNav = isTaskPage || (isHomePage && caseItems.length === 0);
   const shouldCompactNavOnMobile = isHomePage && caseItems.length > 0;
 
@@ -247,15 +248,18 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
       <div className="app-top-shell">
         <div className="app-top-container mx-auto flex max-w-7xl flex-col gap-4 px-5 py-4">
           <div className="app-command-row flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <Link href="/" className="brand-link flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="brand-mark text-xl font-bold tracking-normal text-ink">recordOODA</span>
-              <span className={`record-brand-subtitle text-sm text-ink/60 ${isTaskPage ? "record-brand-subtitle-task" : ""}`}>個人の観察から、小さく試して見立てを更新する</span>
+            <Link href="/" className="brand-link">
+              <span className="brand-title-line">
+                <span className="brand-mark text-xl font-bold tracking-normal text-ink">recordOODA</span>
+                <span className="brand-purpose">支援OODAメモ</span>
+              </span>
+              <span className={`record-brand-subtitle text-sm text-ink/60 ${isTaskPage ? "record-brand-subtitle-task" : ""}`}>観察から小さな支援まで、今日の一手を残す</span>
             </Link>
             <ReviewNav
               pathname={pathname}
               compact={shouldCompactNav}
               compactOnMobile={shouldCompactNavOnMobile}
-              menuLabel={caseItems.length === 0 ? "一覧・振り返り" : "他の画面"}
+              menuLabel="記録を見る"
             />
           </div>
 
@@ -267,13 +271,13 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
               onCaseChange={(caseId) => setCurrentCase(caseId)}
             />
           ) : isHomePage ? (
-            <HomeStartBar
-              items={caseItems}
-              selectedCaseId={selectedCase?.id ?? ""}
-              onCaseChange={(caseId) => setCurrentCase(caseId)}
-              onCreateCase={createQuickCase}
-            />
-          ) : (
+          <HomeStartBar
+            items={caseItems}
+            selectedCaseId={selectedCase?.id ?? ""}
+            onCaseChange={(caseId) => setCurrentCase(caseId)}
+            onCreateCase={createQuickCase}
+          />
+          ) : !shouldShowWorkflowMenu ? null : (
             <WorkflowMenu
               items={caseItems}
               selectedCaseId={selectedCase?.id ?? ""}
@@ -318,19 +322,21 @@ function ReviewNav({
   pathname,
   compact = false,
   compactOnMobile = false,
-  menuLabel = "他の画面",
+  menuLabel = "記録を見る",
 }: {
   pathname: string;
   compact?: boolean;
   compactOnMobile?: boolean;
   menuLabel?: string;
 }) {
-  const shouldRenderMenu = compact || compactOnMobile;
-  const primaryItems = compact ? topNavItems.slice(0, 1) : topNavItems;
-  const menuItems = shouldRenderMenu ? topNavItems.slice(1) : [];
+  const primaryCount = compact ? 1 : 2;
+  const primaryItems = topNavItems.slice(0, primaryCount);
+  const menuItems = topNavItems.slice(primaryCount);
+  const currentMenuItem = menuItems.find((item) => pathname.startsWith(item.href));
+  const menuHasCurrent = Boolean(currentMenuItem);
 
   return (
-    <nav aria-label="主要ナビゲーション" className={`flex flex-wrap gap-2 text-sm ${compactOnMobile ? "review-nav-responsive-compact" : ""}`}>
+    <nav aria-label="主要ナビゲーション" className={`review-nav flex flex-wrap gap-2 text-sm ${compactOnMobile ? "review-nav-responsive-compact" : ""}`}>
       {primaryItems.map((item, index) => {
         const isCurrent = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
 
@@ -339,16 +345,19 @@ function ReviewNav({
             key={item.href}
             href={item.href}
             aria-current={isCurrent ? "page" : undefined}
-            className={`review-nav-link rounded-md border border-ink/10 bg-white px-3 py-2 text-ink/75 transition hover:border-skyline hover:text-skyline ${compactOnMobile && index > 0 ? "review-nav-mobile-secondary" : ""}`}
+            className={`review-nav-link rounded-md border border-ink/10 bg-white px-3 py-2 text-ink/75 transition hover:border-skyline hover:text-skyline ${compactOnMobile && index > 1 ? "review-nav-mobile-secondary" : ""}`}
           >
             {item.label}
           </Link>
         );
       })}
       {menuItems.length > 0 ? (
-        <details className={`review-nav-menu ${compactOnMobile && !compact ? "review-nav-mobile-menu" : ""}`}>
-          <summary className="review-nav-link rounded-md border px-3 py-2 text-ink/75 transition hover:border-skyline hover:text-skyline">
-            {menuLabel}
+        <details className="review-nav-menu">
+          <summary
+            className="review-nav-link rounded-md border px-3 py-2 text-ink/75 transition hover:border-skyline hover:text-skyline"
+            data-current={menuHasCurrent ? "true" : undefined}
+          >
+            {currentMenuItem?.label ?? menuLabel}
           </summary>
           <div className="review-nav-menu-list">
             {menuItems.map((item) => {
@@ -390,29 +399,29 @@ function CompactWorkflowBar({
   const nextAction = selected ? getCaseNextAction(selected) : null;
   const nextActionPath = nextAction?.href.split("?")[0] ?? "";
   const actionIsCurrentStep = Boolean(nextAction && nextActionPath && currentPath.startsWith(nextActionPath));
-  const actionHref = actionIsCurrentStep ? "#task-form" : nextAction?.href ?? "/cases";
-  const actionCopy = actionIsCurrentStep ? `この画面でやること: ${nextAction?.reason}` : nextAction?.reason ?? "最初の対象を作ると、観察から始められます。";
-  const actionLabel = actionIsCurrentStep ? "入力欄へ移動" : nextAction?.label ?? "ケースを作る";
+  const actionHref = nextAction?.href ?? "/cases";
+  const actionCopy = nextAction?.reason ?? "ケースを作ると、観察から始められます。";
+  const actionLabel = nextAction?.label ?? "ケースを作る";
 
   return (
-    <section className={`task-context-bar ooda-tone-${hasCases ? currentStep.tone : "case"}`} aria-label="現在の作業">
+    <section className={`task-context-bar ${actionIsCurrentStep ? "task-context-bar-current" : ""} ooda-tone-${hasCases ? currentStep.tone : "case"}`} aria-label="現在の作業">
       <div className="task-context-main">
         <span className="task-context-index">{hasCases ? String(currentStepIndex + 1).padStart(2, "0") : "準備"}</span>
         <div>
           <span>現在のステップ</span>
           <strong>{hasCases ? currentStep.label : "ケースを作る"}</strong>
-          <small>{hasCases ? currentStep.helper : "観察の前に対象を作る"}</small>
+          <small>{hasCases ? currentStep.helper : "まずケースを用意"}</small>
         </div>
       </div>
 
       {!hasCases ? (
-        <div className="task-context-case task-context-case-empty" aria-label="対象ケース">
+        <div className="task-context-case task-context-case-empty" aria-label="ケース">
           <span>状態</span>
-          <strong>ケース未作成</strong>
+          <strong>ケースなし</strong>
         </div>
       ) : (
         <label className="task-context-case">
-          <span>対象ケース</span>
+          <span>ケース</span>
           <select value={selected?.id ?? ""} onChange={(event) => onCaseChange(event.target.value)}>
             {items.map((item) => (
               <option key={item.id} value={item.id}>
@@ -423,10 +432,12 @@ function CompactWorkflowBar({
         </label>
       )}
 
-      <div className="task-context-action">
-        <span>{actionCopy}</span>
-        <Link href={actionHref}>{actionLabel}</Link>
-      </div>
+      {!actionIsCurrentStep ? (
+        <div className="task-context-action">
+          <span>{actionCopy}</span>
+          <Link href={actionHref}>{actionLabel}</Link>
+        </div>
+      ) : null}
 
       {hasCases ? (
         <details className="task-context-jump">
@@ -460,21 +471,23 @@ function HomeStartBar({
 
   return (
     <section className="home-start-bar" aria-label="今日の開始">
-      <div className="home-start-main">
-        <span>今日の一手</span>
-        {selected ? <small className="home-start-selected">対象: {selected.displayName}</small> : null}
-        <strong>{nextAction?.reason ?? "最初の対象を作ると、観察から始められます。"}</strong>
+      <div className={`home-start-main ${selected && nextAction ? "home-start-main-action-only" : ""}`}>
         {selected && nextAction ? (
           <Link href={nextAction.href} className="case-primary-action">
             {nextAction.label}
           </Link>
-        ) : null}
+        ) : (
+          <>
+            <span>今日の一手</span>
+            <strong>ケースを作る</strong>
+          </>
+        )}
       </div>
       <div className="home-start-case">
         {selected ? (
           <>
             <label className="case-dock-picker">
-              <span>対象ケース</span>
+              <span>ケース</span>
               <select value={selected.id} onChange={(event) => onCaseChange(event.target.value)}>
                 {items.map((item) => (
                   <option key={item.id} value={item.id}>
@@ -483,16 +496,14 @@ function HomeStartBar({
                 ))}
               </select>
             </label>
-            <span className="case-dock-progress-label">OODA進捗</span>
-            <CaseProgressRail item={selected} dense />
           </>
         ) : (
           <>
             <QuickCaseForm onCreateCase={onCreateCase} submitLabel="ケースを作る" />
             <details className="home-start-alternative">
-              <summary>一覧画面で作る</summary>
+              <summary>新しいケース</summary>
               <Link href="/cases" className="home-start-secondary-link">
-                一覧画面を開く
+                ケース画面を開く
               </Link>
             </details>
           </>
@@ -528,7 +539,7 @@ function WorkflowMenu({
           <div className="case-dock-title">
             <span className="ooda-orbit-stage">Case</span>
             <strong className="ooda-orbit-label">ケース</strong>
-            <small>{activeCount}件アクティブ</small>
+            <small>現在 {activeCount}件</small>
           </div>
           <Link href="/cases" className="case-dock-text-link">
             一覧
@@ -536,10 +547,10 @@ function WorkflowMenu({
         </div>
 
         <label className="case-dock-picker">
-          <span>対象</span>
+          <span>ケース</span>
           <select value={selected?.id ?? ""} onChange={(event) => onCaseChange(event.target.value)} disabled={items.length === 0}>
             {items.length === 0 ? (
-              <option value="">未作成</option>
+              <option value="">ケースなし</option>
             ) : (
               items.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -552,27 +563,25 @@ function WorkflowMenu({
 
         {selected ? (
           <>
-            <span className="case-dock-progress-label">OODA進捗</span>
             <CaseProgressRail item={selected} currentPath={currentPath} dense />
-            <p className="case-dock-next-reason">{nextAction?.reason}</p>
             <div className="case-dock-actions">
               <Link href={nextAction?.href ?? "/cases"} className="case-dock-primary">
-                次: {nextAction?.label ?? "ケース作成"}
+                {nextAction?.label ?? "ケース作成"}
               </Link>
               <Link href={`/reflect?caseId=${selected.id}`}>履歴</Link>
             </div>
           </>
         ) : (
           <div className="case-dock-empty">
-            <p>まずケースを一つ作ると、OODAを始められます。</p>
-            <QuickCaseForm onCreateCase={onCreateCase} submitLabel="作成して選択" />
+            <p>まずケースを作ると、OODAを始められます。</p>
+            <QuickCaseForm onCreateCase={onCreateCase} submitLabel="ケースを作る" />
           </div>
         )}
 
         {selected ? (
           <details className="case-dock-new">
             <summary>新しいケース</summary>
-            <QuickCaseForm onCreateCase={onCreateCase} submitLabel="作成" />
+            <QuickCaseForm onCreateCase={onCreateCase} submitLabel="ケースを作る" />
           </details>
         ) : null}
       </section>
@@ -646,7 +655,7 @@ function CaseProgressRail({
         const isDone = count > 0;
         const isNext = nextStageIndex === index;
         const isCurrent = Boolean(currentPath && currentPath.startsWith(stage.href));
-        const stateLabel = isCurrent ? "表示中" : isNext ? "次にやる" : isDone ? `${count}件` : "未入力";
+        const stateLabel = isCurrent ? "現在" : isNext ? "次" : String(count);
         const className = [
           "case-progress-step",
           `case-progress-step-${stage.tone}`,
@@ -685,8 +694,6 @@ function HomeView({ data }: { data: AppData }) {
   const hasCases = data.cases.length > 0;
   const caseItems = buildCaseDockItems(data);
   const selectedCase = caseItems.find((item) => item.id === data.settings.currentCaseId) ?? caseItems[0] ?? null;
-  const nextAction = selectedCase ? getCaseNextAction(selectedCase) : null;
-  const nextStageIndex = selectedCase ? getNextStageIndex(selectedCase) : 0;
   const recentObservations = [...data.observations].sort(byNewest).slice(0, 4);
   const activeHypotheses = data.hypotheses.filter((item) => item.status === "未検証" || item.status === "検証中").sort(byUpdated).slice(0, 4);
   const dueExperiments = data.experiments.filter((item) => item.status === "予定" || item.status === "実施中").sort((a, b) => a.reviewDueAt.localeCompare(b.reviewDueAt)).slice(0, 4);
@@ -694,49 +701,11 @@ function HomeView({ data }: { data: AppData }) {
 
   return (
     <>
-      <PageHeader
-        title="今日のOODA"
-        description={selectedCase && nextAction ? `${selectedCase.displayName}: ${nextAction.reason}` : hasCases ? "対象ケースを選び、次の一手から始めます。" : "ケースを作ると、観察からOODAを始められます。"}
-        image={hasCases ? "home.png" : undefined}
-        imageClassName="home-page-illustration"
-      />
-
-      <section className="today-loop-panel today-loop-panel-rail-only" aria-label="今日のOODA">
-        {!hasCases ? <h2 className="today-loop-preview-title">作成後の流れ</h2> : null}
-        <div className="today-loop-rail">
-          {stageLinks.map((item, index) => {
-            const count = selectedCase ? countForCaseStage(selectedCase, item.stage) : countForStage(data, item.stage);
-            const isCurrentStart = Boolean(hasCases && selectedCase && nextStageIndex === index);
-            const isComplete = hasCases && count > 0;
-            const href = selectedCase ? hrefForCaseStage(selectedCase, item.href) : item.href;
-            const stepContent = (
-              <>
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <div>
-                  <small>{item.stageLabel}</small>
-                  <strong>{isCurrentStart ? `次: ${item.label}` : item.label}</strong>
-                  <em>{isCurrentStart ? nextAction?.reason : isComplete ? `${count}件記録済み` : item.helper}</em>
-                </div>
-                {hasCases ? <b>{count}件</b> : null}
-              </>
-            );
-
-            return hasCases ? (
-              <Link key={item.href} href={href} className={`today-loop-step today-loop-step-${item.tone} ${isCurrentStart ? "is-next" : ""} ${isComplete ? "is-complete" : ""}`}>
-                {stepContent}
-              </Link>
-            ) : (
-              <div key={item.href} className={`today-loop-step today-loop-step-${item.tone} today-loop-step-preview`}>
-                {stepContent}
-              </div>
-            );
-          })}
-        </div>
-      </section>
+      <HomeFlowHeader selectedCase={selectedCase} hasCases={hasCases} />
 
       {hasCases ? (
         <div className="grid gap-5 lg:grid-cols-2">
-        <DashboardBlock title="最近の観察" href="/observe" actionLabel="観察を書く">
+        <DashboardBlock title="最近の観察" href="/observe" actionLabel="観察を入力">
           {recentObservations.length === 0 ? (
             <EmptyState>まだ観察はありません。</EmptyState>
           ) : (
@@ -750,9 +719,9 @@ function HomeView({ data }: { data: AppData }) {
           )}
         </DashboardBlock>
 
-        <DashboardBlock title="見直す仮説" href="/orient" actionLabel="仮説を見る">
+        <DashboardBlock title="見直す見立て" href="/orient" actionLabel="見立てを見る">
           {activeHypotheses.length === 0 ? (
-            <EmptyState>未検証の仮説はありません。</EmptyState>
+            <EmptyState>見直す見立てはありません。</EmptyState>
           ) : (
             activeHypotheses.map((item) => (
               <LinkCard key={item.id} href={`/decide?hypothesisId=${item.id}`}>
@@ -764,7 +733,7 @@ function HomeView({ data }: { data: AppData }) {
           )}
         </DashboardBlock>
 
-        <DashboardBlock title="反応を見る支援" href="/act" actionLabel="反応を記録">
+        <DashboardBlock title="反応待ちの支援" href="/act" actionLabel="反応を入力">
           {dueExperiments.length === 0 ? (
             <EmptyState>実施待ちの支援はありません。</EmptyState>
           ) : (
@@ -794,6 +763,96 @@ function HomeView({ data }: { data: AppData }) {
         </div>
       ) : null}
     </>
+  );
+}
+
+function HomeFlowHeader({
+  selectedCase,
+  hasCases
+}: {
+  selectedCase: CaseDockItem | null;
+  hasCases: boolean;
+}) {
+  const nextStageIndex = selectedCase ? getNextStageIndex(selectedCase) : 0;
+
+  return (
+    <section className="home-flow-header" aria-label="今日のOODA">
+      <h1 className="sr-only">今日のOODA</h1>
+      <div className="ooda-flow-map" aria-label={selectedCase ? `${selectedCase.displayName}のOODAステップ` : "OODAステップ"}>
+        {stageLinks.map((item, index) => {
+          const count = selectedCase ? countForCaseStage(selectedCase, item.stage) : 0;
+          const isComplete = Boolean(selectedCase && count > 0);
+          const isCurrent = Boolean(hasCases && selectedCase && nextStageIndex === index);
+          const className = [
+            "ooda-flow-node",
+            `ooda-flow-node-${item.tone}`,
+            isComplete ? "is-complete" : "",
+            isCurrent ? "is-current" : "",
+            selectedCase ? "" : "is-disabled"
+          ]
+            .filter(Boolean)
+            .join(" ");
+          const nodeContent = (
+            <>
+              <span className="ooda-flow-dot">{String(index + 1).padStart(2, "0")}</span>
+              <strong>{item.stageLabel}</strong>
+              <small>{count}</small>
+            </>
+          );
+
+          return selectedCase ? (
+            <Link
+              key={item.href}
+              href={hrefForCaseStage(selectedCase, item.href)}
+              className={className}
+              aria-label={`${item.label} ${count}件${isCurrent ? " 現在の作業" : ""}`}
+            >
+              {nodeContent}
+            </Link>
+          ) : (
+            <div key={item.href} className={className} aria-label={item.label}>
+              {nodeContent}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function CaseMiniFlow({ item }: { item: CaseDockItem }) {
+  const nextStageIndex = getNextStageIndex(item);
+
+  return (
+    <div className="case-mini-flow" aria-label={`${item.displayName}のOODAステップ`}>
+      {stageLinks.map((stage, index) => {
+        const count = countForCaseStage(item, stage.stage);
+        const isComplete = count > 0;
+        const isCurrent = nextStageIndex === index;
+        const className = [
+          "case-mini-flow-node",
+          `case-mini-flow-node-${stage.tone}`,
+          isComplete ? "is-complete" : "",
+          isCurrent ? "is-current" : ""
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+        return (
+          <Link
+            key={stage.href}
+            href={hrefForCaseStage(item, stage.href)}
+            aria-current={isCurrent ? "step" : undefined}
+            aria-label={`${stage.label} ${count}件${isCurrent ? " 現在の作業" : ""}`}
+            className={className}
+          >
+            <span>{String(index + 1).padStart(2, "0")}</span>
+            <strong>{stage.stageLabel}</strong>
+            <small>{count}</small>
+          </Link>
+        );
+      })}
+    </div>
   );
 }
 
@@ -831,53 +890,29 @@ function CasesView({ data, commit, onNavigate }: { data: AppData; commit: Commit
 
   return (
     <>
-      <PageHeader title="ケース" description="個人で見返しやすい単位を一つ作り、OODAを回します。" image="cases.png" action={<LinkButton href="/observe">観察を書く</LinkButton>} />
+      <PageHeader title="ケース" description="個人で見返しやすい単位を一つ作り、OODAを回します。" image="cases.png" action={caseItems.length > 0 ? <LinkButton href="/observe">観察を入力</LinkButton> : undefined} />
 
-      <Section title="OODAの回し方">
-        <div className="case-operation-flow">
-          <GuideCard step="1" title="観察" body="見えた事実だけ残す" />
-          <GuideCard step="2" title="見立て" body="別の可能性も置く" />
-          <GuideCard step="3" title="支援" body="一つだけ試す" />
-          <GuideCard step="4" title="反応" body="結果で更新する" />
-        </div>
-      </Section>
-
-      <Section title="ケース一覧">
-        {caseItems.length === 0 ? (
-          <EmptyState>まだケースはありません。下のフォームから最初のケースを作ります。</EmptyState>
-        ) : (
+      {caseItems.length === 0 ? null : (
+        <Section title="ケース一覧">
           <div className="grid gap-4 lg:grid-cols-2">
             {caseItems.map((item) => {
               const nextAction = getCaseNextAction(item);
-              const nextStageIndex = getNextStageIndex(item);
-              const nextStage = stageLinks.find((_, index) => index === nextStageIndex) ?? null;
               return (
                 <article key={item.id} className="case-record-card rounded-md border border-ink/10 bg-white p-4 shadow-sm">
                   <div className="case-record-head">
                     <div className="case-record-title-block">
-                      <span className={`case-record-step-mark case-record-step-mark-${nextStage?.tone ?? "act"}`}>{nextStage ? String(nextStageIndex + 1).padStart(2, "0") : "OK"}</span>
                       <div className="case-record-title-copy">
                         <div className="case-record-title-row">
                           <h2 className="case-record-title">{item.displayName}</h2>
-                          <Tag>{item.isActive ? "アクティブ" : "停止中"}</Tag>
+                          <Tag>{item.isActive ? "利用中" : "停止中"}</Tag>
                         </div>
                         <p className="case-record-meta">作成 {formatShortDate(item.createdAt)} / 更新 {formatShortDate(item.updatedAt)}</p>
                       </div>
                     </div>
-                    <div className="case-record-stage-pill">
-                      <span>{nextStage ? "次" : "一巡"}</span>
-                      <strong>{nextStage?.stageLabel ?? "振り返り"}</strong>
-                    </div>
                   </div>
                   <p className="case-record-memo">{item.memo || "メモはまだありません。"}</p>
-                  <div className="case-record-progress">
-                    <CaseProgressRail item={item} />
-                  </div>
+                  <CaseMiniFlow item={item} />
                   <div className="case-next-action-panel">
-                    <div className="case-next-action-copy">
-                      <span>次の一手</span>
-                      <p>{nextAction.reason}</p>
-                    </div>
                     <Link href={nextAction.href} className="case-primary-action">
                       {nextAction.label}
                     </Link>
@@ -891,10 +926,10 @@ function CasesView({ data, commit, onNavigate }: { data: AppData; commit: Commit
               );
             })}
           </div>
-        )}
-      </Section>
+        </Section>
+      )}
 
-      <Section title="新しいケースを追加">
+      <Section title={caseItems.length === 0 ? "最初のケース" : "新しいケース"} description={caseItems.length === 0 ? "名前だけで始められます。詳しい記録は観察画面で入力します。" : undefined}>
         <form onSubmit={handleCreateCase} className="grid gap-4 rounded-md border border-ink/10 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr_auto] md:items-end" noValidate>
           {formError ? (
             <div className="md:col-span-3">
@@ -911,7 +946,7 @@ function CasesView({ data, commit, onNavigate }: { data: AppData; commit: Commit
           </Label>
           <label className="flex items-center gap-2 text-sm text-ink/75">
             <input name="isActive" type="checkbox" defaultChecked className="h-4 w-4 rounded border-ink/20" />
-            アクティブ
+            現在使う
           </label>
           <div className="md:col-span-3">
             <SubmitButton>ケースを作る</SubmitButton>
@@ -940,8 +975,7 @@ function ObserveView({
     const form = new FormData(event.currentTarget);
     const caseId = requiredText(form, "caseId");
     if (!caseId) return setFormError("ケースを選んでください。");
-    const factMemo = requiredText(form, "factMemo");
-    if (!factMemo) return setFormError("事実メモを入力してください。");
+    const factMemo = text(form, "factMemo");
     const now = nowIso();
     const observation: ObservationRecord = {
       id: newId("obs"),
@@ -973,6 +1007,7 @@ function ObserveView({
       ].filter(Boolean);
       return setFormError(`必須項目を入力してください: ${missing.join("、")}`);
     }
+    if (!factMemo) return setFormError("事実メモを入力してください。");
     setFormError("");
     commit((current) => ({
       ...current,
@@ -989,33 +1024,24 @@ function ObserveView({
 
   return (
     <>
-      <PageHeader title="観察を書く" description={hasCases ? "評価や解釈の前に、見えた事実を短く残します。" : "まずケースを作ると、この画面を使えます。"} image="observe.png" action={<StepPlate step="01" stage="Observe" tone="observe" />} compact />
+      <PageHeader title="観察を入力" description={hasCases ? "評価や解釈と分けて、見えたことだけ先に残します。" : "まずケースを作ると、この画面を使えます。"} image="observe.png" action={<StepPlate step="01" stage="Observe" tone="observe" />} compact />
 
-      <Section title="観察を入力">
+      <Section title="事実と前後">
         {!hasCases ? (
           <EmptyState>まだ入力できません。</EmptyState>
         ) : (
-          <form id="task-form" onSubmit={handleCreateObservation} className="grid gap-5 rounded-md border border-ink/10 bg-white p-4 shadow-sm" noValidate>
+          <form id="task-form" onSubmit={handleCreateObservation} className="observe-form-shell" noValidate>
             {formError ? <FormError>{formError}</FormError> : null}
             <input type="hidden" name="caseId" value={observationCaseId} readOnly />
 
             <div className="observe-minimum-group">
               <div className="observe-minimum-head">
-                <span>まずここだけ</span>
-                <p>60〜90秒で、対象、場面、事実、直前直後を先に残します。</p>
-              </div>
-
-              <Label>
-                事実メモ <RequiredMark />
-                <Textarea name="factMemo" rows={4} placeholder="見えた行動、時間、場面、直前直後の変化として書く" required />
-              </Label>
-
-              <div className="record-context-panel">
-                <div className="record-context-panel-head">
-                  <strong>観察の6点チェック</strong>
-                  <span>抜けやすい観察対象を先にそろえる</span>
+                <p>場面、直前、直後を区切ってから、事実メモにまとめます。</p>
+                <div className="observe-core-flow" aria-label="入力の流れ">
+                  {["場面", "直前", "直後", "まとめ"].map((item) => (
+                    <span key={item}>{item}</span>
+                  ))}
                 </div>
-                <CheckboxGroup name="observationChecklist" title="今回見たもの" options={OBSERVATION_CHECK_ITEMS} />
               </div>
 
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -1053,29 +1079,57 @@ function ObserveView({
               </Label>
 
               <Label>
-                本人の言葉・反応の言い方 <OptionalMark />
-                <Textarea name="personWords" rows={3} placeholder="本人が言った言葉、沈黙、首振り、表情の変化など" />
-              </Label>
-
-              <Label>
-                まず一行メモ <OptionalMark />
-                <Textarea name="freeText" rows={3} placeholder="見えた流れを一行で置く" />
+                事実メモ（まとめ） <RequiredMark />
+                <Textarea name="factMemo" rows={4} placeholder="上の項目を見ながら、見えたことを一文でまとめる" required />
               </Label>
             </div>
 
-            <CheckboxGroup name="behaviorTags" title="行動タグ" options={BEHAVIOR_TAGS} />
+            <div className="observe-form-actions">
+              <SubmitButton>保存して見立てへ</SubmitButton>
+              <span>任意項目は空欄でも保存できます。</span>
+            </div>
 
-            <Label>
-              未確認メモ
-              <Textarea name="unknownMemo" rows={3} placeholder="まだ分からない点、次に確認する点" />
-            </Label>
-
-            <div className="record-context-panel record-context-panel-ethics">
-              <div className="record-context-panel-head">
-                <strong>同意と共有範囲</strong>
-                <span>支援記録として扱う前に最小限を確認する</span>
+            <details className="observe-disclosure">
+              <summary>
+                <span>迷ったら見るチェック</span>
+                <small>行動、表情、環境、安全など</small>
+              </summary>
+              <div className="observe-disclosure-body">
+                <CheckboxGroup name="observationChecklist" title="今回見たもの" options={OBSERVATION_CHECK_ITEMS} />
               </div>
-              <div className="record-context-grid">
+            </details>
+
+            <details className="observe-disclosure">
+              <summary>
+                <span>必要なら補足</span>
+                <small>本人の言葉、タグ、未確認点</small>
+              </summary>
+              <div className="observe-disclosure-body">
+                <Label>
+                  本人の言葉・反応の言い方 <OptionalMark />
+                  <Textarea name="personWords" rows={3} placeholder="本人が言った言葉、沈黙、首振り、表情の変化など" />
+                </Label>
+
+                <Label>
+                  一行メモ <OptionalMark />
+                  <Textarea name="freeText" rows={3} placeholder="見えた流れを一行で置く" />
+                </Label>
+
+                <CheckboxGroup name="behaviorTags" title="行動タグ" options={BEHAVIOR_TAGS} />
+
+                <Label>
+                  未確認メモ <OptionalMark />
+                  <Textarea name="unknownMemo" rows={3} placeholder="まだ分からない点、次に確認する点" />
+                </Label>
+              </div>
+            </details>
+
+            <details className="observe-disclosure observe-disclosure-ethics">
+              <summary>
+                <span>共有前の確認</span>
+                <small>扱う範囲、共有範囲</small>
+              </summary>
+              <div className="observe-disclosure-body observe-disclosure-grid">
                 <Label>
                   扱ってよい範囲 <OptionalMark />
                   <Input name="consentScope" placeholder="例: 本人に確認済み / 次回確認する" />
@@ -1085,9 +1139,7 @@ function ObserveView({
                   <Input name="shareScope" placeholder="例: 支援チーム内のみ / 記録者のみ" />
                 </Label>
               </div>
-            </div>
-
-            <SubmitButton>観察を保存して、仮説を立てる</SubmitButton>
+            </details>
           </form>
         )}
       </Section>
@@ -1153,13 +1205,13 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
         updatedAt: now
       };
       if (!hypothesis.evidence) {
-        setFormError(`${index === 0 ? "仮説 1" : index === 1 ? "別案" : "もう一つの可能性"}の根拠となる観察を入力してください。`);
+        setFormError(`${index === 0 ? "見立て 1" : index === 1 ? "別案" : "もう一つの可能性"}の根拠となる観察を入力してください。`);
         return;
       }
       created.push(hypothesis);
     }
     if (created.length === 0) {
-      setFormError("仮説文を一つ以上入力してください。");
+      setFormError("見立て文を一つ以上入力してください。");
       return;
     }
     setFormError("");
@@ -1177,7 +1229,7 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
 
   return (
     <>
-      <PageHeader title="仮説を立てる" description={hasCases ? "一つの説明に寄せすぎず、複数の可能性と反証を並べます。" : "まずケースを作ると、この画面を使えます。"} image="orient.png" action={<StepPlate step="02" stage="Orient" tone="orient" />} compact />
+      <PageHeader title="見立てを入力" description={hasCases ? "一つの説明に寄せすぎず、複数の可能性と反証を並べます。" : "まずケースを作ると、この画面を使えます。"} image="orient.png" action={<StepPlate step="02" stage="Orient" tone="orient" />} compact />
 
       <Section title="観察から可能性を分ける">
         {observations.length === 0 ? (
@@ -1186,7 +1238,7 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
               <>まだ入力できません。</>
             ) : (
               <>
-                観察がまだありません。<Link href="/observe" className="font-medium text-skyline">観察を書く</Link>から始めてください。
+                観察がまだありません。<Link href="/observe" className="font-medium text-skyline">観察を入力</Link>から始めてください。
               </>
             )}
           </EmptyState>
@@ -1209,11 +1261,11 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
 
             <div className="orient-workbench">
               <div className="orient-input-panel">
-                <Notice>見立ては結論ではなく仮置きです。価値、回避、強く働く考え、今できる一歩を分けてから、主な仮説を1つに絞ります。</Notice>
+                <Notice>見立ては結論ではなく仮置きです。価値、回避、強く働く考え、今できる一歩を分けてから、主な見立てを1つに絞ります。</Notice>
                 <div id="task-form" className="orient-entry-layout">
                   <HypothesisEditor index={0} role="primary" />
                   <details className="optional-hypothesis-details">
-                    <summary>別案を書く</summary>
+                    <summary>別案を入力</summary>
                     <HypothesisEditor index={1} role="alternate" />
                   </details>
                   <details className="optional-hypothesis-details">
@@ -1224,7 +1276,7 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
               </div>
 
               {selected ? (
-                <aside className="orient-preview-panel" aria-label="観察と仮説の見え方">
+                <aside className="orient-preview-panel" aria-label="観察と見立ての見え方">
                   <OrientDepthPreview
                     observation={{
                       caseName: caseName(data, selected.caseId),
@@ -1242,15 +1294,15 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
               ) : null}
             </div>
 
-            <SubmitButton>仮説を保存して、支援を決める</SubmitButton>
+            <SubmitButton>保存して、支援へ</SubmitButton>
           </form>
         )}
       </Section>
 
       {observations.length > 0 ? (
-        <Section title="既存の仮説">
+        <Section title="既存の見立て">
           {hypotheses.length === 0 ? (
-            <EmptyState>仮説はまだありません。</EmptyState>
+            <EmptyState>見立てはまだありません。</EmptyState>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {hypotheses.map((hypothesis) => (
@@ -1258,7 +1310,7 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
                   <CardTop title={caseName(data, hypothesis.caseId)} meta={hypothesis.status} />
                   <p className="mt-2 text-sm font-medium text-skyline">{hypothesis.category}</p>
                   <p className="mt-2 text-sm leading-6 text-ink/75">{hypothesis.statement}</p>
-                  <p className="mt-2 text-xs leading-5 text-ink/55">反証・未確認: {hypothesis.counterEvidence || hypothesis.unknowns || "未入力"}</p>
+                  <p className="mt-2 text-xs leading-5 text-ink/55">反証・未確認: {hypothesis.counterEvidence || hypothesis.unknowns || "未記録"}</p>
                 </LinkCard>
               ))}
             </div>
@@ -1281,7 +1333,7 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
     const hypothesisId = requiredText(form, "hypothesisId");
     const hypothesis = data.hypotheses.find((item) => item.id === hypothesisId);
     if (!hypothesis) {
-      setFormError("対象仮説を選んでください。");
+      setFormError("見立てを選んでください。");
       return;
     }
     const support = requiredText(form, "support");
@@ -1328,19 +1380,19 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
 
   return (
     <>
-      <PageHeader title="支援を決める" description="今回は一つだけ試します。反応が見える小ささに絞ります。" image="decide.png" action={<StepPlate step="03" stage="Decide" tone="decide" />} compact />
+      <PageHeader title="支援を選ぶ" description="今回は一つだけ試します。反応が見える小ささに絞ります。" image="decide.png" action={<StepPlate step="03" stage="Decide" tone="decide" />} compact />
 
       <Section title="小さな支援を登録">
         {hypotheses.length === 0 ? (
           <EmptyState>
-            仮説がまだありません。<Link href="/orient" className="font-medium text-skyline">仮説を立てる</Link>から始めてください。
+            見立てがまだありません。<Link href="/orient" className="font-medium text-skyline">見立てを入力</Link>から始めてください。
           </EmptyState>
         ) : (
           <form id="task-form" onSubmit={handleCreateExperiment} className="grid gap-5 rounded-md border border-ink/10 bg-white p-4 shadow-sm" noValidate>
             {formError ? <FormError>{formError}</FormError> : null}
 
             <Label>
-              対象仮説
+              見立て
               <Select name="hypothesisId" defaultValue={selected?.id} required>
                 {hypotheses.map((hypothesis) => (
                   <option key={hypothesis.id} value={hypothesis.id}>
@@ -1371,14 +1423,14 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
 
             <Label>
               試す支援 <RequiredMark />
-              <Textarea name="support" rows={5} placeholder="次に一つだけ試す支援" required />
+              <Textarea name="support" rows={5} placeholder="今回試す支援を1つ" required />
             </Label>
             <details className="secondary-field-details">
               <summary>今は試さない候補を残す</summary>
               <div className="mt-3">
                 <Label>
                   次回候補
-                  <Textarea name="nextTryCandidate" rows={4} placeholder="今回は実施せず、次に試す候補として残す" />
+                  <Textarea name="nextTryCandidate" rows={4} placeholder="次回候補として残す" />
                 </Label>
               </div>
             </details>
@@ -1444,7 +1496,7 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
               </Label>
             </div>
 
-            <SubmitButton>支援を保存して、反応を見る</SubmitButton>
+            <SubmitButton>保存して、反応へ</SubmitButton>
           </form>
         )}
       </Section>
@@ -1481,7 +1533,7 @@ function ActView({ data, commit, onNavigate }: { data: AppData; commit: Commit; 
     const experimentId = requiredText(form, "experimentId");
     const experiment = data.experiments.find((item) => item.id === experimentId);
     if (!experiment) {
-      setFormError("対象支援を選んでください。");
+      setFormError("支援を選んでください。");
       return;
     }
     const immediateResponse = requiredText(form, "immediateResponse");
@@ -1527,19 +1579,19 @@ function ActView({ data, commit, onNavigate }: { data: AppData; commit: Commit; 
 
   return (
     <>
-      <PageHeader title="反応を見る" description="支援の良し悪しではなく、反応から見立てを更新します。" image="act.png" action={<StepPlate step="04" stage="Act" tone="act" />} compact />
+      <PageHeader title="反応を入力" description="支援の良し悪しではなく、反応から見立てを更新します。" image="act.png" action={<StepPlate step="04" stage="Act" tone="act" />} compact />
 
       <Section title="反応を記録">
         {experiments.length === 0 ? (
           <EmptyState>
-            支援がまだありません。<Link href="/decide" className="font-medium text-skyline">支援を決める</Link>から始めてください。
+            支援がまだありません。<Link href="/decide" className="font-medium text-skyline">支援を選ぶ</Link>から始めてください。
           </EmptyState>
         ) : (
           <form id="task-form" onSubmit={handleCreateActReview} className="grid gap-5 rounded-md border border-ink/10 bg-white p-4 shadow-sm" noValidate>
             {formError ? <FormError>{formError}</FormError> : null}
 
             <Label>
-              対象支援
+              支援
               <Select name="experimentId" defaultValue={selected?.id} required>
                 {experiments.map((experiment) => (
                   <option key={experiment.id} value={experiment.id}>
@@ -1557,14 +1609,14 @@ function ActView({ data, commit, onNavigate }: { data: AppData; commit: Commit; 
                   <Tag>{selected.status}</Tag>
                 </div>
                 <p className="mt-2">{selected.support}</p>
-                <p className="mt-2 text-ink/55">仮説: {selectedHypothesis?.statement ?? "未確認"}</p>
+                <p className="mt-2 text-ink/55">見立て: {selectedHypothesis?.statement ?? "未確認"}</p>
               </div>
             ) : null}
 
             <div className="grid gap-4 md:grid-cols-2">
               <Label>
                 実施内容 <RequiredMark />
-                <Textarea name="implementation" rows={4} placeholder="実際に行った支援。予定から変えた点も書く" required />
+                <Textarea name="implementation" rows={4} placeholder="実際に行った支援。予定から変えた点も入力" required />
               </Label>
               <Label>
                 直後反応 <RequiredMark />
@@ -1592,7 +1644,7 @@ function ActView({ data, commit, onNavigate }: { data: AppData; commit: Commit; 
                 <Input name="comparison" placeholder="短くなった、変わらない等" />
               </Label>
               <Label>
-                仮説の更新
+                見立ての更新
                 <Select name="hypothesisUpdate" defaultValue="保留">
                   {HYPOTHESIS_STATUSES.filter((status) => status !== "未検証" && status !== "検証中").map((status) => (
                     <option key={status} value={status}>
@@ -1610,7 +1662,7 @@ function ActView({ data, commit, onNavigate }: { data: AppData; commit: Commit; 
               </Label>
               <Label>
                 次に見る点
-                <Textarea name="nextObservationPoint" rows={3} placeholder="次回のObserveで見る点" />
+                <Textarea name="nextObservationPoint" rows={3} placeholder="次回の観察ポイント" />
               </Label>
               <Label>
                 次に試す候補
@@ -1618,7 +1670,7 @@ function ActView({ data, commit, onNavigate }: { data: AppData; commit: Commit; 
               </Label>
             </div>
 
-            <SubmitButton>反応を保存して、振り返る</SubmitButton>
+            <SubmitButton>保存して、履歴へ</SubmitButton>
           </form>
         )}
       </Section>
@@ -1677,11 +1729,11 @@ function ReflectView({
 
   return (
     <>
-      <PageHeader title="OODA振り返り" description="一人で、事実、仮説、支援、反応、次に見る点を並べて確認します。" image="reflect.png" action={<LinkButton href="/observe">次の観察</LinkButton>} />
+      <PageHeader title="OODA振り返り" description="一人で、事実、見立て、支援、反応、次に見る点を並べて確認します。" image="reflect.png" action={<LinkButton href="/observe">次の観察</LinkButton>} />
 
       {data.cases.length === 0 ? (
         <EmptyState>
-          ケースがまだありません。<Link href="/cases" className="font-medium text-skyline">ケースを作成</Link>してください。
+          ケースがまだありません。<Link href="/cases" className="font-medium text-skyline">ケースを作る</Link>と振り返りを始められます。
         </EmptyState>
       ) : (
         <>
@@ -1709,7 +1761,7 @@ function ReflectView({
                   <thead className="bg-field/80 text-xs text-ink/60">
                     <tr>
                       <th className="px-3 py-3">事実</th>
-                      <th className="px-3 py-3">仮説</th>
+                      <th className="px-3 py-3">見立て</th>
                       <th className="px-3 py-3">根拠</th>
                       <th className="px-3 py-3">反証・未確認</th>
                       <th className="px-3 py-3">試した支援</th>
@@ -1744,7 +1796,7 @@ function ReflectView({
               ) : null}
 
               <Label>
-                対象
+                メモ先
                 <Select name="targetRef">
                   <option value="">ケース全体</option>
                   {rows.map((row) => (
@@ -1758,7 +1810,7 @@ function ReflectView({
                 見る列
                 <Select name="columnKey" defaultValue="next">
                   <option value="fact">事実</option>
-                  <option value="hypothesis">仮説</option>
+                  <option value="hypothesis">見立て</option>
                   <option value="support">支援</option>
                   <option value="response">反応</option>
                   <option value="next">次に見る点</option>
@@ -1808,7 +1860,7 @@ function SearchView({ data }: { data: AppData }) {
 
   return (
     <>
-      <PageHeader title="類似場面" description="過去の観察を探し、同じ原因だと決めつけずに材料として使います。" image="search.png" action={<LinkButton href="/observe">観察を書く</LinkButton>} />
+      <PageHeader title="類似場面" description="過去の観察を探し、同じ原因だと決めつけずに材料として使います。" image="search.png" action={<LinkButton href={data.cases.length === 0 ? "/cases" : "/observe"}>{data.cases.length === 0 ? "ケースを作る" : "観察を入力"}</LinkButton>} />
 
       <Section title="検索">
         <div className="rounded-md border border-ink/10 bg-white p-4 shadow-sm">
@@ -1821,7 +1873,15 @@ function SearchView({ data }: { data: AppData }) {
 
       <Section title="見つかった場面">
         {observations.length === 0 ? (
-          <EmptyState>一致する観察はありません。</EmptyState>
+          <EmptyState>
+            {data.observations.length === 0 ? (
+              <>
+                まだ探せる観察がありません。<Link href={data.cases.length === 0 ? "/cases" : "/observe"} className="font-medium text-skyline">{data.cases.length === 0 ? "ケースを作る" : "観察を入力"}</Link>と、ここに場面が並びます。
+              </>
+            ) : (
+              <>一致する観察はありません。</>
+            )}
+          </EmptyState>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {observations.map((observation) => {
@@ -1831,7 +1891,7 @@ function SearchView({ data }: { data: AppData }) {
                   <CardTop title={caseName(data, observation.caseId)} meta={formatShortDateTime(observation.observedAt)} />
                   <p className="mt-2 text-sm leading-6 text-ink/75">{observation.factMemo}</p>
                   <TagRow tags={[observation.programName, observation.timing, ...observation.behaviorTags]} />
-                  {relatedHypotheses.length > 0 ? <p className="mt-2 text-xs leading-5 text-ink/55">仮説: {relatedHypotheses[0].statement}</p> : null}
+                  {relatedHypotheses.length > 0 ? <p className="mt-2 text-xs leading-5 text-ink/55">見立て: {relatedHypotheses[0].statement}</p> : null}
                 </LinkCard>
               );
             })}
@@ -1856,12 +1916,12 @@ function ExportView({ data }: { data: AppData }) {
 
   return (
     <>
-      <PageHeader title="要約" description="転記用の短い文章を作ります。公式記録や診断の代替ではありません。" image="export.png" action={<LinkButton href="/reflect">振り返り</LinkButton>} />
+      <PageHeader title="要約" description="転記用の短い文章を作ります。公式記録や診断の代替ではありません。" image="export.png" action={<LinkButton href={data.cases.length === 0 ? "/cases" : "/reflect"}>{data.cases.length === 0 ? "ケースを作る" : "振り返り"}</LinkButton>} />
 
       <Section title="要約する観察">
         {observations.length === 0 ? (
           <EmptyState>
-            観察がまだありません。<Link href="/observe" className="font-medium text-skyline">観察を書く</Link>から始めてください。
+            観察がまだありません。<Link href={data.cases.length === 0 ? "/cases" : "/observe"} className="font-medium text-skyline">{data.cases.length === 0 ? "ケースを作る" : "観察を入力"}</Link>から始めてください。
           </EmptyState>
         ) : (
           <div className="grid gap-4 rounded-md border border-ink/10 bg-white p-4 shadow-sm">
@@ -1915,36 +1975,36 @@ function FilesView({ data, commit, onImport }: { data: AppData; commit: Commit; 
   }
 
   function clearLocalData() {
-    if (!window.confirm("このブラウザ内のrecordOODAデータを削除します。JSONバックアップがないと戻せません。")) return;
+    if (!window.confirm("このブラウザ内のrecordOODAデータを削除します。バックアップがないと戻せません。")) return;
     localStorage.removeItem(STORAGE_KEY);
     onImport(emptyData);
   }
 
   return (
     <>
-      <PageHeader title="保存先" description="GitHub Pages版では、記録はこのブラウザ内に保存されます。必要な時にJSONで書き出します。" image="export.png" action={<LinkButton href="/cases">ケース</LinkButton>} />
+      <PageHeader title="バックアップ" description="このブラウザ内の記録を、必要な時にバックアップファイルとして書き出します。" image="export.png" action={<LinkButton href="/cases">ケース</LinkButton>} />
 
       <section className="storage-flow-hero" aria-label="local-first保存">
         <div className="storage-flow-copy">
-          <span className="storage-flow-kicker">LOCAL FIRST</span>
-          <h2>サーバを持たず、手元のブラウザでOODAを回す</h2>
-          <p>スマホやPCのブラウザに保存し、TeamsやSharePointにはJSONバックアップとして置きます。</p>
+          <span className="storage-flow-kicker">ブラウザ保存</span>
+          <h2>この端末に保存し、必要な時だけ書き出す</h2>
+          <p>記録はこのブラウザ内に残ります。共有前にバックアップファイルを作ります。</p>
         </div>
         <div className="storage-rail" aria-hidden="true">
           <div className="storage-rail-node is-active">
             <span>1</span>
             <strong>ブラウザ保存</strong>
-            <small>入力直後にlocalStorageへ保存</small>
+            <small>入力直後にこのブラウザへ保存</small>
           </div>
           <div className="storage-rail-node">
             <span>2</span>
-            <strong>JSON書き出し</strong>
-            <small>必要なタイミングでバックアップ</small>
+            <strong>バックアップ作成</strong>
+            <small>必要な時にJSONファイルで保存</small>
           </div>
           <div className="storage-rail-node">
             <span>3</span>
-            <strong>Teamsへ配置</strong>
-            <small>共有フォルダへ手動で保管</small>
+            <strong>共有フォルダへ保管</strong>
+            <small>チームで使う場所へ手動で配置</small>
           </div>
         </div>
       </section>
@@ -1957,7 +2017,7 @@ function FilesView({ data, commit, onImport }: { data: AppData; commit: Commit; 
                 <div className="flex flex-wrap gap-2">
                   <Tag>ケース {data.cases.length}</Tag>
                   <Tag>観察 {data.observations.length}</Tag>
-                  <Tag>仮説 {data.hypotheses.length}</Tag>
+                  <Tag>見立て {data.hypotheses.length}</Tag>
                   <Tag>支援 {data.experiments.length}</Tag>
                   <Tag>反応 {data.actReviews.length}</Tag>
                 </div>
@@ -1965,10 +2025,10 @@ function FilesView({ data, commit, onImport }: { data: AppData; commit: Commit; 
               </div>
               <div className="flex flex-wrap gap-2">
                 <button type="button" className="case-primary-action" onClick={() => downloadJson(data)}>
-                  JSONを書き出す
+                  バックアップを書き出す
                 </button>
                 <label className="rounded-md border border-ink/15 bg-white px-3 py-2 text-sm font-medium text-ink transition hover:border-skyline hover:text-skyline">
-                  JSONを読み込む
+                  バックアップを読み込む
                   <input type="file" accept="application/json,.json" className="sr-only" onChange={(event) => void handleImport(event.target.files?.[0] ?? null)} />
                 </label>
                 <button type="button" className="storage-clear-button" onClick={clearLocalData}>
@@ -1979,10 +2039,10 @@ function FilesView({ data, commit, onImport }: { data: AppData; commit: Commit; 
 
             <form onSubmit={handleStorageNote} className="grid gap-3 rounded-md border border-ink/10 bg-white p-4">
               <Label>
-                保存先メモ
+                バックアップ先メモ
                 <Textarea name="storageNote" rows={5} defaultValue={data.settings.storageNote} placeholder="例: Teams > 支援記録 > recordOODAバックアップ" />
               </Label>
-              <SubmitButton>保存先メモを保存</SubmitButton>
+              <SubmitButton>バックアップ先メモを保存</SubmitButton>
             </form>
           </div>
         </div>
@@ -2168,16 +2228,6 @@ function StepPlate({ step, stage, tone }: { step: string; stage: string; tone: s
   );
 }
 
-function GuideCard({ step, title, body }: { step: string; title: string; body: string }) {
-  return (
-    <div className="case-operation-step">
-      <span>{step}</span>
-      <strong>{title}</strong>
-      <small>{body}</small>
-    </div>
-  );
-}
-
 function CheckboxGroup({ title, name, options }: { title: string; name: string; options: readonly string[] }) {
   return (
     <fieldset>
@@ -2195,7 +2245,7 @@ function CheckboxGroup({ title, name, options }: { title: string; name: string; 
 }
 
 function HypothesisEditor({ index, role }: { index: number; role: "primary" | "alternate" | "optional" }) {
-  const title = role === "primary" ? "仮説 1" : role === "alternate" ? "別案" : "もう一つの可能性";
+  const title = role === "primary" ? "見立て 1" : role === "alternate" ? "別案" : "もう一つの可能性";
   const badge = role === "primary" ? "主入力" : role === "alternate" ? "任意" : "追加";
   const isRequired = index === 0;
 
@@ -2236,7 +2286,7 @@ function HypothesisEditor({ index, role }: { index: number; role: "primary" | "a
         </div>
 
         <Label>
-          仮説文 {isRequired ? <RequiredMark /> : null}
+          見立て文 {isRequired ? <RequiredMark /> : null}
           <Textarea name={`statement-${index}`} rows={3} placeholder="何が影響している可能性があるか" required={isRequired} />
         </Label>
         <Label>
@@ -2515,16 +2565,16 @@ function buildCaseDockItems(data: AppData): CaseDockItem[] {
 
 function getCaseNextAction(item: CaseDockItem) {
   if (item.counts.observations === 0) {
-    return { label: "観察を書く", href: `/observe?caseId=${item.id}`, reason: "まず事実を一件残します。" };
+    return { label: "観察を入力", href: `/observe?caseId=${item.id}`, reason: "まず事実を一件残します。" };
   }
   if (item.counts.hypotheses === 0) {
-    return { label: "仮説を立てる", href: item.latestObservationId ? `/orient?observationId=${item.latestObservationId}` : "/orient", reason: "観察があります。次は見立てを分けます。" };
+    return { label: "見立てを入力", href: item.latestObservationId ? `/orient?observationId=${item.latestObservationId}` : "/orient", reason: "観察があります。見立てを整理します。" };
   }
   if (item.counts.experiments === 0) {
-    return { label: "支援を決める", href: item.latestHypothesisId ? `/decide?hypothesisId=${item.latestHypothesisId}` : "/decide", reason: "仮説があります。試す支援を一つ選びます。" };
+    return { label: "支援を選ぶ", href: item.latestHypothesisId ? `/decide?hypothesisId=${item.latestHypothesisId}` : "/decide", reason: "見立てがあります。試す支援を1つ選びます。" };
   }
   if (item.counts.actReviews === 0) {
-    return { label: "反応を見る", href: item.latestExperimentId ? `/act?experimentId=${item.latestExperimentId}` : "/act", reason: "支援があります。反応から見立てを更新します。" };
+    return { label: "反応を入力", href: item.latestExperimentId ? `/act?experimentId=${item.latestExperimentId}` : "/act", reason: "支援があります。反応から見立てを更新します。" };
   }
   return { label: "振り返る", href: `/reflect?caseId=${item.id}`, reason: "OODAが一巡しています。次に見る点を整理します。" };
 }
@@ -2585,7 +2635,7 @@ function hypothesisContextText(hypothesis: HypothesisRecord) {
 }
 
 function experimentSupportText(experiment: SmallExperimentRecord | undefined) {
-  if (!experiment) return "未入力";
+  if (!experiment) return "未記録";
   return compactLines([experiment.support, listLine("条件", experiment.decisionChecks)]).join("\n");
 }
 
@@ -2601,10 +2651,10 @@ function buildReflectionRows(data: AppData, caseId: string) {
             id: observation.id,
             label: `${formatShortDate(observation.observedAt)} 観察`,
             fact: observationFactText(observation),
-            hypothesis: "未入力",
+            hypothesis: "未記録",
             evidence: observation.antecedent,
-            counter: observation.unknownMemo || "未入力",
-            support: "未入力",
+            counter: observation.unknownMemo || "未記録",
+            support: "未記録",
             response: observation.consequence,
             next: observation.unknownMemo || "次の観察で確認"
           }
@@ -2619,7 +2669,7 @@ function buildReflectionRows(data: AppData, caseId: string) {
           fact: observationFactText(observation),
           hypothesis: hypothesisContextText(hypothesis),
           evidence: hypothesis.evidence,
-          counter: compactLines([labeledLine("反証", hypothesis.counterEvidence), labeledLine("未確認", hypothesis.unknowns)]).join("\n") || "未入力",
+          counter: compactLines([labeledLine("反証", hypothesis.counterEvidence), labeledLine("未確認", hypothesis.unknowns)]).join("\n") || "未記録",
           support: experimentSupportText(experiment),
           response: compactLines([
             review?.immediateResponse ?? observation.consequence,
@@ -2637,8 +2687,8 @@ function buildSummary(data: AppData, observation: ObservationRecord) {
   const experiment = hypothesis ? data.experiments.find((item) => item.hypothesisId === hypothesis.id) : undefined;
   const review = experiment ? data.actReviews.find((item) => item.experimentId === experiment.id) : undefined;
   const scene = `${observation.location}の${observation.programName}`;
-  const hypothesisText = hypothesis?.statement ?? "仮説は未入力";
-  const support = experiment?.support ?? "支援は未入力";
+  const hypothesisText = hypothesis?.statement ?? "見立ては未記録";
+  const support = experiment?.support ?? "支援は未記録";
   const response = review?.immediateResponse ?? observation.consequence;
   const observationDetails = compactLines([
     listLine("確認した観察", observation.observationChecklist),
@@ -2656,13 +2706,6 @@ function buildSummary(data: AppData, observation: ObservationRecord) {
     : "";
   const decisionContext = experiment?.decisionChecks.length ? `試す条件は「${experiment.decisionChecks.join("、")}」。` : "";
   return `本日は${scene}で、「${observation.factMemo}」が見られた。直前には「${observation.antecedent}」があり、直後には「${observation.consequence}」があった。${observationDetails ? `${observationDetails}。` : ""}「${hypothesisText}」の可能性を置いた。${orientContext ? `${orientContext}。` : ""}次に「${support}」を試す。${decisionContext}反応として「${response}」を確認し、次回は「${review?.nextObservationPoint || hypothesis?.nextObservationPoints || observation.unknownMemo || "未確認点"}」を見る。`;
-}
-
-function countForStage(data: AppData, stage: string) {
-  if (stage === "Observe") return data.observations.length;
-  if (stage === "Orient") return data.hypotheses.length;
-  if (stage === "Decide") return data.experiments.length;
-  return data.actReviews.length;
 }
 
 function caseName(data: AppData, caseId: string) {

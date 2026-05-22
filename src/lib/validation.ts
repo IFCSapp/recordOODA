@@ -48,7 +48,7 @@ export const hypothesisSchema = z.object({
   observationId: z.string().trim().optional(),
   staffId: z.string().trim().optional(),
   category: z.enum(HYPOTHESIS_CATEGORIES),
-  statement: requiredText("仮説文"),
+  statement: requiredText("見立て文"),
   evidence: requiredText("根拠"),
   counterEvidence: optionalText,
   unknowns: optionalText,
@@ -59,7 +59,7 @@ export const hypothesisSchema = z.object({
 
 export const smallExperimentSchema = z.object({
   caseId: requiredText("ケースID"),
-  hypothesisId: requiredText("対象仮説"),
+  hypothesisId: requiredText("見立て"),
   staffId: z.string().trim().optional(),
   support: requiredText("試す支援"),
   supportCategory: requiredText("支援カテゴリー"),
@@ -75,7 +75,7 @@ export const smallExperimentSchema = z.object({
 export const actReviewSchema = z.object({
   caseId: requiredText("ケースID"),
   experimentId: requiredText("実験カード"),
-  hypothesisId: requiredText("対象仮説"),
+  hypothesisId: requiredText("見立て"),
   staffId: z.string().trim().optional(),
   implementation: requiredText("実施内容"),
   implementationStatus: z.enum(IMPLEMENTATION_STATUSES),
