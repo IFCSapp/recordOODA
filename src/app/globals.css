@@ -2193,26 +2193,61 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 }
 
 .observe-core-flow {
+  counter-reset: observe-step;
+  position: relative;
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
+  gap: 8px;
+  padding-top: 5px;
+}
+
+.observe-core-flow::before {
+  content: "";
+  position: absolute;
+  top: 17px;
+  right: 9%;
+  left: 9%;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(55, 111, 143, 0.16);
 }
 
 .observe-core-flow span {
+  position: relative;
+  z-index: 1;
   display: grid;
-  min-height: 30px;
-  place-items: center;
-  border: 1px solid rgba(55, 111, 143, 0.16);
-  border-radius: 7px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(242, 245, 241, 0.78)),
-    rgba(55, 111, 143, 0.06);
-  color: #376f8f;
+  min-height: 0;
+  justify-items: center;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  color: rgba(55, 111, 143, 0.9);
+  cursor: default;
   font-size: 12px;
   font-weight: 900;
-  line-height: 1.1;
+  line-height: 1.2;
   text-align: center;
+  user-select: none;
+}
+
+.observe-core-flow span::before {
+  counter-increment: observe-step;
+  content: counter(observe-step);
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid rgba(55, 111, 143, 0.22);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #376f8f;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9),
+    0 6px 12px rgba(55, 111, 143, 0.08);
 }
 
 .observe-form-actions {
@@ -3793,12 +3828,24 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   }
 
   .observe-core-flow {
-    gap: 5px;
+    gap: 4px;
+    padding-top: 4px;
+  }
+
+  .observe-core-flow::before {
+    top: 15px;
+    right: 10%;
+    left: 10%;
   }
 
   .observe-core-flow span {
-    min-height: 28px;
     font-size: 11px;
+  }
+
+  .observe-core-flow span::before {
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
   }
 
   .observe-form-actions .record-submit-button {
