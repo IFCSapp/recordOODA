@@ -281,14 +281,14 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
               currentPath={pathname}
               onCaseChange={(caseId) => setCurrentCase(caseId)}
             />
-          ) : isHomePage ? (
-          <HomeStartBar
-            items={caseItems}
-            selectedCaseId={selectedCase?.id ?? ""}
-            onCaseChange={(caseId) => setCurrentCase(caseId)}
-            onCreateCase={createQuickCase}
-          />
-          ) : !shouldShowWorkflowMenu ? null : (
+          ) : isHomePage && caseItems.length === 0 ? (
+            <HomeStartBar
+              items={caseItems}
+              selectedCaseId={selectedCase?.id ?? ""}
+              onCaseChange={(caseId) => setCurrentCase(caseId)}
+              onCreateCase={createQuickCase}
+            />
+          ) : isHomePage ? null : !shouldShowWorkflowMenu ? null : (
             <WorkflowMenu
               items={caseItems}
               selectedCaseId={selectedCase?.id ?? ""}
