@@ -61,6 +61,7 @@ export type ExportSummaryParts = {
   scene: string;
   fact: string;
   antecedent: string;
+  userBehavior: string;
   consequence: string;
   hypothesis: string;
   support: string;
@@ -68,7 +69,7 @@ export type ExportSummaryParts = {
 };
 
 export function generateExportSummary(parts: ExportSummaryParts) {
-  return `本日は${wrap(parts.scene)}で、${wrap(parts.fact)}が見られた。直前に${wrap(parts.antecedent)}があり、直後に${wrap(parts.consequence)}が生じた。${wrap(parts.hypothesis)}が影響している可能性があるため、次回は${wrap(parts.support)}を試し、${wrap(parts.metric)}の変化を確認する。`;
+  return `本日は${wrap(parts.scene)}で、${wrap(parts.fact)}が見られた。直前の環境は${wrap(parts.antecedent)}で、利用者の行動として${wrap(parts.userBehavior)}が見られ、直後の環境の変化として${wrap(parts.consequence)}が生じた。${wrap(parts.hypothesis)}が影響している可能性があるため、次回は${wrap(parts.support)}を試し、${wrap(parts.metric)}の変化を確認する。`;
 }
 
 export function getExportNotice() {

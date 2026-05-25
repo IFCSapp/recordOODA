@@ -64,7 +64,7 @@ export const WARNING_DICTIONARY = [
 ] as const;
 
 export const FACT_WARNING_MESSAGE =
-  "この表現は解釈や評価に見える可能性があります。実際に見えた行動、時間、場面、直前直後の変化として書き換えてください。";
+  "この表現は解釈や評価に見える可能性があります。実際に見えた行動、時間、場面、直前の環境、直後の環境の変化として書き換えてください。";
 
 export const SINGLE_HYPOTHESIS_PROMPT = "別の可能性も一つ考えてください。保存はできます。";
 

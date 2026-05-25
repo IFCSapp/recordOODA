@@ -257,6 +257,49 @@ Observe画面には、少なくとも以下の入力群を持たせる。
 - 効果保証つきの支援提案
 - 利用者を人格特性で分類するスコアリング
 
+## UI Change Guard
+
+When a task changes UI copy, fields, navigation, layout, CSS, or user-facing workflow, treat UI verification as part of the implementation. Do this automatically unless the user explicitly asks to skip checks.
+
+For each UI change:
+
+1. Identify the affected route or routes from the edited code.
+2. Reuse or start the local app and verify the affected route in the in-app browser.
+3. Check both a narrow mobile viewport and a desktop viewport when layout, navigation, forms, or cards changed.
+4. Confirm at least these points:
+   - The intended change is visible on the correct route.
+   - The current case or current input target is clear when the screen depends on selected case state.
+   - Labels do not repeat the same meaning in adjacent title, helper, and form-label positions.
+   - Primary action and next step are obvious without reading a long explanation.
+   - Text stays inside buttons, cards, and form controls.
+   - There is no horizontal overflow on mobile.
+   - Non-interactive decorative UI does not take more attention than the next action.
+5. For recordOODA specifically, keep the review anchored to cognitive load: reduce memory burden, avoid duplicate entry points, preserve the support-tool boundary, and use plain operational Japanese.
+6. Run the relevant automated checks before final response:
+   - `npm.cmd run lint`
+   - `npm.cmd run typecheck`
+   - `npm.cmd run test`
+   - `npm.cmd run build`
+7. In the final response, report the UI route checked, the visual/cognitive finding, and any automated checks that passed or could not be run.
+
+If the user mentions a custom sub-agent for UI checks, interpret this section as the local "UI check agent" contract for this repository. Spawn a sub-agent only when the UI review is large enough to benefit from parallel review; otherwise perform this guard directly as part of the main task.
+
+## Tool Drift Handoff Rule
+
+If implementation is complete but browser, Playwright, shell, or connector verification starts failing because of session/tool state, do not keep retrying adjacent commands indefinitely.
+
+Stop the verification loop when either of these happens:
+
+1. The same tool-session recovery or verification command fails twice in the same way.
+2. The remaining uncertainty is about the tool session, not about the product change.
+
+When this happens:
+
+1. Pause and report what is already complete.
+2. List the checks that passed and the one check that could not be completed.
+3. If more verification matters, create a short handoff note and recommend continuing in a new thread.
+4. Do not attempt to "clear" the current thread by adding more exploratory tool calls.
+
 ## Writing rules for generated text
 
 生成される文章は、以下を守る。

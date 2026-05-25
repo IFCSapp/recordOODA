@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { OodaOrbitMenu } from "@/components/OodaOrbitMenu";
-import { OrientDepthPreview } from "@/components/OrientDepthPreview";
 
 export type LocalFirstView = "home" | "cases" | "observe" | "orient" | "decide" | "act" | "reflect" | "search" | "export" | "files";
 
@@ -29,6 +28,7 @@ type ObservationRecord = {
   factMemo: string;
   behaviorTags: string[];
   antecedent: string;
+  userBehavior: string;
   consequence: string;
   unknownMemo: string;
   observationChecklist: string[];
@@ -105,6 +105,24 @@ type ReflectionMemo = {
   updatedAt: string;
 };
 
+type ReflectionRow = {
+  id: string;
+  observationId: string;
+  hypothesisId: string | null;
+  label: string;
+  fact: string;
+  hypothesis: string;
+  evidence: string;
+  counter: string;
+  support: string;
+  response: string;
+  next: string;
+  loopStatus: "complete" | "incomplete";
+  orientationUpdate: string;
+  supportAdjustment: string;
+  sourceFact: string;
+};
+
 type AppData = {
   version: 1;
   savedAt: string;
@@ -162,18 +180,13 @@ const stageLinks = [
   { href: "/act", stage: "Act", stageLabel: "反応", label: "反応を入力", helper: "反応で更新", tone: "act" }
 ] as const;
 
-const caseOverviewItems = stageLinks.map((item) => ({
-  ...item,
-  label: item.stageLabel
-}));
-
 const topNavItems = [
   { href: "/", label: "今日の入力" },
-  { href: "/cases", label: "ケース選択" },
-  { href: "/search", label: "類似場面" },
-  { href: "/reflect", label: "振り返り" },
-  { href: "/files", label: "バックアップ" },
-  { href: "/export", label: "要約" }
+  { href: "/cases", label: "ケース" },
+  { href: "/reflect", label: "OODAを更新" },
+  { href: "/search", label: "似た場面" },
+  { href: "/export", label: "要約を作る" },
+  { href: "/files", label: "バックアップ" }
 ] as const;
 
 const emptyData: AppData = {
@@ -270,7 +283,7 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
               pathname={pathname}
               compact={shouldCompactNav}
               compactOnMobile={shouldCompactNavOnMobile}
-              menuLabel="記録を見る"
+              menuLabel="記録・確認"
             />
           </div>
 
@@ -304,9 +317,9 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
         {!isReady ? (
           <EmptyState>読み込み中です。</EmptyState>
         ) : view === "home" ? (
-          <HomeView data={data} />
+          <HomeView data={data} selectedCaseId={selectedCase?.id ?? ""} onCaseChange={setCurrentCase} />
         ) : view === "cases" ? (
-          <CasesView data={data} commit={commit} onNavigate={navigate} />
+          <CasesView data={data} />
         ) : view === "observe" ? (
           <ObserveView data={data} selectedCaseId={selectedCase?.id ?? ""} commit={commit} onNavigate={navigate} />
         ) : view === "orient" ? (
@@ -409,7 +422,7 @@ function CompactWorkflowBar({
   const nextAction = selected ? getCaseNextAction(selected) : null;
   const nextActionPath = nextAction?.href.split("?")[0] ?? "";
   const actionIsCurrentStep = Boolean(nextAction && nextActionPath && currentPath.startsWith(nextActionPath));
-  const showAction = !actionIsCurrentStep;
+  const showAction = !hasCases;
   const showStepSummary = !hasCases;
   const actionHref = nextAction?.href ?? "/cases";
   const actionCopy = nextAction?.reason ?? "ケースを作ると、観察から始められます。";
@@ -454,16 +467,13 @@ function CompactWorkflowBar({
       ) : null}
 
       {hasCases ? (
-        <details className="task-context-jump">
-          <summary>ほかのステップ</summary>
-          <div className="task-context-jump-list" aria-label="OODAステップ移動">
-            {stageLinks.map((item) => (
-              <Link key={item.href} href={item.href} aria-current={currentPath.startsWith(item.href) ? "step" : undefined}>
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </details>
+        <nav className="task-context-step-links" aria-label="OODAステップ移動">
+          {stageLinks.map((item) => (
+            <Link key={item.href} href={item.href} aria-current={currentPath.startsWith(item.href) ? "step" : undefined}>
+              {item.label}
+            </Link>
+          ))}
+        </nav>
       ) : null}
     </section>
   );
@@ -548,14 +558,14 @@ function WorkflowMenu({
   const showDockProgress = !isCasesPage;
 
   return (
-    <nav aria-label="OODAの流れ" className="workflow-menu-shell">
-      <section className="case-entry-card case-dock ooda-tone-case" aria-label="選択中のケース">
+    <nav aria-label="OODAの流れ" className={`workflow-menu-shell ${isCasesPage ? "workflow-menu-shell-cases" : ""}`}>
+      <section className={`case-entry-card case-dock ooda-tone-case ${isCasesPage ? "case-dock-page-title" : ""}`} aria-label={isCasesPage ? "ケース選択" : "選択中のケース"}>
         <div className="case-dock-head">
-          <span className="ooda-orbit-number">{totalCount}</span>
+          {!isCasesPage ? <span className="ooda-orbit-number">{totalCount}</span> : null}
           <div className="case-dock-title">
-            <span className="ooda-orbit-stage">現在の対象</span>
-            <strong className="ooda-orbit-label">選択中のケース</strong>
-            <small>利用中 {activeCount}件</small>
+            {!isCasesPage ? <span className="ooda-orbit-stage">現在の対象</span> : null}
+            {isCasesPage ? <h1 className="ooda-orbit-label">使うケースを選ぶ</h1> : <strong className="ooda-orbit-label">選択中のケース</strong>}
+            <small>{isCasesPage ? "必要なときだけ追加できます。" : `利用中 ${activeCount}件`}</small>
           </div>
           {!isCasesPage ? (
             <Link href="/cases" className="case-dock-text-link">
@@ -565,7 +575,7 @@ function WorkflowMenu({
         </div>
 
         <label className="case-dock-picker">
-          <span>使うケース</span>
+          <span>{isCasesPage ? "選択中" : "使うケース"}</span>
           <select value={selected?.id ?? ""} onChange={(event) => onCaseChange(event.target.value)} disabled={items.length === 0}>
             {items.length === 0 ? (
               <option value="">ケースなし</option>
@@ -598,15 +608,15 @@ function WorkflowMenu({
           </div>
         )}
 
-        {selected && !isCasesPage ? (
+        {selected ? (
           <details className="case-dock-new">
-            <summary>新しいケース</summary>
-            <QuickCaseForm onCreateCase={onCreateCase} submitLabel="ケースを作る" />
+            <summary>{isCasesPage ? "新しいケースを追加" : "新しいケース"}</summary>
+            <QuickCaseForm onCreateCase={onCreateCase} submitLabel={isCasesPage ? "作って選択" : "ケースを作る"} />
           </details>
         ) : null}
       </section>
 
-      <OodaOrbitMenu items={isCasesPage ? caseOverviewItems : stageLinks} currentPath={currentPath} interactive={!isCasesPage} />
+      {!isCasesPage ? <OodaOrbitMenu items={stageLinks} currentPath={currentPath} /> : null}
     </nav>
   );
 }
@@ -710,10 +720,18 @@ function CaseProgressRail({
   );
 }
 
-function HomeView({ data }: { data: AppData }) {
+function HomeView({
+  data,
+  selectedCaseId,
+  onCaseChange
+}: {
+  data: AppData;
+  selectedCaseId: string;
+  onCaseChange: (caseId: string) => void;
+}) {
   const hasCases = data.cases.length > 0;
   const caseItems = buildCaseDockItems(data);
-  const selectedCase = caseItems.find((item) => item.id === data.settings.currentCaseId) ?? caseItems[0] ?? null;
+  const selectedCase = caseItems.find((item) => item.id === selectedCaseId) ?? caseItems[0] ?? null;
   const recentObservations = [...data.observations].sort(byNewest).slice(0, 4);
   const activeHypotheses = data.hypotheses.filter((item) => item.status === "未検証" || item.status === "検証中").sort(byUpdated).slice(0, 4);
   const dueExperiments = data.experiments.filter((item) => item.status === "予定" || item.status === "実施中").sort((a, b) => a.reviewDueAt.localeCompare(b.reviewDueAt)).slice(0, 4);
@@ -721,11 +739,11 @@ function HomeView({ data }: { data: AppData }) {
 
   return (
     <>
-      <HomeFlowHeader selectedCase={selectedCase} hasCases={hasCases} />
+      <HomeFlowHeader caseItems={caseItems} selectedCase={selectedCase} hasCases={hasCases} onCaseChange={onCaseChange} />
 
       {hasCases ? (
         <div className="grid gap-5 lg:grid-cols-2">
-        <DashboardBlock title="観察" href="/observe" actionLabel="観察を入力">
+        <DashboardBlock title="観察" href="/observe" actionLabel="観察画面へ">
           {recentObservations.length === 0 ? (
             <EmptyState>観察はまだありません。</EmptyState>
           ) : (
@@ -787,17 +805,55 @@ function HomeView({ data }: { data: AppData }) {
 }
 
 function HomeFlowHeader({
+  caseItems,
   selectedCase,
-  hasCases
+  hasCases,
+  onCaseChange
 }: {
+  caseItems: CaseDockItem[];
   selectedCase: CaseDockItem | null;
   hasCases: boolean;
+  onCaseChange: (caseId: string) => void;
 }) {
   const nextStageIndex = selectedCase ? getNextStageIndex(selectedCase) : 0;
+  const nextAction = selectedCase ? getCaseNextAction(selectedCase) : null;
+  const caseSummary = selectedCase
+    ? selectedCase.memo
+      ? `メモ: ${selectedCase.memo}`
+      : `記録: 観察 ${selectedCase.counts.observations} / 見立て ${selectedCase.counts.hypotheses} / 支援 ${selectedCase.counts.experiments} / 反応 ${selectedCase.counts.actReviews}`
+    : "ケース未選択";
+  const primaryActionLabel = selectedCase && nextAction ? `このケースで${nextAction.label}` : "ケースを作る";
 
   return (
     <section className="home-flow-header" aria-label="今日のOODA">
       <h1 className="sr-only">今日のOODA</h1>
+      <div className={`home-current-case ${selectedCase ? "" : "home-current-case-empty"}`} aria-label="今日の入力先">
+        <div className="home-current-case-copy">
+          <span>今日の入力先</span>
+          <strong>{selectedCase?.displayName ?? "ケース未選択"}</strong>
+          <small>{caseSummary}</small>
+        </div>
+
+        {selectedCase ? (
+          <details className="home-current-case-change">
+            <summary>変更</summary>
+            <label className="home-current-case-picker">
+              <span>入力先を選ぶ</span>
+              <select value={selectedCase.id} onChange={(event) => onCaseChange(event.target.value)} aria-label="入力先を変更">
+                {caseItems.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.displayName}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </details>
+        ) : null}
+
+        <Link href={nextAction?.href ?? "/cases"} className="home-current-case-action">
+          {primaryActionLabel}
+        </Link>
+      </div>
       <div className="ooda-flow-map" aria-label={selectedCase ? `${selectedCase.displayName}のOODAステップ` : "OODAステップ"}>
         {stageLinks.map((item, index) => {
           const count = selectedCase ? countForCaseStage(selectedCase, item.stage) : 0;
@@ -876,69 +932,11 @@ function CaseMiniFlow({ item }: { item: CaseDockItem }) {
   );
 }
 
-function CasesView({ data, commit, onNavigate }: { data: AppData; commit: Commit; onNavigate: (href: string) => void }) {
-  const [formError, setFormError] = useState("");
-
-  function handleCreateCase(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const displayName = requiredText(form, "displayName");
-    if (!displayName) {
-      setFormError("ケース名を入力してください。");
-      return;
-    }
-    const now = nowIso();
-    const newCase: OodaCase = {
-      id: newId("case"),
-      displayName,
-      memo: text(form, "memo"),
-      isActive: form.get("isActive") !== null,
-      createdAt: now,
-      updatedAt: now
-    };
-    commit((current) => ({
-      ...current,
-      settings: { ...current.settings, currentCaseId: newCase.id },
-      cases: [newCase, ...current.cases]
-    }));
-    setFormError("");
-    event.currentTarget.reset();
-    onNavigate(`/observe?caseId=${newCase.id}`);
-  }
-
+function CasesView({ data }: { data: AppData }) {
   const caseItems = buildCaseDockItems(data);
 
   return (
     <>
-      <PageHeader title="ケース選択" description="使うケースを選び、新しいケースを作ります。個人で見返しやすい単位ごとにOODAを回します。" image="cases.png" />
-
-      <div id="new-case" className="scroll-mt-24">
-        <Section title={caseItems.length === 0 ? "最初のケース" : "新しいケース"} description={caseItems.length === 0 ? "名前だけで始められます。詳しい記録は観察画面で入力します。" : undefined}>
-          <form onSubmit={handleCreateCase} className="grid gap-4 rounded-md border border-ink/10 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr_auto] md:items-end" noValidate>
-            {formError ? (
-              <div className="md:col-span-3">
-                <FormError>{formError}</FormError>
-              </div>
-            ) : null}
-            <Label>
-              ケース名 <RequiredMark />
-              <Input name="displayName" placeholder="ケースA、利用者01など" required />
-            </Label>
-            <Label>
-              メモ
-              <Input name="memo" placeholder="自分が後で見返しやすい補足" />
-            </Label>
-            <label className="flex items-center gap-2 text-sm text-ink/75">
-              <input name="isActive" type="checkbox" defaultChecked className="h-4 w-4 rounded border-ink/20" />
-              現在使う
-            </label>
-            <div className="md:col-span-3">
-              <SubmitButton>ケースを作る</SubmitButton>
-            </div>
-          </form>
-        </Section>
-      </div>
-
       {caseItems.length === 0 ? null : (
         <Section title="ケース一覧">
           <div className="grid gap-4 lg:grid-cols-2">
@@ -1011,6 +1009,7 @@ function ObserveView({
       factMemo,
       behaviorTags: allText(form, "behaviorTags"),
       antecedent: requiredText(form, "antecedent"),
+      userBehavior: requiredText(form, "userBehavior"),
       consequence: requiredText(form, "consequence"),
       unknownMemo: text(form, "unknownMemo"),
       observationChecklist: allText(form, "observationChecklist"),
@@ -1020,13 +1019,14 @@ function ObserveView({
       createdAt: now,
       updatedAt: now
     };
-    if (!observation.location || !observation.programName || !observation.timing || !observation.antecedent || !observation.consequence) {
+    if (!observation.location || !observation.programName || !observation.timing || !observation.antecedent || !observation.userBehavior || !observation.consequence) {
       const missing = [
         !observation.location ? "場所" : "",
         !observation.programName ? "活動" : "",
         !observation.timing ? "タイミング" : "",
-        !observation.antecedent ? "直前の出来事" : "",
-        !observation.consequence ? "直後の結果" : ""
+        !observation.antecedent ? "直前の環境" : "",
+        !observation.userBehavior ? "利用者の行動" : "",
+        !observation.consequence ? "直後の環境の変化" : ""
       ].filter(Boolean);
       return setFormError(`必須項目を入力してください: ${missing.join("、")}`);
     }
@@ -1059,9 +1059,9 @@ function ObserveView({
 
             <div className="observe-minimum-group">
               <div className="observe-minimum-head">
-                <p>場面、直前、直後を区切ってから、事実メモにまとめます。</p>
+                <p>場面、直前の環境、行動、直後の環境の変化を区切ってから、事実メモにまとめます。</p>
                 <div className="observe-core-flow" aria-label="入力の流れ">
-                  {["場面", "直前", "直後", "まとめ"].map((item) => (
+                  {["場面", "環境", "行動", "変化", "まとめ"].map((item) => (
                     <span key={item}>{item}</span>
                   ))}
                 </div>
@@ -1091,14 +1091,19 @@ function ObserveView({
                   </Select>
                 </Label>
                 <Label>
-                  直前の出来事 <RequiredMark />
-                  <Input name="antecedent" placeholder="指示、予定変更、移動、休憩終了など" required />
+                  直前の環境 <RequiredMark />
+                  <Input name="antecedent" placeholder="指示、予定変更、場所の変化、周囲の声かけなど" required />
                 </Label>
               </div>
 
               <Label>
-                直後の結果 <RequiredMark />
-                <Textarea name="consequence" rows={3} placeholder="自分の対応、周囲の変化、本人の次の行動など" required />
+                利用者の行動 <RequiredMark />
+                <Textarea name="userBehavior" rows={3} placeholder="手が止まった、席を離れた、質問せず画面を見ていたなど" required />
+              </Label>
+
+              <Label>
+                直後の環境の変化 <RequiredMark />
+                <Textarea name="consequence" rows={3} placeholder="支援者の対応、周囲の変化、本人の次の行動など" required />
               </Label>
 
               <Label>
@@ -1177,6 +1182,7 @@ function ObserveView({
                 <LinkCard key={observation.id} href={`/orient?observationId=${observation.id}`}>
                   <CardTop title={caseName(data, observation.caseId)} meta={formatShortDateTime(observation.observedAt)} />
                   <p className="mt-2 line-clamp-3 text-sm leading-6 text-ink/70">{observation.factMemo}</p>
+                  {observation.userBehavior ? <p className="mt-2 line-clamp-2 text-xs leading-5 text-ink/55">行動: {observation.userBehavior}</p> : null}
                   <TagRow tags={observation.behaviorTags} />
                 </LinkCard>
               ))}
@@ -1192,7 +1198,15 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
   const searchParams = useSearchParams();
   const [formError, setFormError] = useState("");
   const observations = [...data.observations].sort(byNewest);
-  const selected = observations.find((item) => item.id === searchParams.get("observationId")) ?? observations[0] ?? null;
+  const requestedObservationId = searchParams.get("observationId") ?? "";
+  const [selectedObservationId, setSelectedObservationId] = useState(requestedObservationId);
+  const selected = observations.find((item) => item.id === selectedObservationId) ?? observations.find((item) => item.id === requestedObservationId) ?? observations[0] ?? null;
+
+  useEffect(() => {
+    if (requestedObservationId && requestedObservationId !== selectedObservationId) {
+      setSelectedObservationId(requestedObservationId);
+    }
+  }, [requestedObservationId, selectedObservationId]);
 
   function handleCreateHypotheses(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1228,7 +1242,7 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
         updatedAt: now
       };
       if (!hypothesis.evidence) {
-        setFormError(`${index === 0 ? "見立て 1" : index === 1 ? "別案" : "もう一つの可能性"}の根拠となる観察を入力してください。`);
+        setFormError(`${hypothesisEntryLabel(index)}の根拠となる観察を入力してください。`);
         return;
       }
       created.push(hypothesis);
@@ -1247,14 +1261,14 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
     onNavigate(`/decide?hypothesisId=${created[0].id}`);
   }
 
-  const hypotheses = [...data.hypotheses].sort(byUpdated);
+  const accumulatedHypotheses = selected ? data.hypotheses.filter((hypothesis) => hypothesis.caseId === selected.caseId).sort(byUpdated) : [...data.hypotheses].sort(byUpdated);
   const hasCases = data.cases.length > 0;
 
   return (
     <>
-      <PageHeader title="見立てを入力" description={hasCases ? "一つの説明に寄せすぎず、複数の可能性と反証を並べます。" : "まずケースを作ると、この画面を使えます。"} image="orient.png" action={<StepPlate step="02" stage="Orient" tone="orient" />} compact />
+      <PageHeader title="見立てを1つ置く" description={hasCases ? "観察から考えられる説明を仮置きし、根拠と合わない点を分けます。" : "まずケースを作ると、この画面を使えます。"} image="orient.png" action={<StepPlate step="02" stage="Orient" tone="orient" />} compact />
 
-      <Section title="観察から可能性を分ける">
+      <Section title="主な見立て">
         {observations.length === 0 ? (
           <EmptyState>
             {!hasCases ? (
@@ -1267,10 +1281,10 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
           </EmptyState>
         ) : (
           <form onSubmit={handleCreateHypotheses} className="grid gap-5" noValidate>
-            <div className="rounded-md border border-ink/10 bg-white p-4 shadow-sm">
+            <div className="orient-observation-card">
               <Label>
                 根拠にする観察
-                <Select name="observationId" defaultValue={selected?.id} required>
+                <Select name="observationId" value={selected?.id ?? ""} onChange={(event) => setSelectedObservationId(event.target.value)} required>
                   {observations.map((observation) => (
                     <option key={observation.id} value={observation.id}>
                       {caseName(data, observation.caseId)} / {formatShortDateTime(observation.observedAt)} / {observation.programName}
@@ -1278,43 +1292,26 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
                   ))}
                 </Select>
               </Label>
+              {selected ? <SelectedObservationFocus observation={selected} caseLabel={caseName(data, selected.caseId)} /> : null}
             </div>
 
             {formError ? <FormError>{formError}</FormError> : null}
 
             <div className="orient-workbench">
               <div className="orient-input-panel">
-                <Notice>見立ては結論ではなく仮置きです。価値、回避、強く働く考え、今できる一歩を分けてから、主な見立てを1つに絞ります。</Notice>
+                <p className="orient-form-note">まず主な見立てだけを入力します。別方向からの見立てとACT軸は必要な時だけ開けます。</p>
                 <div id="task-form" className="orient-entry-layout">
                   <HypothesisEditor index={0} role="primary" />
                   <details className="optional-hypothesis-details">
-                    <summary>別案を入力</summary>
+                    <summary>別方向からの見立て 1</summary>
                     <HypothesisEditor index={1} role="alternate" />
                   </details>
                   <details className="optional-hypothesis-details">
-                    <summary>さらに追加する</summary>
+                    <summary>別方向からの見立て 2</summary>
                     <HypothesisEditor index={2} role="optional" />
                   </details>
                 </div>
               </div>
-
-              {selected ? (
-                <aside className="orient-preview-panel" aria-label="観察と見立ての見え方">
-                  <OrientDepthPreview
-                    observation={{
-                      caseName: caseName(data, selected.caseId),
-                      programName: selected.programName,
-                      timing: selected.timing,
-                      factMemo: selected.factMemo,
-                      antecedent: selected.antecedent,
-                      consequence: selected.consequence,
-                      behaviorTags: selected.behaviorTags,
-                      observationChecklist: selected.observationChecklist,
-                      personWords: selected.personWords
-                    }}
-                  />
-                </aside>
-              ) : null}
             </div>
 
             <SubmitButton>保存して、支援へ</SubmitButton>
@@ -1323,19 +1320,33 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
       </Section>
 
       {observations.length > 0 ? (
-        <Section title="既存の見立て">
-          {hypotheses.length === 0 ? (
-            <EmptyState>見立てはまだありません。</EmptyState>
+        <Section title="積み重ねた見立て" description="このケースで残してきた見立てを、今回の観察との関係が分かるように並べます。">
+          {accumulatedHypotheses.length === 0 ? (
+            <EmptyState>このケースの見立てはまだありません。</EmptyState>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {hypotheses.map((hypothesis) => (
-                <LinkCard key={hypothesis.id} href={`/decide?hypothesisId=${hypothesis.id}`}>
-                  <CardTop title={caseName(data, hypothesis.caseId)} meta={hypothesis.status} />
-                  <p className="mt-2 text-sm font-medium text-skyline">{hypothesis.category}</p>
-                  <p className="mt-2 text-sm leading-6 text-ink/75">{hypothesis.statement}</p>
-                  <p className="mt-2 text-xs leading-5 text-ink/55">反証・未確認: {hypothesis.counterEvidence || hypothesis.unknowns || "未記録"}</p>
-                </LinkCard>
-              ))}
+            <div className="orient-hypothesis-history">
+              {accumulatedHypotheses.map((hypothesis) => {
+                const relatedMemos = reflectionMemosForHypothesis(data.reflectionMemos, hypothesis);
+                const latestMemo = relatedMemos[0];
+                const sourceObservation = data.observations.find((observation) => observation.id === hypothesis.observationId);
+                const isCurrentObservation = selected ? hypothesis.observationId === selected.id : false;
+
+                return (
+                  <LinkCard key={hypothesis.id} href={`/decide?hypothesisId=${hypothesis.id}`}>
+                    <div className="orient-history-card-head">
+                      <div>
+                        <span>{sourceObservation ? `${formatShortDate(sourceObservation.observedAt)} / ${sourceObservation.programName}` : caseName(data, hypothesis.caseId)}</span>
+                        <strong>{hypothesis.category}</strong>
+                      </div>
+                      <Tag>{isCurrentObservation ? "今回の観察" : hypothesis.status}</Tag>
+                    </div>
+                    <p className="orient-history-statement">{hypothesis.statement}</p>
+                    {sourceObservation ? <p className="orient-history-source">材料: {sourceObservation.factMemo || sourceObservation.userBehavior || "観察メモ"}</p> : null}
+                    <p className="orient-history-note">反証・未確認: {hypothesis.counterEvidence || hypothesis.unknowns || "未記録"}</p>
+                    {latestMemo ? <p className="orient-history-note">見立てへの追記: {latestMemo.body}</p> : null}
+                  </LinkCard>
+                );
+              })}
             </div>
           )}
         </Section>
@@ -1716,7 +1727,12 @@ function ReflectView({
   const caseId = selectedCaseId || data.cases[0]?.id || "";
   const selectedCase = data.cases.find((item) => item.id === caseId) ?? null;
   const rows = buildReflectionRows(data, caseId);
+  const completedRows = rows.filter((row) => row.loopStatus === "complete");
+  const inProgressRows = rows.filter((row) => row.loopStatus !== "complete");
   const memos = data.reflectionMemos.filter((memo) => memo.caseId === caseId).sort(byNewest);
+  const memoTargetRows = rows.filter((row) => row.hypothesisId);
+  const unplacedMemos = memos.filter((memo) => !rows.some((row) => reflectionMemoTargetsRow(memo, row)));
+  const nextObserveHref = caseId ? `/observe?caseId=${caseId}` : "/observe";
 
   function handleCreateMemo(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1727,15 +1743,20 @@ function ReflectView({
       return;
     }
     if (!body) {
-      setFormError("メモを入力してください。");
+      setFormError("追記メモを入力してください。");
+      return;
+    }
+    const targetRef = text(form, "targetRef");
+    if (!targetRef) {
+      setFormError("追記する見立てを選んでください。");
       return;
     }
     const now = nowIso();
     const memo: ReflectionMemo = {
       id: newId("memo"),
       caseId,
-      targetRef: text(form, "targetRef"),
-      columnKey: text(form, "columnKey") || "next",
+      targetRef,
+      columnKey: text(form, "columnKey") || "orientation",
       body,
       createdAt: now,
       updatedAt: now
@@ -1752,7 +1773,7 @@ function ReflectView({
 
   return (
     <>
-      <PageHeader title="OODA振り返り" description="一人で、事実、見立て、支援、反応、次に見る点を並べて確認します。" image="reflect.png" action={<LinkButton href="/observe">次の観察</LinkButton>} />
+      <PageHeader title="OODAを更新" description="反応から見立てと支援を見直し、次に見る一点へ戻します。" image="reflect.png" action={<LinkButton href={nextObserveHref}>次の観察へ</LinkButton>} />
 
       {data.cases.length === 0 ? (
         <EmptyState>
@@ -1760,7 +1781,7 @@ function ReflectView({
         </EmptyState>
       ) : (
         <>
-          <Section title="ケース選択">
+          <Section title="対象ケース">
             <div className="rounded-md border border-ink/10 bg-white p-4 shadow-sm">
               <Label>
                 ケース
@@ -1775,96 +1796,160 @@ function ReflectView({
             </div>
           </Section>
 
-          <Section title="OODAの一巡" description={selectedCase?.memo || undefined}>
-            {rows.length === 0 ? (
-              <EmptyState>このケースのOODA記録はまだありません。</EmptyState>
+          <Section title="ループ更新" description={selectedCase?.memo || "反応を材料にして、次の観察で見る一点を決めます。"}>
+            {completedRows.length === 0 ? (
+              <EmptyState>
+                {rows.length === 0
+                  ? "まだ更新できるOODA記録はありません。観察から始めて、支援後の反応まで入るとここで更新できます。"
+                  : "反応まで入ると、見立ての更新と次に見る一点をここで整理できます。"}
+              </EmptyState>
             ) : (
-              <div className="overflow-x-auto rounded-md border border-ink/10 bg-white shadow-sm">
-                <table className="min-w-[1040px] text-left text-sm">
-                  <thead className="bg-field/80 text-xs text-ink/60">
-                    <tr>
-                      <th className="px-3 py-3">事実</th>
-                      <th className="px-3 py-3">見立て</th>
-                      <th className="px-3 py-3">根拠</th>
-                      <th className="px-3 py-3">反証・未確認</th>
-                      <th className="px-3 py-3">試した支援</th>
-                      <th className="px-3 py-3">反応</th>
-                      <th className="px-3 py-3">次に見る点</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-ink/10">
-                    {rows.map((row) => (
-                      <tr key={row.id} className="align-top">
-                        <td className="w-56 whitespace-pre-line px-3 py-3">{row.fact}</td>
-                        <td className="w-56 whitespace-pre-line px-3 py-3">{row.hypothesis}</td>
-                        <td className="w-48 whitespace-pre-line px-3 py-3">{row.evidence}</td>
-                        <td className="w-48 whitespace-pre-line px-3 py-3">{row.counter}</td>
-                        <td className="w-56 whitespace-pre-line px-3 py-3">{row.support}</td>
-                        <td className="w-56 whitespace-pre-line px-3 py-3">{row.response}</td>
-                        <td className="w-48 whitespace-pre-line px-3 py-3">{row.next}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="loop-update-grid">
+                {completedRows.map((row) => {
+                  const rowMemos = memos.filter((memo) => reflectionMemoTargetsRow(memo, row));
+
+                  return (
+                    <article key={row.id} className="loop-update-card rounded-md border border-ink/10 bg-white p-4 shadow-sm">
+                      <div className="loop-update-card-head">
+                        <span>反応から更新</span>
+                        <strong>{row.label}</strong>
+                      </div>
+                      <dl className="loop-update-points">
+                        <div>
+                          <dt>反応</dt>
+                          <dd>{row.response}</dd>
+                        </div>
+                        <div>
+                          <dt>見立ての更新</dt>
+                          <dd>{row.orientationUpdate}</dd>
+                        </div>
+                        <div>
+                          <dt>支援の扱い</dt>
+                          <dd>{row.supportAdjustment}</dd>
+                        </div>
+                        <div className="loop-update-next-point">
+                          <dt>次に見る一点</dt>
+                          <dd>{row.next}</dd>
+                        </div>
+                      </dl>
+                      {rowMemos.length > 0 ? (
+                        <div className="loop-update-note-stack" aria-label="見立てへの追記">
+                          <strong>見立てへの追記</strong>
+                          {rowMemos.map((memo) => (
+                            <article key={memo.id} className="loop-update-note">
+                              <div>
+                                <Tag>{reflectionColumnLabel(memo.columnKey)}</Tag>
+                                <span>{formatShortDateTime(memo.createdAt)}</span>
+                              </div>
+                              <p>{memo.body}</p>
+                            </article>
+                          ))}
+                        </div>
+                      ) : null}
+                      <p className="loop-update-source">材料: {row.sourceFact}</p>
+                      <Link href={nextObserveHref} className="loop-update-next-link focus-ring">
+                        次の観察へ
+                      </Link>
+                    </article>
+                  );
+                })}
               </div>
             )}
+            {inProgressRows.length > 0 ? <p className="loop-update-progress-note">進行中の一巡が{inProgressRows.length}件あります。支援後の反応まで入ると、更新対象として表示されます。</p> : null}
           </Section>
 
-          <Section title="振り返りメモ">
-            <form onSubmit={handleCreateMemo} className="grid gap-4 rounded-md border border-ink/10 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr]" noValidate>
-              {formError ? (
-                <div className="md:col-span-2">
-                  <FormError>{formError}</FormError>
+          {rows.length > 0 ? (
+            <Section title="一巡の材料">
+              <details className="reflection-source-details rounded-md border border-ink/10 bg-white p-4 shadow-sm">
+                <summary>事実から反応までを見る</summary>
+                <div className="mt-4 overflow-x-auto rounded-md border border-ink/10 bg-white">
+                  <table className="min-w-[1040px] text-left text-sm">
+                    <thead className="bg-field/80 text-xs text-ink/60">
+                      <tr>
+                        <th className="px-3 py-3">事実</th>
+                        <th className="px-3 py-3">見立て</th>
+                        <th className="px-3 py-3">根拠</th>
+                        <th className="px-3 py-3">反証・未確認</th>
+                        <th className="px-3 py-3">試した支援</th>
+                        <th className="px-3 py-3">反応</th>
+                        <th className="px-3 py-3">次に見る点</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-ink/10">
+                      {rows.map((row) => (
+                        <tr key={row.id} className="align-top">
+                          <td className="w-56 whitespace-pre-line px-3 py-3">{row.fact}</td>
+                          <td className="w-56 whitespace-pre-line px-3 py-3">{row.hypothesis}</td>
+                          <td className="w-48 whitespace-pre-line px-3 py-3">{row.evidence}</td>
+                          <td className="w-48 whitespace-pre-line px-3 py-3">{row.counter}</td>
+                          <td className="w-56 whitespace-pre-line px-3 py-3">{row.support}</td>
+                          <td className="w-56 whitespace-pre-line px-3 py-3">{row.response}</td>
+                          <td className="w-48 whitespace-pre-line px-3 py-3">{row.next}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ) : null}
+              </details>
+            </Section>
+          ) : null}
 
-              <Label>
-                メモ先
-                <Select name="targetRef">
-                  <option value="">ケース全体</option>
-                  {rows.map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {row.label}
-                    </option>
-                  ))}
-                </Select>
-              </Label>
-              <Label>
-                見る列
-                <Select name="columnKey" defaultValue="next">
-                  <option value="fact">事実</option>
-                  <option value="hypothesis">見立て</option>
-                  <option value="support">支援</option>
-                  <option value="response">反応</option>
-                  <option value="next">次に見る点</option>
-                </Select>
-              </Label>
-              <div className="md:col-span-2">
+          <Section title="見立てへの追記" description="反応から気づいたことを、選んだ見立てに残します。">
+            {memoTargetRows.length === 0 ? (
+              <EmptyState>追記できる見立てはまだありません。</EmptyState>
+            ) : (
+              <form onSubmit={handleCreateMemo} className="grid gap-4 rounded-md border border-ink/10 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr]" noValidate>
+                {formError ? (
+                  <div className="md:col-span-2">
+                    <FormError>{formError}</FormError>
+                  </div>
+                ) : null}
+
                 <Label>
-                  メモ <RequiredMark />
-                  <Textarea name="body" rows={4} placeholder="次に見る点、見立ての揺れ、支援を弱める条件など" required />
+                  追記する見立て
+                  <Select name="targetRef">
+                    {memoTargetRows.map((row) => (
+                      <option key={row.id} value={reflectionRowTargetRef(row)}>
+                        {row.label}
+                      </option>
+                    ))}
+                  </Select>
                 </Label>
-              </div>
-              <div className="md:col-span-2">
-                <SubmitButton>メモを保存</SubmitButton>
-              </div>
-            </form>
+                <Label>
+                  追記先
+                  <Select name="columnKey" defaultValue="orientation">
+                    <option value="orientation">見立ての更新</option>
+                    <option value="next">次に見る一点</option>
+                    <option value="support">支援の調整</option>
+                    <option value="share">チーム共有</option>
+                  </Select>
+                </Label>
+                <div className="md:col-span-2">
+                  <Label>
+                    追記メモ <RequiredMark />
+                    <Textarea name="body" rows={4} placeholder="反応から変える見立て、次に見る一点、支援の弱め方など" required />
+                  </Label>
+                </div>
+                <div className="md:col-span-2">
+                  <SubmitButton>見立てに追記</SubmitButton>
+                </div>
+              </form>
+            )}
 
-            <div className="mt-4 grid gap-3">
-              {memos.length === 0 ? (
-                <EmptyState>振り返りメモはまだありません。</EmptyState>
-              ) : (
-                memos.map((memo) => (
+            {unplacedMemos.length > 0 ? (
+              <div className="mt-4 grid gap-3">
+                <h3 className="text-sm font-semibold text-ink">ケース全体の追記</h3>
+                {unplacedMemos.map((memo) => (
                   <article key={memo.id} className="rounded-md border border-ink/10 bg-white p-4 shadow-sm">
                     <div className="flex flex-wrap items-center gap-2 text-xs text-ink/55">
-                      <Tag>{memo.columnKey}</Tag>
+                      <Tag>{reflectionColumnLabel(memo.columnKey)}</Tag>
                       <span>{formatShortDateTime(memo.createdAt)}</span>
                     </div>
                     <p className="mt-2 text-sm leading-6 text-ink/75">{memo.body}</p>
                   </article>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            ) : null}
           </Section>
         </>
       )}
@@ -1878,7 +1963,7 @@ function SearchView({ data }: { data: AppData }) {
   const [query, setQuery] = useState(initial);
   const normalized = query.trim().toLowerCase();
   const observations = [...data.observations]
-    .filter((item) => !normalized || [caseName(data, item.caseId), item.factMemo, item.antecedent, item.consequence, item.behaviorTags.join(" ")].join(" ").toLowerCase().includes(normalized))
+    .filter((item) => !normalized || [caseName(data, item.caseId), item.factMemo, item.antecedent, item.userBehavior, item.consequence, item.behaviorTags.join(" ")].join(" ").toLowerCase().includes(normalized))
     .sort(byNewest);
 
   return (
@@ -1889,7 +1974,7 @@ function SearchView({ data }: { data: AppData }) {
         <div className="rounded-md border border-ink/10 bg-white p-4 shadow-sm">
           <Label>
             キーワード
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="場所、活動、行動タグ、事実メモ" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="場所、活動、利用者の行動、行動タグ、事実メモ" />
           </Label>
         </div>
       </Section>
@@ -2268,9 +2353,41 @@ function CheckboxGroup({ title, name, options }: { title: string; name: string; 
   );
 }
 
+function SelectedObservationFocus({ observation, caseLabel }: { observation: ObservationRecord; caseLabel: string }) {
+  return (
+    <div className="orient-observation-summary" aria-label="根拠にする観察の要点">
+      <div className="orient-observation-summary-head">
+        <strong>{caseLabel}</strong>
+        <span>
+          {formatShortDateTime(observation.observedAt)} / {observation.programName}
+        </span>
+      </div>
+      <p>{observation.factMemo || observation.userBehavior || "観察メモは未記録です。"}</p>
+      {observation.userBehavior ? <small>行動: {observation.userBehavior}</small> : null}
+      <details className="orient-observation-detail">
+        <summary>直前・行動・直後を見る</summary>
+        <dl>
+          <div>
+            <dt>直前の環境</dt>
+            <dd>{observation.antecedent || "未記録"}</dd>
+          </div>
+          <div>
+            <dt>利用者の行動</dt>
+            <dd>{observation.userBehavior || "未記録"}</dd>
+          </div>
+          <div>
+            <dt>直後の環境の変化</dt>
+            <dd>{observation.consequence || "未記録"}</dd>
+          </div>
+        </dl>
+      </details>
+    </div>
+  );
+}
+
 function HypothesisEditor({ index, role }: { index: number; role: "primary" | "alternate" | "optional" }) {
-  const title = role === "primary" ? "見立て 1" : role === "alternate" ? "別案" : "もう一つの可能性";
-  const badge = role === "primary" ? "主入力" : role === "alternate" ? "任意" : "追加";
+  const title = hypothesisEntryLabel(index);
+  const badge = role === "primary" ? "主入力" : "任意";
   const isRequired = index === 0;
 
   return (
@@ -2278,18 +2395,23 @@ function HypothesisEditor({ index, role }: { index: number; role: "primary" | "a
       <legend className="px-1 text-sm font-semibold text-ink">
         {title} <span className="hypothesis-role-badge">{badge}</span>
       </legend>
-      <div className="mb-4 flex flex-wrap gap-2 text-xs">
-        <span className="rounded-md bg-skyline/10 px-2 py-1 text-skyline">可能性</span>
-        <span className="rounded-md bg-moss/10 px-2 py-1 text-moss">根拠</span>
-        <span className="rounded-md bg-clay/10 px-2 py-1 text-clay">反証</span>
-      </div>
+      <input type="hidden" name={`confidence-${index}`} defaultValue="50" />
+      <input type="hidden" name={`status-${index}`} defaultValue="未検証" />
+      {role === "primary" ? <p className="hypothesis-input-guide">必須は、カテゴリー、見立て文、根拠の3つです。</p> : null}
       <div className="grid gap-3">
-        <div className="record-context-panel record-context-panel-act">
-          <div className="record-context-panel-head">
-            <strong>ACTの見立て軸</strong>
-            <span>本人の価値と回避を混ぜずに置く</span>
-          </div>
-          <div className="record-context-grid">
+        <Label>
+          見立てカテゴリー
+          <Select name={`category-${index}`} defaultValue={HYPOTHESIS_CATEGORIES[index] ?? HYPOTHESIS_CATEGORIES[0]}>
+            {HYPOTHESIS_CATEGORIES.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </Select>
+        </Label>
+        <details className="secondary-field-details hypothesis-support-details hypothesis-act-details">
+          <summary>ACTの補助軸</summary>
+          <div className="record-context-grid mt-3">
             <Label>
               大事な方向 <OptionalMark />
               <Textarea name={`valueDirection-${index}`} rows={2} placeholder="本人が大事にしたいこと、向かいたい方向" />
@@ -2307,55 +2429,40 @@ function HypothesisEditor({ index, role }: { index: number; role: "primary" | "a
               <Textarea name={`smallStep-${index}`} rows={2} placeholder="その場で試せる最小の行動" />
             </Label>
           </div>
-        </div>
-
+        </details>
         <Label>
           見立て文 {isRequired ? <RequiredMark /> : null}
           <Textarea name={`statement-${index}`} rows={3} placeholder="何が影響している可能性があるか" required={isRequired} />
         </Label>
         <Label>
-          見立てカテゴリー
-          <Select name={`category-${index}`} defaultValue={HYPOTHESIS_CATEGORIES[index] ?? HYPOTHESIS_CATEGORIES[0]}>
-            {HYPOTHESIS_CATEGORIES.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </Select>
-        </Label>
-        <Label>
           根拠となる観察 {isRequired ? <RequiredMark /> : null}
           <Textarea name={`evidence-${index}`} rows={3} placeholder="どの事実からそう考えたか" required={isRequired} />
         </Label>
-        <Label>
-          反証または別解釈
-          <Textarea name={`counterEvidence-${index}`} rows={2} placeholder="合わない事実、別の可能性" />
-        </Label>
-        <Label>
-          未確認点
-          <Textarea name={`unknowns-${index}`} rows={2} placeholder="まだ分からない点" />
-        </Label>
-        <Label>
-          追加で見る点
-          <Textarea name={`nextObservationPoints-${index}`} rows={2} placeholder="次回どこを見るか" />
-        </Label>
-        <Label>
-          確信度
-          <input name={`confidence-${index}`} type="range" min="0" max="100" defaultValue="50" className="mt-2 w-full accent-skyline" />
-        </Label>
-        <Label>
-          ステータス
-          <Select name={`status-${index}`} defaultValue="未検証">
-            {HYPOTHESIS_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </Select>
-        </Label>
+        <details className="secondary-field-details hypothesis-support-details">
+          <summary>反証・未確認点を残す</summary>
+          <div className="mt-3 grid gap-3">
+            <Label>
+              反証または別解釈
+              <Textarea name={`counterEvidence-${index}`} rows={2} placeholder="合わない事実、別の可能性" />
+            </Label>
+            <Label>
+              未確認点
+              <Textarea name={`unknowns-${index}`} rows={2} placeholder="まだ分からない点" />
+            </Label>
+            <Label>
+              追加で見る点
+              <Textarea name={`nextObservationPoints-${index}`} rows={2} placeholder="次回どこを見るか" />
+            </Label>
+          </div>
+        </details>
       </div>
     </fieldset>
   );
+}
+
+function hypothesisEntryLabel(index: number) {
+  if (index === 0) return "主な見立て";
+  return `別方向からの見立て ${index}`;
 }
 
 type Commit = (updater: (current: AppData) => AppData) => void;
@@ -2459,6 +2566,7 @@ function normalizeObservation(value: unknown): ObservationRecord | null {
     factMemo: stringField(value, "factMemo"),
     behaviorTags: stringArrayField(value, "behaviorTags"),
     antecedent: stringField(value, "antecedent"),
+    userBehavior: stringField(value, "userBehavior"),
     consequence: stringField(value, "consequence"),
     unknownMemo: stringField(value, "unknownMemo"),
     observationChecklist: stringArrayField(value, "observationChecklist"),
@@ -2641,6 +2749,7 @@ function listLine(label: string, values: string[] | undefined) {
 function observationFactText(observation: ObservationRecord) {
   return compactLines([
     observation.factMemo,
+    labeledLine("利用者の行動", observation.userBehavior),
     listLine("確認", observation.observationChecklist),
     labeledLine("本人の言葉", observation.personWords),
     labeledLine("扱える範囲", observation.consentScope),
@@ -2663,24 +2772,94 @@ function experimentSupportText(experiment: SmallExperimentRecord | undefined) {
   return compactLines([experiment.support, listLine("条件", experiment.decisionChecks)]).join("\n");
 }
 
-function buildReflectionRows(data: AppData, caseId: string) {
+function reflectionColumnLabel(key: string) {
+  switch (key) {
+    case "orientation":
+    case "hypothesis":
+      return "見立ての更新";
+    case "support":
+      return "支援の調整";
+    case "response":
+      return "反応";
+    case "share":
+      return "チーム共有";
+    case "fact":
+      return "材料";
+    case "next":
+    default:
+      return "次に見る一点";
+  }
+}
+
+function hypothesisMemoTargetRef(hypothesisId: string) {
+  return `hypothesis:${hypothesisId}`;
+}
+
+function reflectionRowTargetRef(row: ReflectionRow) {
+  return row.hypothesisId ? hypothesisMemoTargetRef(row.hypothesisId) : `observation:${row.observationId}`;
+}
+
+function reflectionMemoTargetsRow(memo: ReflectionMemo, row: ReflectionRow) {
+  return memo.targetRef === reflectionRowTargetRef(row) || memo.targetRef === row.id || (!row.hypothesisId && memo.targetRef === row.observationId);
+}
+
+function reflectionMemosForHypothesis(memos: ReflectionMemo[], hypothesis: HypothesisRecord) {
+  const currentTarget = hypothesisMemoTargetRef(hypothesis.id);
+  const legacyTarget = `${hypothesis.observationId}-${hypothesis.id}`;
+  return memos.filter((memo) => memo.targetRef === currentTarget || memo.targetRef === legacyTarget).sort(byNewest);
+}
+
+function orientationUpdateText(review: ActReviewRecord | undefined) {
+  if (!review) return "反応待ち";
+  if (review.hypothesisUpdate === "強まった") return "この見立てを強めて、同じ方向で次を見る";
+  if (review.hypothesisUpdate === "弱まった") return "この見立てを弱めて、別の説明も見る";
+  if (review.hypothesisUpdate === "保留") return "見立ては保留し、次の観察で確かめる";
+  return `見立ては${review.hypothesisUpdate}`;
+}
+
+function supportAdjustmentText(experiment: SmallExperimentRecord | undefined, review: ActReviewRecord | undefined) {
+  if (!experiment) return "支援未選択";
+  if (!review) return "支援後の反応を入れてから調整";
+  const direction =
+    review.hypothesisUpdate === "強まった"
+      ? "続ける候補"
+      : review.hypothesisUpdate === "弱まった"
+        ? "変える候補"
+        : "保留して次に見る";
+  return (
+    compactLines([
+      direction,
+      labeledLine("実施", review.implementationStatus),
+      labeledLine("次回候補", review.nextTryCandidate || experiment.nextTryCandidate),
+      labeledLine("注意", experiment.cautions)
+    ]).join("\n") || "次回も同じ支援でよいか確認"
+  );
+}
+
+function buildReflectionRows(data: AppData, caseId: string): ReflectionRow[] {
   return data.observations
     .filter((observation) => observation.caseId === caseId)
     .sort(byNewest)
-    .flatMap((observation) => {
+    .flatMap<ReflectionRow>((observation) => {
       const hypotheses = data.hypotheses.filter((hypothesis) => hypothesis.observationId === observation.id);
       if (hypotheses.length === 0) {
         return [
           {
             id: observation.id,
+            observationId: observation.id,
+            hypothesisId: null,
             label: `${formatShortDate(observation.observedAt)} 観察`,
             fact: observationFactText(observation),
             hypothesis: "未記録",
-            evidence: observation.antecedent,
+            evidence: compactLines([labeledLine("直前の環境", observation.antecedent), labeledLine("行動", observation.userBehavior)]).join("\n"),
             counter: observation.unknownMemo || "未記録",
             support: "未記録",
             response: observation.consequence,
-            next: observation.unknownMemo || "次の観察で確認"
+            next: observation.unknownMemo || "次の観察で確認",
+            loopStatus: "incomplete",
+            orientationUpdate: "見立て未記録",
+            supportAdjustment: "支援未選択",
+            sourceFact: observation.factMemo || observation.userBehavior || "観察メモ"
           }
         ];
       }
@@ -2689,6 +2868,8 @@ function buildReflectionRows(data: AppData, caseId: string) {
         const review = experiment ? data.actReviews.find((item) => item.experimentId === experiment.id) : undefined;
         return {
           id: `${observation.id}-${hypothesis.id}`,
+          observationId: observation.id,
+          hypothesisId: hypothesis.id,
           label: `${formatShortDate(observation.observedAt)} ${hypothesis.category}`,
           fact: observationFactText(observation),
           hypothesis: hypothesisContextText(hypothesis),
@@ -2700,7 +2881,11 @@ function buildReflectionRows(data: AppData, caseId: string) {
             labeledLine("後続", review?.laterResponse),
             labeledLine("比較", review?.comparison)
           ]).join("\n"),
-          next: review?.nextObservationPoint || hypothesis.nextObservationPoints || observation.unknownMemo || "次の観察で確認"
+          next: review?.nextObservationPoint || hypothesis.nextObservationPoints || observation.unknownMemo || "次の観察で確認",
+          loopStatus: review ? "complete" : "incomplete",
+          orientationUpdate: orientationUpdateText(review),
+          supportAdjustment: supportAdjustmentText(experiment, review),
+          sourceFact: observation.factMemo || observation.userBehavior || hypothesis.statement
         };
       });
     });
@@ -2714,6 +2899,7 @@ function buildSummary(data: AppData, observation: ObservationRecord) {
   const hypothesisText = hypothesis?.statement ?? "見立ては未記録";
   const support = experiment?.support ?? "支援は未記録";
   const response = review?.immediateResponse ?? observation.consequence;
+  const behaviorSentence = observation.userBehavior ? `利用者の行動として「${observation.userBehavior}」が見られ、` : "";
   const observationDetails = compactLines([
     listLine("確認した観察", observation.observationChecklist),
     labeledLine("本人の言葉", observation.personWords),
@@ -2729,7 +2915,7 @@ function buildSummary(data: AppData, observation: ObservationRecord) {
       ]).join("。")
     : "";
   const decisionContext = experiment?.decisionChecks.length ? `試す条件は「${experiment.decisionChecks.join("、")}」。` : "";
-  return `本日は${scene}で、「${observation.factMemo}」が見られた。直前には「${observation.antecedent}」があり、直後には「${observation.consequence}」があった。${observationDetails ? `${observationDetails}。` : ""}「${hypothesisText}」の可能性を置いた。${orientContext ? `${orientContext}。` : ""}次に「${support}」を試す。${decisionContext}反応として「${response}」を確認し、次回は「${review?.nextObservationPoint || hypothesis?.nextObservationPoints || observation.unknownMemo || "未確認点"}」を見る。`;
+  return `本日は${scene}で、「${observation.factMemo}」が見られた。直前の環境は「${observation.antecedent}」で、${behaviorSentence}直後の環境の変化として「${observation.consequence}」があった。${observationDetails ? `${observationDetails}。` : ""}「${hypothesisText}」の可能性を置いた。${orientContext ? `${orientContext}。` : ""}次に「${support}」を試す。${decisionContext}反応として「${response}」を確認し、次回は「${review?.nextObservationPoint || hypothesis?.nextObservationPoints || observation.unknownMemo || "未確認点"}」を見る。`;
 }
 
 function caseName(data: AppData, caseId: string) {

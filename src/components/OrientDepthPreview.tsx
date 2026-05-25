@@ -9,6 +9,7 @@ type ObservationPreview = {
   timing: string;
   factMemo: string;
   antecedent: string;
+  userBehavior: string;
   consequence: string;
   behaviorTags: string[];
   observationChecklist: string[];
@@ -108,10 +109,15 @@ export function OrientDepthPreview({ observation }: { observation: ObservationPr
           {observation.personWords ? <p className="mt-2 rounded-md bg-white/75 p-2 text-xs leading-5 text-ink/65">本人の言葉: {observation.personWords}</p> : null}
           <div className="mt-4 grid gap-2 text-xs text-ink/65">
             <div>
-              <span className="font-semibold text-ink">直前</span> {observation.antecedent}
+              <span className="font-semibold text-ink">直前の環境</span> {observation.antecedent}
             </div>
+            {observation.userBehavior ? (
+              <div>
+                <span className="font-semibold text-ink">行動</span> {observation.userBehavior}
+              </div>
+            ) : null}
             <div>
-              <span className="font-semibold text-ink">直後</span> {observation.consequence}
+              <span className="font-semibold text-ink">直後の環境の変化</span> {observation.consequence}
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
