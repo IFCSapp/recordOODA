@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element -- Public PNGs need explicit GitHub Pages paths on mobile Safari. */
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 
 export type LocalFirstView = "home" | "cases" | "observe" | "orient" | "decide" | "act" | "reflect" | "search" | "export" | "files";
 
@@ -119,10 +119,6 @@ type ReflectionRow = {
   support: string;
   response: string;
   next: string;
-  loopStatus: "complete" | "incomplete";
-  orientationUpdate: string;
-  supportAdjustment: string;
-  sourceFact: string;
 };
 
 type AppData = {
@@ -393,17 +389,7 @@ function CompactWorkflowBar({
                 onCreateCase={onCreateCase}
                 submitLabel="作って観察へ"
               />
-              <details className="task-context-more">
-                <summary>関連</summary>
-                <div className="task-context-more-links">
-                  <Link href="/cases" className="task-context-side-link">
-                    ケース一覧
-                  </Link>
-                  <Link href={selected ? `/reflect?caseId=${selected.id}` : "/reflect"} className="task-context-history-link">
-                    これまでの記録
-                  </Link>
-                </div>
-              </details>
+              <RecordListMenu selected={selected} />
             </div>
           </div>
         )}
@@ -551,13 +537,57 @@ function CaseChangeMenu({
   submitLabel?: string;
   ariaLabel?: string;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (menuRef.current?.contains(event.target as Node)) return;
+      setIsOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [selectedCaseId]);
+
+  function handleCaseChange(caseId: string) {
+    onCaseChange(caseId);
+    setIsOpen(false);
+  }
+
+  function handleCreateCase(displayName: string, memo: string) {
+    const newCaseId = onCreateCase(displayName, memo);
+    if (newCaseId) {
+      setIsOpen(false);
+    }
+    return newCaseId;
+  }
+
   return (
-    <details className="case-change-menu">
-      <summary>変更</summary>
+    <div ref={menuRef} className={`case-change-menu ${isOpen ? "is-open" : ""}`}>
+      <button type="button" className="case-change-menu-trigger" aria-expanded={isOpen} onClick={() => setIsOpen((current) => !current)}>
+        ケース変更
+      </button>
       <div className="case-change-menu-body">
         <label className="case-change-menu-picker">
           <span>既存ケースを選ぶ</span>
-          <select value={selectedCaseId} onChange={(event) => onCaseChange(event.target.value)} aria-label={ariaLabel}>
+          <select value={selectedCaseId} onChange={(event) => handleCaseChange(event.target.value)} aria-label={ariaLabel}>
             {items.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.displayName}
@@ -567,10 +597,121 @@ function CaseChangeMenu({
         </label>
         <div className="case-change-menu-create">
           <span>新しいケース</span>
-          <QuickCaseForm onCreateCase={onCreateCase} submitLabel={submitLabel} />
+          <QuickCaseForm onCreateCase={handleCreateCase} submitLabel={submitLabel} />
         </div>
       </div>
-    </details>
+    </div>
+  );
+}
+
+function RecordListMenu({ selected }: { selected: CaseDockItem | null }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const reflectHref = selected ? `/reflect?caseId=${selected.id}` : "/reflect";
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (menuRef.current?.contains(event.target as Node)) return;
+      setIsOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [selected?.id]);
+
+  return (
+    <div ref={menuRef} className={`case-change-menu record-list-menu ${isOpen ? "is-open" : ""}`}>
+      <button type="button" className="case-change-menu-trigger" aria-expanded={isOpen} onClick={() => setIsOpen((current) => !current)}>
+        記録一覧
+      </button>
+      <div className="case-change-menu-body">
+        <div className="record-list-menu-links">
+          <Link href="/cases" className="record-list-menu-link record-list-menu-link-primary" onClick={() => setIsOpen(false)}>
+            ケース一覧
+          </Link>
+          <Link href={reflectHref} className="record-list-menu-link" onClick={() => setIsOpen(false)}>
+            これまでの記録
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HypothesisRecordCard({
+  data,
+  hypothesis,
+  currentObservationId
+}: {
+  data: AppData;
+  hypothesis: HypothesisRecord;
+  currentObservationId?: string;
+}) {
+  const sourceObservation = data.observations.find((observation) => observation.id === hypothesis.observationId) ?? null;
+  const latestMemo = reflectionMemosForHypothesis(data.reflectionMemos, hypothesis)[0];
+  const sourceLabel = sourceObservation ? `${caseName(data, hypothesis.caseId)} / ${formatShortDate(sourceObservation.observedAt)} / ${sourceObservation.programName}` : caseName(data, hypothesis.caseId);
+  const sourceText = sourceObservation ? sourceObservation.factMemo || sourceObservation.userBehavior || "観察メモ" : "観察が見つかりません";
+  const counterText = compactLines([labeledLine("反証", hypothesis.counterEvidence), labeledLine("未確認", hypothesis.unknowns)]).join("\n") || "未記録";
+  const actText =
+    compactLines([
+      labeledLine("大事な方向", hypothesis.valueDirection),
+      labeledLine("避けたい体験", hypothesis.avoidancePattern),
+      labeledLine("強く働く考え", hypothesis.fusedStory),
+      labeledLine("小さな一歩", hypothesis.smallStep)
+    ]).join("\n") || "未記録";
+  const statusLabel = currentObservationId && hypothesis.observationId === currentObservationId ? "今回の観察" : hypothesis.status;
+
+  return (
+    <div className="hypothesis-record-card">
+      <div className="hypothesis-record-card-head">
+        <div>
+          <span>{sourceLabel}</span>
+          <strong>{hypothesis.category}</strong>
+        </div>
+        <Tag>{statusLabel}</Tag>
+      </div>
+      <p className="hypothesis-record-statement">{hypothesis.statement}</p>
+      <dl className="hypothesis-record-detail-list">
+        <div>
+          <dt>材料</dt>
+          <dd>{sourceText}</dd>
+        </div>
+        <div>
+          <dt>根拠</dt>
+          <dd>{hypothesis.evidence || "未記録"}</dd>
+        </div>
+        <div>
+          <dt>反証・未確認</dt>
+          <dd>{counterText}</dd>
+        </div>
+        <div>
+          <dt>ACT軸</dt>
+          <dd>{actText}</dd>
+        </div>
+        {latestMemo ? (
+          <div>
+            <dt>見立てへの追記</dt>
+            <dd>{latestMemo.body}</dd>
+          </div>
+        ) : null}
+      </dl>
+    </div>
   );
 }
 
@@ -619,9 +760,7 @@ function HomeView({
           ) : (
             activeHypotheses.map((item) => (
               <LinkCard key={item.id} href={`/decide?hypothesisId=${item.id}`}>
-                <CardTop title={caseName(data, item.caseId)} meta={item.status} />
-                <p className="mt-2 text-sm font-medium text-skyline">{item.category}</p>
-                <p className="mt-1 line-clamp-2 text-sm leading-6 text-ink/70">{item.statement}</p>
+                <HypothesisRecordCard data={data} hypothesis={item} />
               </LinkCard>
             ))
           )}
@@ -693,7 +832,10 @@ function HomeFlowHeader({
         </div>
 
         {selectedCase ? (
-          <CaseChangeMenu items={caseItems} selectedCaseId={selectedCase.id} onCaseChange={onCaseChange} onCreateCase={onCreateCase} />
+          <div className="home-current-case-actions">
+            <CaseChangeMenu items={caseItems} selectedCaseId={selectedCase.id} onCaseChange={onCaseChange} onCreateCase={onCreateCase} />
+            <RecordListMenu selected={selectedCase} />
+          </div>
         ) : null}
 
         <Link href={nextAction?.href ?? "/cases"} className="home-current-case-action">
@@ -1233,28 +1375,11 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
             <EmptyState>このケースの見立てはまだありません。</EmptyState>
           ) : (
             <div className="orient-hypothesis-history">
-              {accumulatedHypotheses.map((hypothesis) => {
-                const relatedMemos = reflectionMemosForHypothesis(data.reflectionMemos, hypothesis);
-                const latestMemo = relatedMemos[0];
-                const sourceObservation = data.observations.find((observation) => observation.id === hypothesis.observationId);
-                const isCurrentObservation = selected ? hypothesis.observationId === selected.id : false;
-
-                return (
-                  <LinkCard key={hypothesis.id} href={`/decide?hypothesisId=${hypothesis.id}`}>
-                    <div className="orient-history-card-head">
-                      <div>
-                        <span>{sourceObservation ? `${formatShortDate(sourceObservation.observedAt)} / ${sourceObservation.programName}` : caseName(data, hypothesis.caseId)}</span>
-                        <strong>{hypothesis.category}</strong>
-                      </div>
-                      <Tag>{isCurrentObservation ? "今回の観察" : hypothesis.status}</Tag>
-                    </div>
-                    <p className="orient-history-statement">{hypothesis.statement}</p>
-                    {sourceObservation ? <p className="orient-history-source">材料: {sourceObservation.factMemo || sourceObservation.userBehavior || "観察メモ"}</p> : null}
-                    <p className="orient-history-note">反証・未確認: {hypothesis.counterEvidence || hypothesis.unknowns || "未記録"}</p>
-                    {latestMemo ? <p className="orient-history-note">見立てへの追記: {latestMemo.body}</p> : null}
-                  </LinkCard>
-                );
-              })}
+              {accumulatedHypotheses.map((hypothesis) => (
+                <LinkCard key={hypothesis.id} href={`/decide?hypothesisId=${hypothesis.id}`}>
+                  <HypothesisRecordCard data={data} hypothesis={hypothesis} currentObservationId={selected?.id} />
+                </LinkCard>
+              ))}
             </div>
           )}
         </Section>
@@ -1345,21 +1470,8 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
             </Label>
 
             {selected ? (
-              <div className="rounded-md border border-moss/25 bg-moss/10 p-4 text-sm leading-6 text-ink/75">
-                <div className="flex flex-wrap items-center gap-2">
-                  <strong className="text-ink">{caseName(data, selected.caseId)}</strong>
-                  <Tag>{selected.category}</Tag>
-                  <Tag>{selected.status}</Tag>
-                </div>
-                <p className="mt-2">{selected.statement}</p>
-                <p className="mt-2 text-ink/55">根拠: {selected.evidence}</p>
-                {selected.valueDirection || selected.avoidancePattern || selected.smallStep ? (
-                  <div className="decision-context-strip">
-                    {selected.valueDirection ? <span>大事な方向: {selected.valueDirection}</span> : null}
-                    {selected.avoidancePattern ? <span>回避: {selected.avoidancePattern}</span> : null}
-                    {selected.smallStep ? <span>小さな一歩: {selected.smallStep}</span> : null}
-                  </div>
-                ) : null}
+              <div className="hypothesis-record-panel hypothesis-record-panel-decision">
+                <HypothesisRecordCard data={data} hypothesis={selected} />
               </div>
             ) : null}
 
@@ -1551,7 +1663,13 @@ function ActView({ data, commit, onNavigate }: { data: AppData; commit: Commit; 
                   <Tag>{selected.status}</Tag>
                 </div>
                 <p className="mt-2">{selected.support}</p>
-                <p className="mt-2 text-ink/55">見立て: {selectedHypothesis?.statement ?? "未確認"}</p>
+                {selectedHypothesis ? (
+                  <div className="hypothesis-record-panel hypothesis-record-panel-embedded">
+                    <HypothesisRecordCard data={data} hypothesis={selectedHypothesis} />
+                  </div>
+                ) : (
+                  <p className="mt-2 text-ink/55">見立て: 未確認</p>
+                )}
               </div>
             ) : null}
 
@@ -1638,8 +1756,6 @@ function ReflectView({
   const selectedCase = data.cases.find((item) => item.id === caseId) ?? null;
   const caseItems = buildCaseDockItems(data);
   const rows = buildReflectionRows(data, caseId);
-  const completedRows = rows.filter((row) => row.loopStatus === "complete");
-  const inProgressRows = rows.filter((row) => row.loopStatus !== "complete");
   const memos = data.reflectionMemos.filter((memo) => memo.caseId === caseId).sort(byNewest);
   const memoTargetRows = rows.filter((row) => row.hypothesisId);
   const unplacedMemos = memos.filter((memo) => !rows.some((row) => reflectionMemoTargetsRow(memo, row)));
@@ -1709,35 +1825,37 @@ function ReflectView({
           </Section>
 
           <Section title="積み重ねたループ" description={selectedCase?.memo || "反応を材料にして、次の観察で見る一点を決めます。"}>
-            {completedRows.length === 0 ? (
+            {rows.length === 0 ? (
               <EmptyState>
-                {rows.length === 0
-                  ? "まだ更新できるOODA記録はありません。観察から始めて、支援後の反応まで入るとここで更新できます。"
-                  : "反応まで入ると、見立ての更新と次に見る一点をここで整理できます。"}
+                まだOODAの積み重ねはありません。観察から始めると、ここに順番に並びます。
               </EmptyState>
             ) : (
               <div className="loop-update-grid">
-                {completedRows.map((row) => {
+                {rows.map((row) => {
                   const rowMemos = memos.filter((memo) => reflectionMemoTargetsRow(memo, row));
 
                   return (
                     <article key={row.id} className="loop-update-card rounded-md border border-ink/10 bg-white p-4 shadow-sm">
                       <div className="loop-update-card-head">
-                        <span>一巡の更新</span>
+                        <span>積み重ね</span>
                         <strong>{row.label}</strong>
                       </div>
                       <dl className="loop-update-points">
                         <div>
+                          <dt>観察</dt>
+                          <dd>{row.fact}</dd>
+                        </div>
+                        <div>
+                          <dt>見立て</dt>
+                          <dd>{row.hypothesis}</dd>
+                        </div>
+                        <div>
+                          <dt>支援</dt>
+                          <dd>{row.support}</dd>
+                        </div>
+                        <div>
                           <dt>反応</dt>
                           <dd>{row.response}</dd>
-                        </div>
-                        <div>
-                          <dt>見立ての更新</dt>
-                          <dd>{row.orientationUpdate}</dd>
-                        </div>
-                        <div>
-                          <dt>支援の扱い</dt>
-                          <dd>{row.supportAdjustment}</dd>
                         </div>
                         <div className="loop-update-next-point">
                           <dt>次に見る一点</dt>
@@ -1758,7 +1876,6 @@ function ReflectView({
                           ))}
                         </div>
                       ) : null}
-                      <p className="loop-update-source">材料: {row.sourceFact}</p>
                       <Link href={nextObserveHref} className="loop-update-next-link focus-ring">
                         次の観察へ
                       </Link>
@@ -1767,7 +1884,6 @@ function ReflectView({
                 })}
               </div>
             )}
-            {inProgressRows.length > 0 ? <p className="loop-update-progress-note">進行中の一巡が{inProgressRows.length}件あります。支援後の反応まで入ると、更新対象として表示されます。</p> : null}
           </Section>
 
           <Section title="積み重ねから確認する">
@@ -1924,7 +2040,11 @@ function SearchView({ data }: { data: AppData }) {
                   <CardTop title={caseName(data, observation.caseId)} meta={formatShortDateTime(observation.observedAt)} />
                   <p className="mt-2 text-sm leading-6 text-ink/75">{observation.factMemo}</p>
                   <TagRow tags={[observation.programName, observation.timing, ...observation.behaviorTags]} />
-                  {relatedHypotheses.length > 0 ? <p className="mt-2 text-xs leading-5 text-ink/55">見立て: {relatedHypotheses[0].statement}</p> : null}
+                  {relatedHypotheses.length > 0 ? (
+                    <div className="hypothesis-record-panel hypothesis-record-panel-embedded">
+                      <HypothesisRecordCard data={data} hypothesis={relatedHypotheses[0]} />
+                    </div>
+                  ) : null}
                 </LinkCard>
               );
             })}
@@ -2757,33 +2877,6 @@ function reflectionMemosForHypothesis(memos: ReflectionMemo[], hypothesis: Hypot
   return memos.filter((memo) => memo.targetRef === currentTarget || memo.targetRef === legacyTarget).sort(byNewest);
 }
 
-function orientationUpdateText(review: ActReviewRecord | undefined) {
-  if (!review) return "反応待ち";
-  if (review.hypothesisUpdate === "強まった") return "この見立てを強めて、同じ方向で次を見る";
-  if (review.hypothesisUpdate === "弱まった") return "この見立てを弱めて、別の説明も見る";
-  if (review.hypothesisUpdate === "保留") return "見立ては保留し、次の観察で確かめる";
-  return `見立ては${review.hypothesisUpdate}`;
-}
-
-function supportAdjustmentText(experiment: SmallExperimentRecord | undefined, review: ActReviewRecord | undefined) {
-  if (!experiment) return "支援未選択";
-  if (!review) return "支援後の反応を入れてから調整";
-  const direction =
-    review.hypothesisUpdate === "強まった"
-      ? "続ける候補"
-      : review.hypothesisUpdate === "弱まった"
-        ? "変える候補"
-        : "保留して次に見る";
-  return (
-    compactLines([
-      direction,
-      labeledLine("実施", review.implementationStatus),
-      labeledLine("次回候補", review.nextTryCandidate || experiment.nextTryCandidate),
-      labeledLine("注意", experiment.cautions)
-    ]).join("\n") || "次回も同じ支援でよいか確認"
-  );
-}
-
 function buildReflectionRows(data: AppData, caseId: string): ReflectionRow[] {
   return data.observations
     .filter((observation) => observation.caseId === caseId)
@@ -2803,11 +2896,7 @@ function buildReflectionRows(data: AppData, caseId: string): ReflectionRow[] {
             counter: observation.unknownMemo || "未記録",
             support: "未記録",
             response: observation.consequence,
-            next: observation.unknownMemo || "次の観察で確認",
-            loopStatus: "incomplete",
-            orientationUpdate: "見立て未記録",
-            supportAdjustment: "支援未選択",
-            sourceFact: observation.factMemo || observation.userBehavior || "観察メモ"
+            next: observation.unknownMemo || "次の観察で確認"
           }
         ];
       }
@@ -2829,11 +2918,7 @@ function buildReflectionRows(data: AppData, caseId: string): ReflectionRow[] {
             labeledLine("後続", review?.laterResponse),
             labeledLine("比較", review?.comparison)
           ]).join("\n"),
-          next: review?.nextObservationPoint || hypothesis.nextObservationPoints || observation.unknownMemo || "次の観察で確認",
-          loopStatus: review ? "complete" : "incomplete",
-          orientationUpdate: orientationUpdateText(review),
-          supportAdjustment: supportAdjustmentText(experiment, review),
-          sourceFact: observation.factMemo || observation.userBehavior || hypothesis.statement
+          next: review?.nextObservationPoint || hypothesis.nextObservationPoints || observation.unknownMemo || "次の観察で確認"
         };
       });
     });
