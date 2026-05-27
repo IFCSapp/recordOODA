@@ -124,6 +124,8 @@ type ReflectionRow = {
   response: string;
 };
 
+type ReflectionRecordSectionKey = "observation" | "hypothesis" | "experiment" | "review";
+
 type AppData = {
   version: 1;
   savedAt: string;
@@ -1081,7 +1083,7 @@ function ObserveView({
       unknownMemo: text(form, "unknownMemo"),
       observationChecklist: allText(form, "observationChecklist"),
       personWords: text(form, "personWords"),
-      consentScope: text(form, "consentScope"),
+      consentScope: "",
       shareScope: text(form, "shareScope"),
       createdAt: now,
       updatedAt: now
@@ -1242,13 +1244,9 @@ function ObserveView({
             <details className="observe-disclosure observe-disclosure-ethics">
               <summary>
                 <span>共有前の確認</span>
-                <small>扱う範囲、共有範囲</small>
+                <small>共有範囲</small>
               </summary>
-              <div className="observe-disclosure-body observe-disclosure-grid">
-                <Label>
-                  扱ってよい範囲 <OptionalMark />
-                  <Input name="consentScope" placeholder="例: 本人に確認済み / 次回確認する" />
-                </Label>
+              <div className="observe-disclosure-body">
                 <Label>
                   共有範囲 <OptionalMark />
                   <Input name="shareScope" placeholder="例: 支援チーム内のみ / 記録者のみ" />
@@ -1804,6 +1802,7 @@ function ReflectView({
 }) {
   const [formError, setFormError] = useState("");
   const [editingMemoIds, setEditingMemoIds] = useState<string[]>([]);
+  const [editingDetailSectionIds, setEditingDetailSectionIds] = useState<string[]>([]);
   const caseId = selectedCaseId || data.cases[0]?.id || "";
   const selectedCase = data.cases.find((item) => item.id === caseId) ?? null;
   const caseItems = buildCaseDockItems(data);
@@ -1853,34 +1852,38 @@ function ReflectView({
   function handleUpdateRowDetails(event: FormEvent<HTMLFormElement>, row: ReflectionRow) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const editSection = parseReflectionRecordSection(text(form, "editSection"));
     const now = nowIso();
     commit((current) => ({
       ...current,
       settings: { ...current.settings, currentCaseId: caseId },
       cases: touchCase(current.cases, caseId),
-      observations: current.observations.map((observation) => {
-        if (observation.id !== row.observationId) return observation;
-        return {
-          ...observation,
-          observedAt: toIsoFromLocal(text(form, "observationObservedAt")) || observation.observedAt,
-          location: text(form, "observationLocation"),
-          programName: text(form, "observationProgramName"),
-          timing: text(form, "observationTiming"),
-          freeText: text(form, "observationFreeText"),
-          factMemo: text(form, "observationFactMemo"),
-          behaviorTags: allText(form, "observationBehaviorTags"),
-          antecedent: text(form, "observationAntecedent"),
-          userBehavior: text(form, "observationUserBehavior"),
-          consequence: text(form, "observationConsequence"),
-          unknownMemo: text(form, "observationUnknownMemo"),
-          observationChecklist: allText(form, "observationChecklist"),
-          personWords: text(form, "observationPersonWords"),
-          consentScope: text(form, "observationConsentScope"),
-          shareScope: text(form, "observationShareScope"),
-          updatedAt: now
-        };
-      }),
-      hypotheses: row.hypothesisId
+      observations:
+        editSection === "observation"
+          ? current.observations.map((observation) => {
+              if (observation.id !== row.observationId) return observation;
+              return {
+                ...observation,
+                observedAt: toIsoFromLocal(text(form, "observationObservedAt")) || observation.observedAt,
+                location: text(form, "observationLocation"),
+                programName: text(form, "observationProgramName"),
+                timing: text(form, "observationTiming"),
+                freeText: text(form, "observationFreeText"),
+                factMemo: text(form, "observationFactMemo"),
+                behaviorTags: allText(form, "observationBehaviorTags"),
+                antecedent: text(form, "observationAntecedent"),
+                userBehavior: text(form, "observationUserBehavior"),
+                consequence: text(form, "observationConsequence"),
+                unknownMemo: text(form, "observationUnknownMemo"),
+                observationChecklist: allText(form, "observationChecklist"),
+                personWords: text(form, "observationPersonWords"),
+                consentScope: "",
+                shareScope: text(form, "observationShareScope"),
+                updatedAt: now
+              };
+            })
+          : current.observations,
+      hypotheses: editSection === "hypothesis" && row.hypothesisId
         ? current.hypotheses.map((hypothesis) =>
             hypothesis.id === row.hypothesisId
               ? {
@@ -1902,7 +1905,7 @@ function ReflectView({
               : hypothesis
           )
         : current.hypotheses,
-      experiments: row.experimentId
+      experiments: editSection === "experiment" && row.experimentId
         ? current.experiments.map((experiment) =>
             experiment.id === row.experimentId
               ? {
@@ -1922,7 +1925,7 @@ function ReflectView({
               : experiment
           )
         : current.experiments,
-      actReviews: row.reviewId
+      actReviews: editSection === "review" && row.reviewId
         ? current.actReviews.map((review) =>
             review.id === row.reviewId
               ? {
@@ -1942,6 +1945,7 @@ function ReflectView({
           )
         : current.actReviews
     }));
+    if (editSection) hideDetailSectionEditor(row.id, editSection);
   }
 
   function handleUpdateMemo(event: FormEvent<HTMLFormElement>, memoId: string) {
@@ -1976,6 +1980,20 @@ function ReflectView({
 
   function hideMemoEditor(memoId: string) {
     setEditingMemoIds((current) => current.filter((id) => id !== memoId));
+  }
+
+  function showDetailSectionEditor(rowId: string, section: ReflectionRecordSectionKey) {
+    const id = reflectionDetailSectionId(rowId, section);
+    setEditingDetailSectionIds((current) => (current.includes(id) ? current : [...current, id]));
+  }
+
+  function hideDetailSectionEditor(rowId: string, section: ReflectionRecordSectionKey) {
+    const id = reflectionDetailSectionId(rowId, section);
+    setEditingDetailSectionIds((current) => current.filter((item) => item !== id));
+  }
+
+  function isDetailSectionEditing(rowId: string, section: ReflectionRecordSectionKey) {
+    return editingDetailSectionIds.includes(reflectionDetailSectionId(rowId, section));
   }
 
   return (
@@ -2070,16 +2088,22 @@ function ReflectView({
                       ) : null}
                       <details className="loop-update-source">
                         <summary>
-                          <span>記録詳細を編集</span>
+                          <span>記録詳細</span>
                         </summary>
-                        <ReflectionRowEditForm row={row} records={rowRecords} onSubmit={handleUpdateRowDetails} />
+                        <ReflectionRowDetails
+                          row={row}
+                          records={rowRecords}
+                          onSubmit={handleUpdateRowDetails}
+                          isEditing={isDetailSectionEditing}
+                          onEdit={showDetailSectionEditor}
+                          onCancel={hideDetailSectionEditor}
+                        />
                       </details>
                       {rowMemos.length > 0 ? (
                         <div className="loop-update-note-stack" aria-label="見立てへの追記">
                           {rowMemos.map((memo) => (
                             <article key={memo.id} className="loop-update-note">
                               <div>
-                                <Tag>{reflectionColumnLabel(memo.columnKey)}</Tag>
                                 <span>{formatShortDateTime(memo.createdAt)}</span>
                               </div>
                               {editingMemoIds.includes(memo.id) ? (
@@ -2158,7 +2182,7 @@ function ReflectView({
                 <div className="md:col-span-2">
                   <Label>
                     追記メモ <RequiredMark />
-                    <Textarea name="body" rows={4} placeholder="見立ての確からしさ、支援の調整、チーム共有したい補足など" required />
+                    <Textarea name="body" rows={4} placeholder="支援の調整、チーム共有したい補足など" required />
                   </Label>
                 </div>
                 <div className="md:col-span-2">
@@ -2173,7 +2197,6 @@ function ReflectView({
                 {unplacedMemos.map((memo) => (
                   <article key={memo.id} className="loop-update-note rounded-md border border-ink/10 bg-white p-4 shadow-sm">
                     <div>
-                      <Tag>{reflectionColumnLabel(memo.columnKey)}</Tag>
                       <span>{formatShortDateTime(memo.createdAt)}</span>
                     </div>
                     {editingMemoIds.includes(memo.id) ? (
@@ -2231,10 +2254,13 @@ function ReflectView({
   );
 }
 
-function ReflectionRowEditForm({
+function ReflectionRowDetails({
   row,
   records,
-  onSubmit
+  onSubmit,
+  isEditing,
+  onEdit,
+  onCancel
 }: {
   row: ReflectionRow;
   records: {
@@ -2244,280 +2270,490 @@ function ReflectionRowEditForm({
     review: ActReviewRecord | null;
   };
   onSubmit: (event: FormEvent<HTMLFormElement>, row: ReflectionRow) => void;
+  isEditing: (rowId: string, section: ReflectionRecordSectionKey) => boolean;
+  onEdit: (rowId: string, section: ReflectionRecordSectionKey) => void;
+  onCancel: (rowId: string, section: ReflectionRecordSectionKey) => void;
 }) {
   const { observation, hypothesis, experiment, review } = records;
 
   return (
+    <div className="loop-update-detail-stack">
+      {observation ? (
+        <ReflectionDetailSection
+          title="観察"
+          editLabel="観察を編集"
+          editing={isEditing(row.id, "observation")}
+          onEdit={() => onEdit(row.id, "observation")}
+          onCancel={() => onCancel(row.id, "observation")}
+          editForm={<ReflectionObservationEditForm row={row} observation={observation} onSubmit={onSubmit} onCancel={() => onCancel(row.id, "observation")} />}
+        >
+          <ReflectionDetailList
+            items={[
+              ["日時", formatShortDateTime(observation.observedAt)],
+              ["場所", observation.location],
+              ["活動", observation.programName],
+              ["タイミング", observation.timing],
+              ["直前の環境", observation.antecedent],
+              ["利用者の行動", observation.userBehavior],
+              ["直後の環境の変化", observation.consequence],
+              ["事実メモ", observation.factMemo],
+              ["本人の言葉", observation.personWords],
+              ["一行メモ", observation.freeText],
+              ["未確認メモ", observation.unknownMemo],
+              ["今回見たもの", observation.observationChecklist.join("、")],
+              ["行動タグ", observation.behaviorTags.join("、")],
+              ["共有範囲", observation.shareScope]
+            ]}
+          />
+        </ReflectionDetailSection>
+      ) : null}
+
+      {hypothesis ? (
+        <ReflectionDetailSection
+          title="見立て"
+          editLabel="見立てを編集"
+          editing={isEditing(row.id, "hypothesis")}
+          onEdit={() => onEdit(row.id, "hypothesis")}
+          onCancel={() => onCancel(row.id, "hypothesis")}
+          editForm={<ReflectionHypothesisEditForm row={row} hypothesis={hypothesis} onSubmit={onSubmit} onCancel={() => onCancel(row.id, "hypothesis")} />}
+        >
+          <ReflectionDetailList
+            items={[
+              ["カテゴリ", hypothesis.category],
+              ["状態", hypothesis.status],
+              ["見立て", hypothesis.statement],
+              ["根拠", hypothesis.evidence],
+              ["反証", hypothesis.counterEvidence],
+              ["未確認", hypothesis.unknowns],
+              ["次に見る点", hypothesis.nextObservationPoints],
+              ["大事な方向", hypothesis.valueDirection],
+              ["避けたい体験", hypothesis.avoidancePattern],
+              ["強い言葉・考え", hypothesis.fusedStory],
+              ["小さな一歩", hypothesis.smallStep],
+              ["確からしさ", `${hypothesis.confidence}`]
+            ]}
+          />
+        </ReflectionDetailSection>
+      ) : null}
+
+      {experiment ? (
+        <ReflectionDetailSection
+          title="支援"
+          editLabel="支援を編集"
+          editing={isEditing(row.id, "experiment")}
+          onEdit={() => onEdit(row.id, "experiment")}
+          onCancel={() => onCancel(row.id, "experiment")}
+          editForm={<ReflectionExperimentEditForm row={row} experiment={experiment} onSubmit={onSubmit} onCancel={() => onCancel(row.id, "experiment")} />}
+        >
+          <ReflectionDetailList
+            items={[
+              ["支援カテゴリ", experiment.supportCategory],
+              ["ステータス", experiment.status],
+              ["試す支援", experiment.support],
+              ["狙う変化", experiment.targetChange],
+              ["次回候補", experiment.nextTryCandidate],
+              ["測定指標", experiment.metric],
+              ["実施予定日", formatShortDateTime(experiment.plannedAt)],
+              ["観察期限", formatShortDateTime(experiment.reviewDueAt)],
+              ["注意点", experiment.cautions],
+              ["今回満たす条件", experiment.decisionChecks.join("、")]
+            ]}
+          />
+        </ReflectionDetailSection>
+      ) : null}
+
+      {review ? (
+        <ReflectionDetailSection
+          title="反応"
+          editLabel="反応を編集"
+          editing={isEditing(row.id, "review")}
+          onEdit={() => onEdit(row.id, "review")}
+          onCancel={() => onCancel(row.id, "review")}
+          editForm={<ReflectionReviewEditForm row={row} review={review} onSubmit={onSubmit} onCancel={() => onCancel(row.id, "review")} />}
+        >
+          <ReflectionDetailList
+            items={[
+              ["実施状況", review.implementationStatus],
+              ["見立ての確からしさ", review.hypothesisUpdate],
+              ["実施内容", review.implementation],
+              ["直後の反応", review.immediateResponse],
+              ["後から見えた反応", review.laterResponse],
+              ["測定値", review.measuredValue],
+              ["以前との比較", review.comparison],
+              ["次に見る点", review.nextObservationPoint],
+              ["次に試す候補", review.nextTryCandidate]
+            ]}
+          />
+        </ReflectionDetailSection>
+      ) : null}
+    </div>
+  );
+}
+
+function ReflectionDetailSection({
+  title,
+  editLabel,
+  editing,
+  onEdit,
+  onCancel,
+  editForm,
+  children
+}: {
+  title: string;
+  editLabel: string;
+  editing: boolean;
+  onEdit: () => void;
+  onCancel: () => void;
+  editForm: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className={`loop-update-detail-section ${editing ? "is-editing" : ""}`}>
+      <div className="loop-update-detail-section-head">
+        <h4>{title}</h4>
+        {editing ? (
+          <button type="button" className="loop-update-detail-edit focus-ring" onClick={onCancel}>
+            閉じる
+          </button>
+        ) : (
+          <button type="button" className="loop-update-detail-edit focus-ring" onClick={onEdit}>
+            {editLabel}
+          </button>
+        )}
+      </div>
+      {editing ? editForm : children}
+    </section>
+  );
+}
+
+function ReflectionDetailList({ items }: { items: [string, string | number | null | undefined][] }) {
+  return (
+    <dl className="loop-update-detail-list">
+      {items.map(([label, value]) => (
+        <div key={label}>
+          <dt>{label}</dt>
+          <dd>{String(value || "未記録")}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function ReflectionObservationEditForm({
+  row,
+  observation,
+  onSubmit,
+  onCancel
+}: {
+  row: ReflectionRow;
+  observation: ObservationRecord;
+  onSubmit: (event: FormEvent<HTMLFormElement>, row: ReflectionRow) => void;
+  onCancel: () => void;
+}) {
+  return (
     <form className="loop-update-edit-form" onSubmit={(event) => onSubmit(event, row)}>
-      <div className="loop-update-edit-sections">
-        {observation ? (
-          <ReflectionEditSection title="観察の記録">
-            <div className="loop-update-edit-grid">
-              <Label>
-                日時
-                <Input name="observationObservedAt" type="datetime-local" defaultValue={toDateTimeLocalValue(observation.observedAt)} />
-              </Label>
-              <Label>
-                場所
-                <Input name="observationLocation" defaultValue={observation.location} />
-              </Label>
-              <Label>
-                活動
-                <Input name="observationProgramName" defaultValue={observation.programName} />
-              </Label>
-              <Label>
-                タイミング
-                <Select name="observationTiming" defaultValue={observation.timing}>
-                  {uniqueOptions(OBSERVATION_TIMING_OPTIONS, observation.timing).map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </Select>
-              </Label>
-              <Label>
-                直前の環境
-                <Textarea name="observationAntecedent" rows={2} defaultValue={observation.antecedent} />
-              </Label>
-              <Label>
-                利用者の行動
-                <Textarea name="observationUserBehavior" rows={2} defaultValue={observation.userBehavior} />
-              </Label>
-              <Label>
-                直後の環境の変化
-                <Textarea name="observationConsequence" rows={2} defaultValue={observation.consequence} />
-              </Label>
-              <Label>
-                事実メモ
-                <Textarea name="observationFactMemo" rows={3} defaultValue={observation.factMemo} />
-              </Label>
-              <Label>
-                本人の言葉
-                <Textarea name="observationPersonWords" rows={2} defaultValue={observation.personWords} />
-              </Label>
-              <Label>
-                一行メモ
-                <Textarea name="observationFreeText" rows={2} defaultValue={observation.freeText} />
-              </Label>
-              <Label>
-                未確認メモ
-                <Textarea name="observationUnknownMemo" rows={2} defaultValue={observation.unknownMemo} />
-              </Label>
-              <Label>
-                扱ってよい範囲
-                <Input name="observationConsentScope" defaultValue={observation.consentScope} />
-              </Label>
-              <Label>
-                共有範囲
-                <Input name="observationShareScope" defaultValue={observation.shareScope} />
-              </Label>
-            </div>
-            <div className="loop-update-edit-checkboxes">
-              <EditableCheckboxGroup name="observationChecklist" title="今回見たもの" options={OBSERVATION_CHECK_ITEMS} selected={observation.observationChecklist} />
-              <EditableCheckboxGroup name="observationBehaviorTags" title="行動タグ" options={BEHAVIOR_TAGS} selected={observation.behaviorTags} />
-            </div>
-          </ReflectionEditSection>
-        ) : null}
-
-        {hypothesis ? (
-          <ReflectionEditSection title="見立ての記録">
-            <div className="loop-update-edit-grid">
-              <Label>
-                見立てカテゴリ
-                <Select name="hypothesisCategory" defaultValue={hypothesis.category}>
-                  {uniqueOptions(HYPOTHESIS_CATEGORIES, hypothesis.category).map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </Select>
-              </Label>
-              <Label>
-                状態
-                <Select name="hypothesisStatus" defaultValue={hypothesis.status}>
-                  {HYPOTHESIS_STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </Select>
-              </Label>
-              <Label>
-                見立て
-                <Textarea name="hypothesisStatement" rows={3} defaultValue={hypothesis.statement} />
-              </Label>
-              <Label>
-                根拠
-                <Textarea name="hypothesisEvidence" rows={3} defaultValue={hypothesis.evidence} />
-              </Label>
-              <Label>
-                反証
-                <Textarea name="hypothesisCounterEvidence" rows={2} defaultValue={hypothesis.counterEvidence} />
-              </Label>
-              <Label>
-                未確認
-                <Textarea name="hypothesisUnknowns" rows={2} defaultValue={hypothesis.unknowns} />
-              </Label>
-              <Label>
-                次に見る点
-                <Textarea name="hypothesisNextObservationPoints" rows={2} defaultValue={hypothesis.nextObservationPoints} />
-              </Label>
-              <Label>
-                大事な方向
-                <Textarea name="hypothesisValueDirection" rows={2} defaultValue={hypothesis.valueDirection} />
-              </Label>
-              <Label>
-                避けたい体験
-                <Textarea name="hypothesisAvoidancePattern" rows={2} defaultValue={hypothesis.avoidancePattern} />
-              </Label>
-              <Label>
-                強い言葉・考え
-                <Textarea name="hypothesisFusedStory" rows={2} defaultValue={hypothesis.fusedStory} />
-              </Label>
-              <Label>
-                小さな一歩
-                <Textarea name="hypothesisSmallStep" rows={2} defaultValue={hypothesis.smallStep} />
-              </Label>
-              <Label>
-                確からしさ
-                <Input name="hypothesisConfidence" type="number" min={0} max={100} defaultValue={hypothesis.confidence} />
-              </Label>
-            </div>
-          </ReflectionEditSection>
-        ) : null}
-
-        {experiment ? (
-          <ReflectionEditSection title="支援の記録">
-            <div className="loop-update-edit-grid">
-              <Label>
-                支援カテゴリ
-                <Select name="experimentSupportCategory" defaultValue={experiment.supportCategory}>
-                  {uniqueOptions(SUPPORT_CATEGORIES, experiment.supportCategory).map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </Select>
-              </Label>
-              <Label>
-                ステータス
-                <Select name="experimentStatus" defaultValue={experiment.status}>
-                  {EXPERIMENT_STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </Select>
-              </Label>
-              <Label>
-                試す支援
-                <Textarea name="experimentSupport" rows={3} defaultValue={experiment.support} />
-              </Label>
-              <Label>
-                狙う変化
-                <Textarea name="experimentTargetChange" rows={2} defaultValue={experiment.targetChange} />
-              </Label>
-              <Label>
-                次回候補
-                <Textarea name="experimentNextTryCandidate" rows={2} defaultValue={experiment.nextTryCandidate} />
-              </Label>
-              <Label>
-                測定指標
-                <Select name="experimentMetric" defaultValue={experiment.metric}>
-                  {uniqueOptions(METRIC_OPTIONS, experiment.metric).map((metric) => (
-                    <option key={metric} value={metric}>
-                      {metric}
-                    </option>
-                  ))}
-                </Select>
-              </Label>
-              <Label>
-                実施予定日
-                <Input name="experimentPlannedAt" type="datetime-local" defaultValue={toDateTimeLocalValue(experiment.plannedAt)} />
-              </Label>
-              <Label>
-                観察期限
-                <Input name="experimentReviewDueAt" type="datetime-local" defaultValue={toDateTimeLocalValue(experiment.reviewDueAt)} />
-              </Label>
-              <Label>
-                注意点
-                <Textarea name="experimentCautions" rows={2} defaultValue={experiment.cautions} />
-              </Label>
-            </div>
-            <div className="loop-update-edit-checkboxes">
-              <EditableCheckboxGroup name="experimentDecisionChecks" title="今回満たす条件" options={DECISION_CHECK_ITEMS} selected={experiment.decisionChecks} />
-            </div>
-          </ReflectionEditSection>
-        ) : null}
-
-        {review ? (
-          <ReflectionEditSection title="反応の記録">
-            <div className="loop-update-edit-grid">
-              <Label>
-                実施状況
-                <Select name="reviewImplementationStatus" defaultValue={review.implementationStatus}>
-                  {IMPLEMENTATION_STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </Select>
-              </Label>
-              <Label>
-                見立ての確からしさ
-                <Select name="reviewHypothesisUpdate" defaultValue={review.hypothesisUpdate}>
-                  {HYPOTHESIS_STATUSES.filter((status) => status !== "未検証" && status !== "検証中").map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </Select>
-              </Label>
-              <Label>
-                実施内容
-                <Textarea name="reviewImplementation" rows={3} defaultValue={review.implementation} />
-              </Label>
-              <Label>
-                直後の反応
-                <Textarea name="reviewImmediateResponse" rows={3} defaultValue={review.immediateResponse} />
-              </Label>
-              <Label>
-                後から見えた反応
-                <Textarea name="reviewLaterResponse" rows={2} defaultValue={review.laterResponse} />
-              </Label>
-              <Label>
-                測定値
-                <Input name="reviewMeasuredValue" defaultValue={review.measuredValue} />
-              </Label>
-              <Label>
-                以前との比較
-                <Input name="reviewComparison" defaultValue={review.comparison} />
-              </Label>
-              <Label>
-                次に見る点
-                <Textarea name="reviewNextObservationPoint" rows={2} defaultValue={review.nextObservationPoint} />
-              </Label>
-              <Label>
-                次に試す候補
-                <Textarea name="reviewNextTryCandidate" rows={2} defaultValue={review.nextTryCandidate} />
-              </Label>
-            </div>
-          </ReflectionEditSection>
-        ) : null}
+      <input type="hidden" name="editSection" value="observation" />
+      <div className="loop-update-edit-grid">
+        <Label>
+          日時
+          <Input name="observationObservedAt" type="datetime-local" defaultValue={toDateTimeLocalValue(observation.observedAt)} />
+        </Label>
+        <Label>
+          場所
+          <Input name="observationLocation" defaultValue={observation.location} />
+        </Label>
+        <Label>
+          活動
+          <Input name="observationProgramName" defaultValue={observation.programName} />
+        </Label>
+        <Label>
+          タイミング
+          <Select name="observationTiming" defaultValue={observation.timing}>
+            {uniqueOptions(OBSERVATION_TIMING_OPTIONS, observation.timing).map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </Select>
+        </Label>
+        <Label>
+          直前の環境
+          <Textarea name="observationAntecedent" rows={2} defaultValue={observation.antecedent} />
+        </Label>
+        <Label>
+          利用者の行動
+          <Textarea name="observationUserBehavior" rows={2} defaultValue={observation.userBehavior} />
+        </Label>
+        <Label>
+          直後の環境の変化
+          <Textarea name="observationConsequence" rows={2} defaultValue={observation.consequence} />
+        </Label>
+        <Label>
+          事実メモ
+          <Textarea name="observationFactMemo" rows={3} defaultValue={observation.factMemo} />
+        </Label>
+        <Label>
+          本人の言葉
+          <Textarea name="observationPersonWords" rows={2} defaultValue={observation.personWords} />
+        </Label>
+        <Label>
+          一行メモ
+          <Textarea name="observationFreeText" rows={2} defaultValue={observation.freeText} />
+        </Label>
+        <Label>
+          未確認メモ
+          <Textarea name="observationUnknownMemo" rows={2} defaultValue={observation.unknownMemo} />
+        </Label>
+        <Label>
+          共有範囲
+          <Input name="observationShareScope" defaultValue={observation.shareScope} />
+        </Label>
       </div>
-      <div className="loop-update-edit-actions">
-        <SubmitButton>記録詳細を保存</SubmitButton>
+      <div className="loop-update-edit-checkboxes">
+        <EditableCheckboxGroup name="observationChecklist" title="今回見たもの" options={OBSERVATION_CHECK_ITEMS} selected={observation.observationChecklist} />
+        <EditableCheckboxGroup name="observationBehaviorTags" title="行動タグ" options={BEHAVIOR_TAGS} selected={observation.behaviorTags} />
       </div>
+      <ReflectionEditActions saveLabel="観察を保存" onCancel={onCancel} />
     </form>
   );
 }
 
-function ReflectionEditSection({ title, children }: { title: string; children: ReactNode }) {
+function ReflectionHypothesisEditForm({
+  row,
+  hypothesis,
+  onSubmit,
+  onCancel
+}: {
+  row: ReflectionRow;
+  hypothesis: HypothesisRecord;
+  onSubmit: (event: FormEvent<HTMLFormElement>, row: ReflectionRow) => void;
+  onCancel: () => void;
+}) {
   return (
-    <section className="loop-update-edit-section">
-      <h4>{title}</h4>
-      {children}
-    </section>
+    <form className="loop-update-edit-form" onSubmit={(event) => onSubmit(event, row)}>
+      <input type="hidden" name="editSection" value="hypothesis" />
+      <div className="loop-update-edit-grid">
+        <Label>
+          見立てカテゴリ
+          <Select name="hypothesisCategory" defaultValue={hypothesis.category}>
+            {uniqueOptions(HYPOTHESIS_CATEGORIES, hypothesis.category).map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </Select>
+        </Label>
+        <Label>
+          状態
+          <Select name="hypothesisStatus" defaultValue={hypothesis.status}>
+            {HYPOTHESIS_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </Select>
+        </Label>
+        <Label>
+          見立て
+          <Textarea name="hypothesisStatement" rows={3} defaultValue={hypothesis.statement} />
+        </Label>
+        <Label>
+          根拠
+          <Textarea name="hypothesisEvidence" rows={3} defaultValue={hypothesis.evidence} />
+        </Label>
+        <Label>
+          反証
+          <Textarea name="hypothesisCounterEvidence" rows={2} defaultValue={hypothesis.counterEvidence} />
+        </Label>
+        <Label>
+          未確認
+          <Textarea name="hypothesisUnknowns" rows={2} defaultValue={hypothesis.unknowns} />
+        </Label>
+        <Label>
+          次に見る点
+          <Textarea name="hypothesisNextObservationPoints" rows={2} defaultValue={hypothesis.nextObservationPoints} />
+        </Label>
+        <Label>
+          大事な方向
+          <Textarea name="hypothesisValueDirection" rows={2} defaultValue={hypothesis.valueDirection} />
+        </Label>
+        <Label>
+          避けたい体験
+          <Textarea name="hypothesisAvoidancePattern" rows={2} defaultValue={hypothesis.avoidancePattern} />
+        </Label>
+        <Label>
+          強い言葉・考え
+          <Textarea name="hypothesisFusedStory" rows={2} defaultValue={hypothesis.fusedStory} />
+        </Label>
+        <Label>
+          小さな一歩
+          <Textarea name="hypothesisSmallStep" rows={2} defaultValue={hypothesis.smallStep} />
+        </Label>
+        <Label>
+          確からしさ
+          <Input name="hypothesisConfidence" type="number" min={0} max={100} defaultValue={hypothesis.confidence} />
+        </Label>
+      </div>
+      <ReflectionEditActions saveLabel="見立てを保存" onCancel={onCancel} />
+    </form>
+  );
+}
+
+function ReflectionExperimentEditForm({
+  row,
+  experiment,
+  onSubmit,
+  onCancel
+}: {
+  row: ReflectionRow;
+  experiment: SmallExperimentRecord;
+  onSubmit: (event: FormEvent<HTMLFormElement>, row: ReflectionRow) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <form className="loop-update-edit-form" onSubmit={(event) => onSubmit(event, row)}>
+      <input type="hidden" name="editSection" value="experiment" />
+      <div className="loop-update-edit-grid">
+        <Label>
+          支援カテゴリ
+          <Select name="experimentSupportCategory" defaultValue={experiment.supportCategory}>
+            {uniqueOptions(SUPPORT_CATEGORIES, experiment.supportCategory).map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </Select>
+        </Label>
+        <Label>
+          ステータス
+          <Select name="experimentStatus" defaultValue={experiment.status}>
+            {EXPERIMENT_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </Select>
+        </Label>
+        <Label>
+          試す支援
+          <Textarea name="experimentSupport" rows={3} defaultValue={experiment.support} />
+        </Label>
+        <Label>
+          狙う変化
+          <Textarea name="experimentTargetChange" rows={2} defaultValue={experiment.targetChange} />
+        </Label>
+        <Label>
+          次回候補
+          <Textarea name="experimentNextTryCandidate" rows={2} defaultValue={experiment.nextTryCandidate} />
+        </Label>
+        <Label>
+          測定指標
+          <Select name="experimentMetric" defaultValue={experiment.metric}>
+            {uniqueOptions(METRIC_OPTIONS, experiment.metric).map((metric) => (
+              <option key={metric} value={metric}>
+                {metric}
+              </option>
+            ))}
+          </Select>
+        </Label>
+        <Label>
+          実施予定日
+          <Input name="experimentPlannedAt" type="datetime-local" defaultValue={toDateTimeLocalValue(experiment.plannedAt)} />
+        </Label>
+        <Label>
+          観察期限
+          <Input name="experimentReviewDueAt" type="datetime-local" defaultValue={toDateTimeLocalValue(experiment.reviewDueAt)} />
+        </Label>
+        <Label>
+          注意点
+          <Textarea name="experimentCautions" rows={2} defaultValue={experiment.cautions} />
+        </Label>
+      </div>
+      <div className="loop-update-edit-checkboxes">
+        <EditableCheckboxGroup name="experimentDecisionChecks" title="今回満たす条件" options={DECISION_CHECK_ITEMS} selected={experiment.decisionChecks} />
+      </div>
+      <ReflectionEditActions saveLabel="支援を保存" onCancel={onCancel} />
+    </form>
+  );
+}
+
+function ReflectionReviewEditForm({
+  row,
+  review,
+  onSubmit,
+  onCancel
+}: {
+  row: ReflectionRow;
+  review: ActReviewRecord;
+  onSubmit: (event: FormEvent<HTMLFormElement>, row: ReflectionRow) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <form className="loop-update-edit-form" onSubmit={(event) => onSubmit(event, row)}>
+      <input type="hidden" name="editSection" value="review" />
+      <div className="loop-update-edit-grid">
+        <Label>
+          実施状況
+          <Select name="reviewImplementationStatus" defaultValue={review.implementationStatus}>
+            {IMPLEMENTATION_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </Select>
+        </Label>
+        <Label>
+          見立ての確からしさ
+          <Select name="reviewHypothesisUpdate" defaultValue={review.hypothesisUpdate}>
+            {HYPOTHESIS_STATUSES.filter((status) => status !== "未検証" && status !== "検証中").map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </Select>
+        </Label>
+        <Label>
+          実施内容
+          <Textarea name="reviewImplementation" rows={3} defaultValue={review.implementation} />
+        </Label>
+        <Label>
+          直後の反応
+          <Textarea name="reviewImmediateResponse" rows={3} defaultValue={review.immediateResponse} />
+        </Label>
+        <Label>
+          後から見えた反応
+          <Textarea name="reviewLaterResponse" rows={2} defaultValue={review.laterResponse} />
+        </Label>
+        <Label>
+          測定値
+          <Input name="reviewMeasuredValue" defaultValue={review.measuredValue} />
+        </Label>
+        <Label>
+          以前との比較
+          <Input name="reviewComparison" defaultValue={review.comparison} />
+        </Label>
+        <Label>
+          次に見る点
+          <Textarea name="reviewNextObservationPoint" rows={2} defaultValue={review.nextObservationPoint} />
+        </Label>
+        <Label>
+          次に試す候補
+          <Textarea name="reviewNextTryCandidate" rows={2} defaultValue={review.nextTryCandidate} />
+        </Label>
+      </div>
+      <ReflectionEditActions saveLabel="反応を保存" onCancel={onCancel} />
+    </form>
+  );
+}
+
+function ReflectionEditActions({ saveLabel, onCancel }: { saveLabel: string; onCancel: () => void }) {
+  return (
+    <div className="loop-update-edit-actions">
+      <SubmitButton>{saveLabel}</SubmitButton>
+      <button type="button" className="loop-update-note-quiet focus-ring" onClick={onCancel}>
+        キャンセル
+      </button>
+    </div>
   );
 }
 
@@ -3368,7 +3604,6 @@ function observationFactText(observation: ObservationRecord) {
     labeledLine("利用者の行動", observation.userBehavior),
     listLine("確認", observation.observationChecklist),
     labeledLine("本人の言葉", observation.personWords),
-    labeledLine("扱える範囲", observation.consentScope),
     labeledLine("共有", observation.shareScope)
   ]).join("\n");
 }
@@ -3386,26 +3621,6 @@ function hypothesisContextText(hypothesis: HypothesisRecord) {
 function experimentSupportText(experiment: SmallExperimentRecord | undefined) {
   if (!experiment) return "未記録";
   return compactLines([experiment.support, listLine("条件", experiment.decisionChecks)]).join("\n");
-}
-
-function reflectionColumnLabel(key: string) {
-  switch (key) {
-    case "orientation":
-    case "hypothesis":
-      return "見立ての確からしさ";
-    case "support":
-      return "支援の調整";
-    case "response":
-      return "反応";
-    case "share":
-      return "チーム共有";
-    case "fact":
-      return "材料";
-    case "next":
-      return "確認メモ";
-    default:
-      return "追記メモ";
-  }
 }
 
 function hasReflectionRecord(value: string) {
@@ -3513,7 +3728,6 @@ function buildSummary(data: AppData, observation: ObservationRecord) {
   const observationDetails = compactLines([
     listLine("確認した観察", observation.observationChecklist),
     labeledLine("本人の言葉", observation.personWords),
-    labeledLine("扱える範囲", observation.consentScope),
     labeledLine("共有", observation.shareScope)
   ]).join("。");
   const orientContext = hypothesis
@@ -3573,6 +3787,14 @@ function allText(form: FormData, key: string) {
 
 function uniqueOptions(options: readonly string[], current: string) {
   return current && !options.includes(current) ? [current, ...options] : options;
+}
+
+function reflectionDetailSectionId(rowId: string, section: ReflectionRecordSectionKey) {
+  return `${rowId}:${section}`;
+}
+
+function parseReflectionRecordSection(value: string): ReflectionRecordSectionKey | null {
+  return value === "observation" || value === "hypothesis" || value === "experiment" || value === "review" ? value : null;
 }
 
 function parseConfidence(value: string, fallback: number) {
