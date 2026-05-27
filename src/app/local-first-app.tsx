@@ -1823,7 +1823,7 @@ function ReflectView({
     }
     const targetRef = text(form, "targetRef");
     if (!targetRef) {
-      setFormError("追記する見立てを選んでください。");
+      setFormError("見立てを追記する記録を選んでください。");
       return;
     }
     const now = nowIso();
@@ -1909,6 +1909,7 @@ function ReflectView({
               <div className="loop-update-grid">
                 {rows.map((row, index) => {
                   const rowMemos = memos.filter((memo) => reflectionMemoTargetsRow(memo, row));
+                  const missingLabels = missingReflectionLabels(row);
 
                   return (
                     <article key={row.id} className={`loop-update-card rounded-md border border-ink/10 bg-white p-4 shadow-sm ${index === 0 ? "is-latest" : ""}`}>
@@ -1916,30 +1917,24 @@ function ReflectView({
                         <span>{index === 0 ? "最新の積み重ね" : "積み重ね"}</span>
                         <div className="loop-update-card-meta" aria-label="記録の見出し">
                           <strong>{row.dateLabel}</strong>
-                          <span>
-                            <b>見立て</b>
-                            {row.hypothesisLabel ?? "未記録"}
-                          </span>
+                          {row.hypothesisLabel ? (
+                            <span>
+                              <b>見立て</b>
+                              {row.hypothesisLabel}
+                            </span>
+                          ) : null}
                         </div>
                       </div>
-                      <dl className="loop-update-snapshot" aria-label="記録の有無">
-                        <div>
-                          <dt>観察</dt>
-                          <dd>{recordPresenceLabel(row.fact)}</dd>
-                        </div>
-                        <div>
-                          <dt>見立て</dt>
-                          <dd>{row.hypothesisLabel ? "記録あり" : "未記録"}</dd>
-                        </div>
-                        <div>
-                          <dt>支援</dt>
-                          <dd>{recordPresenceLabel(row.support)}</dd>
-                        </div>
-                        <div>
-                          <dt>反応</dt>
-                          <dd>{recordPresenceLabel(row.response)}</dd>
-                        </div>
-                      </dl>
+                      {missingLabels.length > 0 ? (
+                        <dl className="loop-update-missing" aria-label="記録なしの項目">
+                          {missingLabels.map((label) => (
+                            <div key={label}>
+                              <dt>{label}</dt>
+                              <dd>記録なし</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      ) : null}
                       <details className="loop-update-source">
                         <summary>記録詳細</summary>
                         <dl className="loop-update-points">
@@ -1985,7 +1980,7 @@ function ReflectView({
                       {row.hypothesisId ? (
                         <div className="loop-update-next-actions">
                           <a href="#reflection-memo-form" className="loop-update-next-link loop-update-next-link-secondary focus-ring">
-                            見立てに追記
+                            見立てに追記する
                           </a>
                         </div>
                       ) : null}
@@ -1995,53 +1990,6 @@ function ReflectView({
               </div>
             )}
           </Section>
-
-          <Section title="積み重ねから確認する">
-            <div className="reflection-utility-grid">
-              <LinkCard href="/search">
-                <CardTop title="似た場面" meta="過去の観察" />
-                <p className="mt-2 text-sm leading-6 text-ink/70">入力済みの観察から、似ている場面を探して材料として見ます。</p>
-              </LinkCard>
-              <LinkCard href="/export">
-                <CardTop title="要約" meta="転記用" />
-                <p className="mt-2 text-sm leading-6 text-ink/70">記録詳細をもとに、共有前の短い文章を作ります。</p>
-              </LinkCard>
-            </div>
-          </Section>
-
-          {rows.length > 0 ? (
-            <Section title="記録詳細一覧">
-              <details className="reflection-source-details rounded-md border border-ink/10 bg-white p-4 shadow-sm">
-                <summary>事実から反応までを見る</summary>
-                <div className="mt-4 overflow-x-auto rounded-md border border-ink/10 bg-white">
-                  <table className="min-w-[1040px] text-left text-sm">
-                    <thead className="bg-field/80 text-xs text-ink/60">
-                      <tr>
-                        <th className="px-3 py-3">事実</th>
-                        <th className="px-3 py-3">見立て</th>
-                        <th className="px-3 py-3">根拠</th>
-                        <th className="px-3 py-3">反証・未確認</th>
-                        <th className="px-3 py-3">試した支援</th>
-                        <th className="px-3 py-3">反応</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-ink/10">
-                      {rows.map((row) => (
-                        <tr key={row.id} className="align-top">
-                          <td className="w-56 whitespace-pre-line px-3 py-3">{row.fact}</td>
-                          <td className="w-56 whitespace-pre-line px-3 py-3">{row.hypothesis}</td>
-                          <td className="w-48 whitespace-pre-line px-3 py-3">{row.evidence}</td>
-                          <td className="w-48 whitespace-pre-line px-3 py-3">{row.counter}</td>
-                          <td className="w-56 whitespace-pre-line px-3 py-3">{row.support}</td>
-                          <td className="w-56 whitespace-pre-line px-3 py-3">{row.response}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </details>
-            </Section>
-          ) : null}
 
           <Section title="見立てへの追記" description="反応から気づいたことを、選んだ見立てに残します。">
             {memoTargetRows.length === 0 ? (
@@ -2054,32 +2002,27 @@ function ReflectView({
                   </div>
                 ) : null}
 
-                <Label>
-                  追記する見立て
-                  <Select name="targetRef">
-                    {memoTargetRows.map((row) => (
-                      <option key={row.id} value={reflectionRowTargetRef(row)}>
-                        {row.label}
-                      </option>
-                    ))}
-                  </Select>
-                </Label>
-                <Label>
-                  追記先
-                  <Select name="columnKey" defaultValue="orientation">
-                    <option value="orientation">見立ての確からしさ</option>
-                    <option value="support">支援の調整</option>
-                    <option value="share">チーム共有</option>
-                  </Select>
-                </Label>
+                <input type="hidden" name="columnKey" value="orientation" />
                 <div className="md:col-span-2">
                   <Label>
-                    追記メモ <RequiredMark />
-                    <Textarea name="body" rows={4} placeholder="反応から変える見立て、支援の弱め方、共有したい補足など" required />
+                    見立てを追記する記録
+                    <Select name="targetRef">
+                      {memoTargetRows.map((row) => (
+                        <option key={row.id} value={reflectionRowTargetRef(row)}>
+                          {row.label}
+                        </option>
+                      ))}
+                    </Select>
                   </Label>
                 </div>
                 <div className="md:col-span-2">
-                  <SubmitButton>見立てに追記</SubmitButton>
+                  <Label>
+                    追記メモ <RequiredMark />
+                    <Textarea name="body" rows={4} placeholder="見立ての確からしさ、支援の調整、チーム共有したい補足など" required />
+                  </Label>
+                </div>
+                <div className="md:col-span-2">
+                  <SubmitButton>見立てに追記する</SubmitButton>
                 </div>
               </form>
             )}
@@ -2098,6 +2041,19 @@ function ReflectView({
                 ))}
               </div>
             ) : null}
+          </Section>
+
+          <Section title="積み重ねから確認する">
+            <div className="reflection-utility-grid">
+              <LinkCard href="/search">
+                <CardTop title="似た場面" meta="過去の観察" />
+                <p className="mt-2 text-sm leading-6 text-ink/70">入力済みの観察から、似ている場面を探して材料として見ます。</p>
+              </LinkCard>
+              <LinkCard href="/export">
+                <CardTop title="要約" meta="転記用" />
+                <p className="mt-2 text-sm leading-6 text-ink/70">記録詳細をもとに、共有前の短い文章を作ります。</p>
+              </LinkCard>
+            </div>
           </Section>
         </>
       )}
@@ -2976,9 +2932,18 @@ function reflectionColumnLabel(key: string) {
   }
 }
 
-function recordPresenceLabel(value: string) {
+function hasReflectionRecord(value: string) {
   const trimmed = value.trim();
-  return trimmed && trimmed !== "未記録" ? "記録あり" : "未記録";
+  return Boolean(trimmed && trimmed !== "未記録");
+}
+
+function missingReflectionLabels(row: ReflectionRow) {
+  const labels: string[] = [];
+  if (!hasReflectionRecord(row.fact)) labels.push("観察");
+  if (!row.hypothesisLabel) labels.push("見立て");
+  if (!hasReflectionRecord(row.support)) labels.push("支援");
+  if (!hasReflectionRecord(row.response)) labels.push("反応");
+  return labels;
 }
 
 function hypothesisMemoTargetRef(hypothesisId: string) {
