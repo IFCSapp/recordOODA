@@ -73,6 +73,12 @@ button {
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
+.app-top-shell-task .app-top-container {
+  gap: 10px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
 .app-top-container {
   position: relative;
 }
@@ -148,6 +154,10 @@ button {
 
 .brand-utility-links a:focus-visible {
   outline-color: #376f8f;
+}
+
+.app-top-shell-task .brand-utility-links a:first-child {
+  display: none;
 }
 
 .record-brand-subtitle {
@@ -742,9 +752,28 @@ button {
 }
 
 .loop-update-card {
+  position: relative;
   display: grid;
   min-width: 0;
-  gap: 14px;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.loop-update-card.is-latest {
+  border-color: rgba(55, 111, 143, 0.34);
+  background:
+    linear-gradient(180deg, rgba(231, 242, 247, 0.9), rgba(255, 255, 255, 0.96)),
+    #fff;
+  box-shadow: 0 16px 34px rgba(55, 111, 143, 0.16);
+}
+
+.loop-update-card.is-latest::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: linear-gradient(180deg, #376f8f, #7aa6a3);
+  pointer-events: none;
 }
 
 .loop-update-card-head {
@@ -772,6 +801,13 @@ button {
   gap: 10px;
 }
 
+.loop-update-snapshot {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.loop-update-snapshot > div,
 .loop-update-points > div {
   min-width: 0;
   border: 1px solid rgba(31, 41, 51, 0.08);
@@ -780,6 +816,11 @@ button {
   padding: 10px;
 }
 
+.loop-update-snapshot > div {
+  padding: 8px;
+}
+
+.loop-update-snapshot dt,
 .loop-update-points dt {
   color: rgba(31, 41, 51, 0.58);
   font-size: 12px;
@@ -787,6 +828,7 @@ button {
   line-height: 1.3;
 }
 
+.loop-update-snapshot dd,
 .loop-update-points dd {
   margin-top: 4px;
   color: #1f2933;
@@ -797,9 +839,57 @@ button {
   overflow-wrap: anywhere;
 }
 
+.loop-update-snapshot dd {
+  display: -webkit-box;
+  min-height: 3.2em;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 .loop-update-next-point {
+  display: grid;
+  gap: 6px;
   border-color: rgba(55, 111, 143, 0.22);
-  background: rgba(225, 240, 249, 0.55);
+  border: 1px solid rgba(55, 111, 143, 0.22);
+  border-radius: 7px;
+  background: rgba(225, 240, 249, 0.58);
+  padding: 12px;
+}
+
+.loop-update-next-point span {
+  color: #376f8f;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.loop-update-next-point strong {
+  color: #173047;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.loop-update-source {
+  border-top: 1px solid rgba(31, 41, 51, 0.08);
+  padding-top: 2px;
+}
+
+.loop-update-source summary {
+  cursor: pointer;
+  color: rgba(31, 41, 51, 0.62);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.4;
+}
+
+.loop-update-source .loop-update-points {
+  margin-top: 10px;
 }
 
 .loop-update-note-stack {
@@ -843,7 +933,7 @@ button {
 
 .loop-update-next-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   align-items: center;
 }
@@ -851,7 +941,8 @@ button {
 .loop-update-next-link {
   display: inline-flex;
   min-height: 38px;
-  width: fit-content;
+  flex: 1 1 0;
+  min-width: 0;
   max-width: 100%;
   align-items: center;
   justify-content: center;
@@ -863,6 +954,7 @@ button {
   font-weight: 900;
   line-height: 1;
   padding: 10px 14px;
+  text-align: center;
   text-decoration: none;
 }
 
@@ -2183,7 +2275,12 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   align-items: center;
 }
 
-.task-context-action span {
+.task-context-action-current {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.task-context-action > span {
   overflow: hidden;
   color: rgba(31, 41, 51, 0.62);
   font-size: 12px;
@@ -2191,6 +2288,68 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   line-height: 1.45;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.task-context-stage-intro {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.task-context-stage-title-row {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  align-items: center;
+}
+
+.task-context-stage-pill {
+  display: inline-flex;
+  max-width: 100%;
+  min-height: 24px;
+  align-items: center;
+  gap: 6px;
+  border-left: 3px solid var(--accent);
+  color: var(--accent);
+  padding: 1px 0 1px 8px;
+}
+
+.task-context-stage-pill span {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.task-context-stage-pill strong {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.task-context-stage-pill small {
+  color: rgba(31, 41, 51, 0.58);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.task-context-stage-title {
+  min-width: min(100%, 8ch);
+  color: #1f2933;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.18;
+}
+
+.task-context-stage-intro p {
+  margin: 0;
+  color: rgba(31, 41, 51, 0.66);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.55;
 }
 
 .task-context-action a {
@@ -2251,6 +2410,11 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.task-context-action-current a {
+  width: fit-content;
+  min-width: 104px;
 }
 
 .task-context-step-links a small {
@@ -2840,12 +3004,23 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   font-size: 14px;
 }
 
-.reflection-case-panel {
+.reflection-overview-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.95fr) auto;
+  gap: 14px;
+  align-items: stretch;
+  margin-bottom: 22px;
+}
+
+.reflection-overview-main,
+.reflection-overview-next,
+.reflection-overview-switch {
+  min-width: 0;
+}
+
+.reflection-overview-main {
+  display: grid;
   gap: 12px;
-  max-width: 640px;
 }
 
 .reflection-case-current {
@@ -2879,6 +3054,74 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   line-height: 1.45;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.reflection-overview-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.reflection-overview-stats > div {
+  display: grid;
+  gap: 2px;
+  border: 1px solid rgba(31, 41, 51, 0.08);
+  border-radius: 7px;
+  background: rgba(248, 250, 247, 0.8);
+  padding: 8px;
+}
+
+.reflection-overview-stats dt {
+  color: rgba(31, 41, 51, 0.54);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.reflection-overview-stats dd {
+  color: #1f2933;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.reflection-overview-next {
+  display: grid;
+  gap: 9px;
+  border: 1px solid rgba(55, 111, 143, 0.22);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(231, 242, 247, 0.76), rgba(255, 255, 255, 0.94)),
+    #fff;
+  padding: 12px;
+}
+
+.reflection-overview-next > span {
+  color: #376f8f;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.reflection-overview-next > strong {
+  color: #173047;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.reflection-overview-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.reflection-overview-switch {
+  display: flex;
+  justify-content: flex-end;
+  align-items: start;
 }
 
 .reflection-case-create {
@@ -3187,13 +3430,49 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   font-weight: 800;
 }
 
-.case-list-create {
+.case-list-create,
+.case-list-switcher {
   max-width: 520px;
   margin: 0 0 12px auto;
   border: 1px solid rgba(31, 41, 51, 0.1);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.72);
   padding: 10px;
+}
+
+.case-list-switcher {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.case-list-switcher-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.case-list-switcher-copy span {
+  color: rgba(31, 41, 51, 0.52);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.case-list-switcher-copy strong {
+  overflow: hidden;
+  color: #1f2933;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.case-list-switcher .case-change-menu.is-open .case-change-menu-body {
+  right: 0;
+  width: min(320px, calc(100vw - 40px));
 }
 
 .case-list-create summary {
@@ -3221,37 +3500,44 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 }
 
 .case-record-card.is-current {
-  border-color: rgba(55, 111, 143, 0.38);
+  border-color: rgba(55, 111, 143, 0.58);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(242, 245, 241, 0.9)),
-    rgba(55, 111, 143, 0.06);
-  box-shadow: 0 18px 36px rgba(55, 111, 143, 0.14);
+    linear-gradient(180deg, rgba(231, 242, 247, 0.92), rgba(255, 255, 255, 0.96)),
+    rgba(55, 111, 143, 0.1);
+  box-shadow: 0 18px 38px rgba(55, 111, 143, 0.2);
 }
 
 .case-record-card.is-muted {
-  border-color: rgba(31, 41, 51, 0.08);
-  background: rgba(255, 255, 255, 0.6);
-  box-shadow: none;
+  border-color: rgba(31, 41, 51, 0.1);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 20px rgba(31, 41, 51, 0.05);
 }
 
-.case-record-card.is-muted::before {
-  opacity: 0.32;
+.case-record-card.is-current .record-tag {
+  border-color: rgba(55, 111, 143, 0.28);
+  background: rgba(55, 111, 143, 0.1);
+  color: #234f68;
 }
 
 .case-record-card.is-muted .case-record-title,
 .case-record-card.is-muted .case-record-memo,
 .case-record-card.is-muted .case-mini-flow {
-  opacity: 0.72;
+  opacity: 1;
 }
 
 .case-record-card::before {
   content: "";
   position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 88% 6%, rgba(55, 111, 143, 0.08), transparent 28%),
-    linear-gradient(125deg, transparent 0%, transparent 62%, rgba(247, 245, 239, 0.72) 100%);
+  inset: 0 auto 0 0;
+  width: 0;
+  border-radius: 8px 0 0 8px;
+  background: transparent;
   pointer-events: none;
+}
+
+.case-record-card.is-current::before {
+  width: 6px;
+  background: linear-gradient(180deg, #376f8f, #7aa6a3);
 }
 
 .case-record-card > * {
@@ -3309,54 +3595,38 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 }
 
 .case-mini-flow {
-  position: relative;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  isolation: isolate;
+  gap: 6px;
   padding: 2px 0;
 }
 
 .case-mini-flow::before {
-  content: "";
-  position: absolute;
-  top: 25px;
-  right: 8%;
-  left: 8%;
-  z-index: 0;
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(55, 111, 143, 0.18), rgba(164, 95, 69, 0.2), rgba(85, 116, 95, 0.2), rgba(182, 138, 44, 0.2));
+  content: none;
 }
 
 .case-mini-flow-node {
   --accent: #376f8f;
   position: relative;
-  z-index: 1;
   display: grid;
-  min-height: 78px;
+  min-height: 48px;
   min-width: 0;
-  align-content: start;
+  align-content: center;
   justify-items: center;
-  gap: 5px;
-  border: 1px solid color-mix(in srgb, var(--accent) 18%, rgba(31, 41, 51, 0.08));
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.82);
+  gap: 4px;
+  border: 1px solid rgba(31, 41, 51, 0.08);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.7);
   color: #1f2933;
-  padding: 8px 6px 7px;
+  padding: 6px 4px;
   text-align: center;
-  text-decoration: none;
-  transition:
-    border-color 180ms ease,
-    box-shadow 180ms ease,
-    transform 180ms ease;
 }
 
 .case-mini-flow-node:hover,
 .case-mini-flow-node:focus-visible {
-  border-color: color-mix(in srgb, var(--accent) 52%, rgba(31, 41, 51, 0.12));
-  box-shadow: 0 10px 20px rgba(31, 41, 51, 0.08);
-  transform: translateY(-1px);
+  border-color: rgba(31, 41, 51, 0.08);
+  box-shadow: none;
+  transform: none;
 }
 
 .case-mini-flow-node span {
@@ -3374,48 +3644,49 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 
 .case-mini-flow-node strong {
   min-width: 0;
-  color: #1f2933;
-  font-size: 12px;
+  color: rgba(31, 41, 51, 0.72);
+  font-size: 11px;
   font-weight: 900;
-  line-height: 1.15;
+  line-height: 1.1;
+  white-space: nowrap;
 }
 
 .case-mini-flow-node small {
   display: inline-grid;
-  min-width: 26px;
-  min-height: 22px;
+  max-width: 100%;
+  min-width: 38px;
+  min-height: 20px;
   place-items: center;
+  box-sizing: border-box;
   border-radius: 999px;
   background: rgba(31, 41, 51, 0.06);
   color: rgba(31, 41, 51, 0.62);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
   line-height: 1;
-  padding: 0 7px;
+  padding: 0 6px;
+  white-space: nowrap;
 }
 
-.case-mini-flow-node.is-complete span {
-  background: var(--accent);
-  color: #fff;
+.case-mini-flow-node.is-complete small {
+  background: color-mix(in srgb, var(--accent) 12%, white);
+  color: var(--accent);
 }
 
 .case-mini-flow-node.is-current {
-  border-color: var(--accent);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--accent) 10%, white), rgba(255, 255, 255, 0.92));
-  box-shadow: 0 12px 24px color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 36%, rgba(31, 41, 51, 0.08));
+  background: color-mix(in srgb, var(--accent) 7%, white);
 }
 
 .case-mini-flow-node.is-current::after {
   content: "";
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 8px;
-  height: 8px;
+  top: 6px;
+  right: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 999px;
   background: var(--accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 .case-mini-flow-node-observe {
@@ -3472,17 +3743,38 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 
 .case-list-card-actions {
   justify-content: flex-start;
+  flex-wrap: nowrap;
+  gap: 6px;
+  padding-top: 8px;
 }
 
-.case-list-card-actions .case-primary-action {
-  flex: 1 1 220px;
+.case-list-card-actions .case-primary-action,
+.case-list-card-actions .case-list-select-button {
+  flex: 1.35 1 0;
+}
+
+.case-list-card-actions .case-secondary-action {
+  flex: 0.9 1 0;
+}
+
+.case-list-card-actions .case-primary-action,
+.case-list-card-actions .case-list-select-button,
+.case-list-card-actions .case-secondary-action {
+  min-width: 0;
+  min-height: 34px;
+  padding: 8px 9px;
+}
+
+.case-record-card.is-current .case-list-card-actions {
+  border-top-color: rgba(55, 111, 143, 0.18);
 }
 
 .case-record-card:has(.case-change-menu.is-open) {
   z-index: 20;
 }
 
-.case-list-select-button {
+.case-list-select-button,
+.case-secondary-action {
   display: inline-flex;
   min-height: 34px;
   align-items: center;
@@ -3496,11 +3788,15 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   font-weight: 900;
   line-height: 1;
   padding: 7px 10px;
+  text-align: center;
+  text-decoration: none;
   white-space: nowrap;
 }
 
 .case-list-select-button:hover,
-.case-list-select-button:focus-visible {
+.case-list-select-button:focus-visible,
+.case-secondary-action:hover,
+.case-secondary-action:focus-visible {
   border-color: rgba(55, 111, 143, 0.36);
   background: rgba(255, 255, 255, 0.96);
   color: #376f8f;
@@ -3508,7 +3804,8 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   outline-offset: 2px;
 }
 
-.case-list-select-button:focus-visible {
+.case-list-select-button:focus-visible,
+.case-secondary-action:focus-visible {
   outline-color: #376f8f;
 }
 
@@ -4681,6 +4978,21 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 }
 
 @media (max-width: 1023px) {
+  .reflection-overview-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .reflection-overview-switch {
+    justify-content: flex-start;
+  }
+
+  .reflection-overview-switch .case-change-menu.is-open .case-change-menu-body {
+    right: auto;
+    left: 0;
+    width: min(320px, 84vw);
+    transform: none;
+  }
+
   .app-top-container {
     gap: 12px;
     padding-top: 16px;
@@ -4734,12 +5046,17 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     width: 100%;
   }
 
-  .task-context-action span {
+  .task-context-action > span {
     white-space: normal;
   }
 
   .task-context-action a {
     width: 100%;
+  }
+
+  .task-context-action-current a {
+    width: fit-content;
+    justify-self: start;
   }
 
   .task-context-step-links {
@@ -4996,19 +5313,17 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     width: 100%;
   }
 
-  .reflection-case-panel {
-    grid-template-columns: 1fr;
-  }
-
-  .reflection-case-panel .case-change-menu {
+  .reflection-overview-switch .case-change-menu {
     justify-self: start;
   }
 
-  .reflection-case-panel .case-change-menu.is-open .case-change-menu-body {
-    right: auto;
-    left: 0;
-    width: min(320px, 84vw);
-    transform: none;
+  .reflection-overview-actions,
+  .loop-update-next-actions {
+    gap: 6px;
+  }
+
+  .loop-update-snapshot {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .reflection-case-current strong,
@@ -5093,6 +5408,20 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     font-size: 11px;
   }
 
+  .app-top-shell-task .app-top-container {
+    gap: 8px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .app-top-shell-task .brand-mark {
+    font-size: 20px;
+  }
+
+  .app-top-shell-task .task-context-case-actions .case-history-link {
+    display: none;
+  }
+
   .record-brand-subtitle {
     display: none;
   }
@@ -5115,8 +5444,8 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   }
 
   .task-context-bar {
-    gap: 7px;
-    padding: 10px;
+    gap: 6px;
+    padding: 0;
   }
 
   .task-context-summary,
@@ -5136,6 +5465,50 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 
   .task-context-case-with-actions {
     grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .task-context-case-actions {
+    gap: 4px;
+  }
+
+  .task-context-case-actions .case-change-menu-trigger {
+    min-height: 32px;
+    padding: 6px 9px;
+    font-size: 11px;
+  }
+
+  .task-context-case .case-change-menu.is-open .case-change-menu-body {
+    right: 0;
+    left: auto;
+    width: min(320px, calc(100vw - 40px));
+    transform: none;
+  }
+
+  .task-context-action-current {
+    gap: 7px;
+  }
+
+  .task-context-action-current .task-context-stage-intro p {
+    display: none;
+  }
+
+  .task-context-stage-title-row {
+    gap: 4px 7px;
+  }
+
+  .task-context-stage-title {
+    font-size: 17px;
+  }
+
+  .task-context-stage-pill {
+    gap: 5px;
+  }
+
+  .task-context-action-current a {
+    min-width: 96px;
+    min-height: 32px;
+    padding: 7px 10px;
   }
 
   .task-context-case > label select {
@@ -5232,12 +5605,12 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   }
 
   .case-mini-flow {
-    gap: 6px;
+    gap: 5px;
   }
 
   .case-mini-flow-node {
-    min-height: 68px;
-    padding: 7px 4px 6px;
+    min-height: 46px;
+    padding: 6px 2px;
   }
 
   .case-mini-flow-node span {
@@ -5247,7 +5620,13 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   }
 
   .case-mini-flow-node strong {
-    font-size: 11px;
+    font-size: 10.5px;
+  }
+
+  .case-mini-flow-node small {
+    min-width: 36px;
+    font-size: 10.5px;
+    padding: 0 5px;
   }
 
   .case-record-card {
@@ -5263,15 +5642,24 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   }
 
   .case-list-card-actions .case-change-menu,
-  .case-list-card-actions .case-history-link,
-  .case-list-select-button {
+  .case-list-card-actions .case-history-link {
     width: 100%;
+  }
+
+  .case-list-card-actions .case-primary-action,
+  .case-list-card-actions .case-list-select-button,
+  .case-list-card-actions .case-secondary-action {
+    width: auto;
   }
 
   .case-list-card-actions .case-change-menu.is-open .case-change-menu-body {
     right: auto;
     left: 0;
     width: 100%;
+  }
+
+  .case-list-switcher {
+    max-width: none;
   }
 
   main :where(form.rounded-md, article.rounded-md, details.rounded-md, .record-link-card) {

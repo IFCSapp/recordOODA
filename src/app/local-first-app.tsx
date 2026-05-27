@@ -178,6 +178,13 @@ const stageLinks = [
   { href: "/act", stage: "Act", stageLabel: "反応", label: "反応を入力", helper: "反応で更新", tone: "act" }
 ] as const;
 
+const taskStageMeta = {
+  Observe: { title: "観察を入力", description: "評価や解釈と分けて、見えたことだけ先に残します。", step: "01", helper: "事実を残す", caption: "今の入力", tone: "observe" },
+  Orient: { title: "見立てを1つ置く", description: "観察から考えられる説明を仮置きし、根拠と合わない点を分けます。", step: "02", helper: "見方を整理", caption: "今の入力", tone: "orient" },
+  Decide: { title: "支援を選ぶ", description: "今回は一つだけ試します。反応が見える小ささに絞ります。", step: "03", helper: "1つ選ぶ", caption: "今の入力", tone: "decide" },
+  Act: { title: "反応を入力", description: "支援の良し悪しではなく、反応から見立てを更新します。", step: "04", helper: "反応で更新", caption: "今の入力", tone: "act" }
+} as const;
+
 const emptyData: AppData = {
   version: 1,
   savedAt: "",
@@ -272,7 +279,7 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
 
   return (
     <div className="min-h-screen">
-      <div className="app-top-shell">
+      <div className={`app-top-shell ${isTaskPage ? "app-top-shell-task" : ""}`}>
         <div className="app-top-container mx-auto flex max-w-7xl flex-col gap-4 px-5 py-4">
           <div className="app-command-row flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="brand-link">
@@ -352,6 +359,7 @@ function CompactWorkflowBar({
   const selected = items.find((item) => item.id === selectedCaseId) ?? items[0] ?? null;
   const currentStepIndex = stageLinks.findIndex((item) => isStagePath(currentPath, item.href));
   const currentStep = currentStepIndex >= 0 ? stageLinks[currentStepIndex] : stageLinks[0];
+  const currentTaskMeta = currentStepIndex >= 0 ? taskStageMeta[currentStep.stage] : null;
   const nextAction = selected ? getCaseNextAction(selected) : null;
   const nextActionPath = nextAction?.href.split("?")[0] ?? "";
   const actionIsCurrentStep = Boolean(nextAction && nextActionPath && isStagePath(currentPath, nextActionPath));
@@ -367,6 +375,7 @@ function CompactWorkflowBar({
   const isObserveEntry = isStagePath(currentPath, "/observe");
   const actionHref = !hasCases ? (isObserveEntry ? "#case-form" : "/observe") : currentStepHasForm ? "#task-form" : nextAction?.href ?? "/observe";
   const currentStepActionCopy = currentStep.stage === "Decide" ? "この画面で支援を1つ選びます。" : `この画面で${currentStep.label}します。`;
+  const showCurrentStepIntro = Boolean(currentTaskMeta && (currentStepHasForm || (!hasCases && isObserveEntry)));
   const actionCopy = hasCases
     ? currentStepHasForm
       ? currentStepActionCopy
@@ -405,8 +414,22 @@ function CompactWorkflowBar({
         )}
 
         {showNextAction ? (
-          <div className="task-context-action">
-            <span>{actionCopy}</span>
+          <div className={`task-context-action ${showCurrentStepIntro ? "task-context-action-current" : ""}`}>
+            {showCurrentStepIntro && currentTaskMeta ? (
+              <div className="task-context-stage-intro">
+                <div className="task-context-stage-title-row">
+                  <span className={`task-context-stage-pill ooda-tone-${currentTaskMeta.tone}`}>
+                    <span>{currentTaskMeta.step}</span>
+                    <strong>{currentTaskMeta.helper}</strong>
+                    <small>{currentTaskMeta.caption}</small>
+                  </span>
+                  <strong className="task-context-stage-title">{currentTaskMeta.title}</strong>
+                </div>
+                <p>{currentTaskMeta.description}</p>
+              </div>
+            ) : (
+              <span>{actionCopy}</span>
+            )}
             <Link href={actionHref}>{actionLabel}</Link>
           </div>
         ) : null}
@@ -538,7 +561,8 @@ function CaseChangeMenu({
   onCaseChange,
   onCreateCase,
   submitLabel = "作って選択",
-  ariaLabel = "入力先を変更"
+  ariaLabel = "入力先を変更",
+  showListLink = true
 }: {
   items: CaseDockItem[];
   selectedCaseId: string;
@@ -546,6 +570,7 @@ function CaseChangeMenu({
   onCreateCase: CreateCase;
   submitLabel?: string;
   ariaLabel?: string;
+  showListLink?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -598,9 +623,11 @@ function CaseChangeMenu({
         <label className="case-change-menu-picker case-change-menu-section case-change-menu-section-select">
           <span className="case-change-menu-picker-head">
             <span>既存ケースを選ぶ</span>
-            <Link href="/cases" className="case-change-menu-list-link">
-              ケース一覧
-            </Link>
+            {showListLink ? (
+              <Link href="/cases" className="case-change-menu-list-link">
+                ケース一覧
+              </Link>
+            ) : null}
           </span>
           <select value={selectedCaseId} onChange={(event) => handleCaseChange(event.target.value)} aria-label={ariaLabel}>
             {items.map((item) => (
@@ -868,7 +895,7 @@ function CaseMiniFlow({ item }: { item: CaseDockItem }) {
   const nextStageIndex = getNextStageIndex(item);
 
   return (
-    <div className="case-mini-flow" aria-label={`${item.displayName}のOODAステップ`}>
+    <div className="case-mini-flow" role="list" aria-label={`${item.displayName}のOODAステップ件数`}>
       {stageLinks.map((stage, index) => {
         const count = countForCaseStage(item, stage.stage);
         const isComplete = count > 0;
@@ -883,22 +910,18 @@ function CaseMiniFlow({ item }: { item: CaseDockItem }) {
           .join(" ");
 
         return (
-          <Link
+          <div
             key={stage.href}
-            href={hrefForCaseStage(item, stage.href)}
+            role="listitem"
             aria-current={isCurrent ? "step" : undefined}
-            aria-label={`${stage.label} ${count}件${isCurrent ? " 現在の作業" : ""}`}
+            aria-label={`${stage.stageLabel} ${count}件${isCurrent ? " 次の入力" : ""}`}
             className={className}
           >
-            <span>{String(index + 1).padStart(2, "0")}</span>
             <strong>{stage.stageLabel}</strong>
-            <small>{count}</small>
-          </Link>
+            <small>{count}件</small>
+          </div>
         );
       })}
-      <div className="case-mini-flow-return" aria-hidden="true">
-        反応 → 観察へ
-      </div>
     </div>
   );
 }
@@ -916,6 +939,10 @@ function CasesView({
 }) {
   const caseItems = buildCaseDockItems(data);
   const currentCaseId = caseItems.some((item) => item.id === selectedCaseId) ? selectedCaseId : caseItems[0]?.id ?? "";
+  const visibleCaseItems = [
+    ...caseItems.filter((item) => item.id === currentCaseId),
+    ...caseItems.filter((item) => item.id !== currentCaseId)
+  ];
 
   if (caseItems.length === 0) {
     return (
@@ -933,14 +960,26 @@ function CasesView({
   return (
     <>
       <Section title="ケース一覧">
-        <details className="case-list-create">
-          <summary>新しいケースを追加</summary>
-          <QuickCaseForm onCreateCase={onCreateCase} submitLabel="作って選択" />
-        </details>
+        <div className="case-list-switcher">
+          <div className="case-list-switcher-copy">
+            <span>現在のケース</span>
+            <strong>{caseItems.find((item) => item.id === currentCaseId)?.displayName ?? "ケース未選択"}</strong>
+          </div>
+          <CaseChangeMenu
+            items={caseItems}
+            selectedCaseId={currentCaseId}
+            onCaseChange={onCaseChange}
+            onCreateCase={onCreateCase}
+            submitLabel="作って選択"
+            ariaLabel="ケースを変更"
+            showListLink={false}
+          />
+        </div>
         <div className="grid gap-4 lg:grid-cols-2">
-          {caseItems.map((item) => {
+          {visibleCaseItems.map((item) => {
             const isCurrent = item.id === currentCaseId;
-            const nextAction = getCaseNextAction(item);
+            const observationHref = `/observe?caseId=${item.id}`;
+            const reflectionHref = `/reflect?caseId=${item.id}`;
             return (
               <article
                 key={item.id}
@@ -952,7 +991,7 @@ function CasesView({
                     <div className="case-record-title-copy">
                       <div className="case-record-title-row">
                         <h2 className="case-record-title">{item.displayName}</h2>
-                        <Tag>{isCurrent ? "選択中" : item.isActive ? "利用中" : "停止中"}</Tag>
+                        {isCurrent || !item.isActive ? <Tag>{isCurrent ? "選択中" : "停止中"}</Tag> : null}
                       </div>
                       <p className="case-record-meta">作成 {formatShortDate(item.createdAt)} / 更新 {formatShortDate(item.updatedAt)}</p>
                     </div>
@@ -961,20 +1000,22 @@ function CasesView({
                 <p className="case-record-memo">{item.memo || "メモはまだありません。"}</p>
                 <CaseMiniFlow item={item} />
                 <div className="case-next-action-panel case-list-card-actions">
-                  <Link href={nextAction.href} className="case-primary-action" onClick={() => onCaseChange(item.id)}>
-                    次の入力へ: {nextAction.label}
-                  </Link>
-                  {!isCurrent ? (
+                  {isCurrent ? (
+                    <Link href={observationHref} className="case-primary-action">
+                      観察を入力
+                    </Link>
+                  ) : (
                     <button type="button" className="case-list-select-button" onClick={() => onCaseChange(item.id)}>
                       このケースに変更
                     </button>
-                  ) : null}
+                  )}
+                  <Link href={reflectionHref} className="case-secondary-action" onClick={() => onCaseChange(item.id)}>
+                    振り返る
+                  </Link>
                 </div>
                 <details className="case-card-secondary">
                   <summary>ほかの確認</summary>
                   <div className="case-card-secondary-links">
-                    <ActionLink href={`/observe?caseId=${item.id}`}>観察</ActionLink>
-                    <ActionLink href={`/reflect?caseId=${item.id}`}>履歴</ActionLink>
                     <ActionLink href={`/search?caseId=${item.id}`}>類似場面</ActionLink>
                   </div>
                 </details>
@@ -1763,6 +1804,7 @@ function ReflectView({
   const memoTargetRows = rows.filter((row) => row.hypothesisId);
   const unplacedMemos = memos.filter((memo) => !rows.some((row) => reflectionMemoTargetsRow(memo, row)));
   const nextObserveHref = caseId ? `/observe?caseId=${caseId}` : "/observe";
+  const latestRow = rows[0] ?? null;
 
   function handleCreateMemo(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1807,12 +1849,6 @@ function ReflectView({
         title="OODAの積み重ね"
         description="一巡ごとの観察、見立て、支援、反応を並べ、次に見る一点を残します。"
         image="reflect.png"
-        action={
-          <div className="record-page-actions">
-            <LinkButton href={nextObserveHref}>観察を入力</LinkButton>
-            <LinkButton href="/cases">ケース一覧</LinkButton>
-          </div>
-        }
       />
 
       {data.cases.length === 0 ? (
@@ -1821,13 +1857,41 @@ function ReflectView({
         </EmptyState>
       ) : (
         <>
-          <Section title="対象ケース">
-            <div className="reflection-case-panel rounded-md border border-ink/10 bg-white p-4 shadow-sm">
+          <section className="reflection-overview-panel rounded-md border border-ink/10 bg-white p-4 shadow-sm" aria-label="積み重ねの概要">
+            <div className="reflection-overview-main">
               <div className="reflection-case-current">
-                <span>ケース</span>
+                <span>現在のケース</span>
                 <strong>{selectedCase?.displayName ?? "ケース未選択"}</strong>
                 <small>{selectedCase?.memo || "このケースの積み重ねを確認します。"}</small>
               </div>
+              <dl className="reflection-overview-stats" aria-label="記録件数">
+                <div>
+                  <dt>積み重ね</dt>
+                  <dd>{rows.length}件</dd>
+                </div>
+                <div>
+                  <dt>追記</dt>
+                  <dd>{memos.length}件</dd>
+                </div>
+                <div>
+                  <dt>見立て</dt>
+                  <dd>{memoTargetRows.length}件</dd>
+                </div>
+              </dl>
+            </div>
+            <div className="reflection-overview-next">
+              <span>次に見る一点</span>
+              <strong>{latestRow?.next ?? "観察から始めると、ここに次の確認点が出ます。"}</strong>
+              <div className="reflection-overview-actions">
+                <Link href={nextObserveHref} className="loop-update-next-link focus-ring">
+                  観察を入力
+                </Link>
+                <Link href="/cases" className="loop-update-next-link loop-update-next-link-secondary focus-ring">
+                  ケース一覧
+                </Link>
+              </div>
+            </div>
+            <div className="reflection-overview-switch">
               <CaseChangeMenu
                 items={caseItems}
                 selectedCaseId={caseId}
@@ -1835,7 +1899,7 @@ function ReflectView({
                 onCreateCase={onCreateCase}
               />
             </div>
-          </Section>
+          </section>
 
           <Section title="積み重ねたループ" description={selectedCase?.memo || "反応を材料にして、次の観察で見る一点を決めます。"}>
             {rows.length === 0 ? (
@@ -1844,16 +1908,20 @@ function ReflectView({
               </EmptyState>
             ) : (
               <div className="loop-update-grid">
-                {rows.map((row) => {
+                {rows.map((row, index) => {
                   const rowMemos = memos.filter((memo) => reflectionMemoTargetsRow(memo, row));
 
                   return (
-                    <article key={row.id} className="loop-update-card rounded-md border border-ink/10 bg-white p-4 shadow-sm">
+                    <article key={row.id} className={`loop-update-card rounded-md border border-ink/10 bg-white p-4 shadow-sm ${index === 0 ? "is-latest" : ""}`}>
                       <div className="loop-update-card-head">
-                        <span>積み重ね</span>
+                        <span>{index === 0 ? "最新の積み重ね" : "積み重ね"}</span>
                         <strong>{row.label}</strong>
                       </div>
-                      <dl className="loop-update-points">
+                      <div className="loop-update-next-point">
+                        <span>次に見る一点</span>
+                        <strong>{row.next}</strong>
+                      </div>
+                      <dl className="loop-update-snapshot">
                         <div>
                           <dt>観察</dt>
                           <dd>{row.fact}</dd>
@@ -1870,11 +1938,36 @@ function ReflectView({
                           <dt>反応</dt>
                           <dd>{row.response}</dd>
                         </div>
-                        <div className="loop-update-next-point">
-                          <dt>次に見る一点</dt>
-                          <dd>{row.next}</dd>
-                        </div>
                       </dl>
+                      <details className="loop-update-source">
+                        <summary>この一巡の材料</summary>
+                        <dl className="loop-update-points">
+                          <div>
+                            <dt>観察</dt>
+                            <dd>{row.fact}</dd>
+                          </div>
+                          <div>
+                            <dt>見立て</dt>
+                            <dd>{row.hypothesis}</dd>
+                          </div>
+                          <div>
+                            <dt>根拠</dt>
+                            <dd>{row.evidence || "未記録"}</dd>
+                          </div>
+                          <div>
+                            <dt>反証・未確認</dt>
+                            <dd>{row.counter}</dd>
+                          </div>
+                          <div>
+                            <dt>支援</dt>
+                            <dd>{row.support}</dd>
+                          </div>
+                          <div>
+                            <dt>反応</dt>
+                            <dd>{row.response}</dd>
+                          </div>
+                        </dl>
+                      </details>
                       {rowMemos.length > 0 ? (
                         <div className="loop-update-note-stack" aria-label="見立てへの追記">
                           <strong>見立てへの追記</strong>
@@ -1893,9 +1986,9 @@ function ReflectView({
                         <Link href={nextObserveHref} className="loop-update-next-link focus-ring">
                           観察を入力
                         </Link>
-                        <Link href="/cases" className="loop-update-next-link loop-update-next-link-secondary focus-ring">
-                          ケース一覧
-                        </Link>
+                        <a href="#reflection-memo-form" className="loop-update-next-link loop-update-next-link-secondary focus-ring">
+                          見立てに追記
+                        </a>
                       </div>
                     </article>
                   );
@@ -1957,7 +2050,7 @@ function ReflectView({
             {memoTargetRows.length === 0 ? (
               <EmptyState>追記できる見立てはまだありません。</EmptyState>
             ) : (
-              <form onSubmit={handleCreateMemo} className="grid gap-4 rounded-md border border-ink/10 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr]" noValidate>
+              <form id="reflection-memo-form" onSubmit={handleCreateMemo} className="grid gap-4 rounded-md border border-ink/10 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr]" noValidate>
                 {formError ? (
                   <div className="md:col-span-2">
                     <FormError>{formError}</FormError>
@@ -2239,6 +2332,15 @@ function PageHeader({
   compact?: boolean;
   imageClassName?: string;
 }) {
+  if (compact) {
+    return (
+      <>
+        <h1 className="sr-only">{title}</h1>
+        <p className="sr-only">{description}</p>
+      </>
+    );
+  }
+
   return (
     <div className={`record-page-header mb-6 border-b border-ink/10 pb-5 ${compact ? "record-page-header-task" : ""}`}>
       <div className="record-page-main">
