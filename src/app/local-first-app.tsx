@@ -112,13 +112,14 @@ type ReflectionRow = {
   observationId: string;
   hypothesisId: string | null;
   label: string;
+  dateLabel: string;
+  hypothesisLabel: string | null;
   fact: string;
   hypothesis: string;
   evidence: string;
   counter: string;
   support: string;
   response: string;
-  next: string;
 };
 
 type AppData = {
@@ -182,7 +183,7 @@ const taskStageMeta = {
   Observe: { title: "観察を入力", description: "評価や解釈と分けて、見えたことだけ先に残します。", step: "01", helper: "事実を残す", caption: "今の入力", tone: "observe" },
   Orient: { title: "見立てを1つ置く", description: "観察から考えられる説明を仮置きし、根拠と合わない点を分けます。", step: "02", helper: "見方を整理", caption: "今の入力", tone: "orient" },
   Decide: { title: "支援を選ぶ", description: "今回は一つだけ試します。反応が見える小ささに絞ります。", step: "03", helper: "1つ選ぶ", caption: "今の入力", tone: "decide" },
-  Act: { title: "反応を入力", description: "支援の良し悪しではなく、反応から見立てを更新します。", step: "04", helper: "反応で更新", caption: "今の入力", tone: "act" }
+  Act: { title: "反応を入力", description: "支援の良し悪しではなく、反応から見立ての確からしさを見直します。", step: "04", helper: "反応で更新", caption: "今の入力", tone: "act" }
 } as const;
 
 const emptyData: AppData = {
@@ -1680,7 +1681,7 @@ function ActView({ data, commit, onNavigate }: { data: AppData; commit: Commit; 
 
   return (
     <>
-      <PageHeader title="反応を入力" description="支援の良し悪しではなく、反応から見立てを更新します。" image="act.png" stageMeta={{ step: "04", helper: "反応で更新", caption: "今の入力", tone: "act" }} compact />
+      <PageHeader title="反応を入力" description="支援の良し悪しではなく、反応から見立ての確からしさを見直します。" image="act.png" stageMeta={{ step: "04", helper: "反応で更新", caption: "今の入力", tone: "act" }} compact />
 
       <Section title="反応を記録">
         {experiments.length === 0 ? (
@@ -1751,7 +1752,7 @@ function ActView({ data, commit, onNavigate }: { data: AppData; commit: Commit; 
                 <Input name="comparison" placeholder="短くなった、変わらない等" />
               </Label>
               <Label>
-                見立ての更新
+                見立ての確からしさ
                 <Select name="hypothesisUpdate" defaultValue="保留">
                   {HYPOTHESIS_STATUSES.filter((status) => status !== "未検証" && status !== "検証中").map((status) => (
                     <option key={status} value={status}>
@@ -1807,7 +1808,6 @@ function ReflectView({
   const memoTargetRows = rows.filter((row) => row.hypothesisId);
   const unplacedMemos = memos.filter((memo) => !rows.some((row) => reflectionMemoTargetsRow(memo, row)));
   const nextObserveHref = caseId ? `/observe?caseId=${caseId}` : "/observe";
-  const latestRow = rows[0] ?? null;
 
   function handleCreateMemo(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1850,7 +1850,7 @@ function ReflectView({
     <>
       <PageHeader
         title="OODAの積み重ね"
-        description="一巡ごとの観察、見立て、支援、反応を並べ、次に見る一点を残します。"
+        description="一巡ごとの観察、見立て、支援、反応を並べ、記録の流れを確認します。"
         image="reflect.png"
       />
 
@@ -1881,10 +1881,6 @@ function ReflectView({
                   <dd>{memoTargetRows.length}件</dd>
                 </div>
               </dl>
-            </div>
-            <div className="reflection-overview-next">
-              <span>次に見る一点</span>
-              <strong>{latestRow?.next ?? "観察から始めると、ここに次の確認点が出ます。"}</strong>
               <div className="reflection-overview-actions">
                 <Link href={nextObserveHref} className="loop-update-next-link focus-ring">
                   観察を入力
@@ -1904,7 +1900,7 @@ function ReflectView({
             </div>
           </section>
 
-          <Section title="積み重ねたループ" description={selectedCase?.memo || "反応を材料にして、次の観察で見る一点を決めます。"}>
+          <Section title="積み重ねたループ" description={selectedCase?.memo || "反応までの記録を一巡ごとに並べて確認します。"}>
             {rows.length === 0 ? (
               <EmptyState>
                 まだOODAの積み重ねはありません。観察から始めると、ここに順番に並びます。
@@ -1918,32 +1914,34 @@ function ReflectView({
                     <article key={row.id} className={`loop-update-card rounded-md border border-ink/10 bg-white p-4 shadow-sm ${index === 0 ? "is-latest" : ""}`}>
                       <div className="loop-update-card-head">
                         <span>{index === 0 ? "最新の積み重ね" : "積み重ね"}</span>
-                        <strong>{row.label}</strong>
+                        <div className="loop-update-card-meta" aria-label="記録の見出し">
+                          <strong>{row.dateLabel}</strong>
+                          <span>
+                            <b>見立て</b>
+                            {row.hypothesisLabel ?? "未記録"}
+                          </span>
+                        </div>
                       </div>
-                      <div className="loop-update-next-point">
-                        <span>次に見る一点</span>
-                        <strong>{row.next}</strong>
-                      </div>
-                      <dl className="loop-update-snapshot">
+                      <dl className="loop-update-snapshot" aria-label="記録の有無">
                         <div>
                           <dt>観察</dt>
-                          <dd>{row.fact}</dd>
+                          <dd>{recordPresenceLabel(row.fact)}</dd>
                         </div>
                         <div>
                           <dt>見立て</dt>
-                          <dd>{row.hypothesis}</dd>
+                          <dd>{row.hypothesisLabel ? "記録あり" : "未記録"}</dd>
                         </div>
                         <div>
                           <dt>支援</dt>
-                          <dd>{row.support}</dd>
+                          <dd>{recordPresenceLabel(row.support)}</dd>
                         </div>
                         <div>
                           <dt>反応</dt>
-                          <dd>{row.response}</dd>
+                          <dd>{recordPresenceLabel(row.response)}</dd>
                         </div>
                       </dl>
                       <details className="loop-update-source">
-                        <summary>この一巡の材料</summary>
+                        <summary>記録詳細</summary>
                         <dl className="loop-update-points">
                           <div>
                             <dt>観察</dt>
@@ -1973,7 +1971,6 @@ function ReflectView({
                       </details>
                       {rowMemos.length > 0 ? (
                         <div className="loop-update-note-stack" aria-label="見立てへの追記">
-                          <strong>見立てへの追記</strong>
                           {rowMemos.map((memo) => (
                             <article key={memo.id} className="loop-update-note">
                               <div>
@@ -1985,14 +1982,13 @@ function ReflectView({
                           ))}
                         </div>
                       ) : null}
-                      <div className="loop-update-next-actions">
-                        <Link href={nextObserveHref} className="loop-update-next-link focus-ring">
-                          観察を入力
-                        </Link>
-                        <a href="#reflection-memo-form" className="loop-update-next-link loop-update-next-link-secondary focus-ring">
-                          見立てに追記
-                        </a>
-                      </div>
+                      {row.hypothesisId ? (
+                        <div className="loop-update-next-actions">
+                          <a href="#reflection-memo-form" className="loop-update-next-link loop-update-next-link-secondary focus-ring">
+                            見立てに追記
+                          </a>
+                        </div>
+                      ) : null}
                     </article>
                   );
                 })}
@@ -2008,13 +2004,13 @@ function ReflectView({
               </LinkCard>
               <LinkCard href="/export">
                 <CardTop title="要約" meta="転記用" />
-                <p className="mt-2 text-sm leading-6 text-ink/70">一巡の材料をもとに、共有前の短い文章を作ります。</p>
+                <p className="mt-2 text-sm leading-6 text-ink/70">記録詳細をもとに、共有前の短い文章を作ります。</p>
               </LinkCard>
             </div>
           </Section>
 
           {rows.length > 0 ? (
-            <Section title="一巡の材料">
+            <Section title="記録詳細一覧">
               <details className="reflection-source-details rounded-md border border-ink/10 bg-white p-4 shadow-sm">
                 <summary>事実から反応までを見る</summary>
                 <div className="mt-4 overflow-x-auto rounded-md border border-ink/10 bg-white">
@@ -2027,7 +2023,6 @@ function ReflectView({
                         <th className="px-3 py-3">反証・未確認</th>
                         <th className="px-3 py-3">試した支援</th>
                         <th className="px-3 py-3">反応</th>
-                        <th className="px-3 py-3">次に見る点</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-ink/10">
@@ -2039,7 +2034,6 @@ function ReflectView({
                           <td className="w-48 whitespace-pre-line px-3 py-3">{row.counter}</td>
                           <td className="w-56 whitespace-pre-line px-3 py-3">{row.support}</td>
                           <td className="w-56 whitespace-pre-line px-3 py-3">{row.response}</td>
-                          <td className="w-48 whitespace-pre-line px-3 py-3">{row.next}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2073,8 +2067,7 @@ function ReflectView({
                 <Label>
                   追記先
                   <Select name="columnKey" defaultValue="orientation">
-                    <option value="orientation">見立ての更新</option>
-                    <option value="next">次に見る一点</option>
+                    <option value="orientation">見立ての確からしさ</option>
                     <option value="support">支援の調整</option>
                     <option value="share">チーム共有</option>
                   </Select>
@@ -2082,7 +2075,7 @@ function ReflectView({
                 <div className="md:col-span-2">
                   <Label>
                     追記メモ <RequiredMark />
-                    <Textarea name="body" rows={4} placeholder="反応から変える見立て、次に見る一点、支援の弱め方など" required />
+                    <Textarea name="body" rows={4} placeholder="反応から変える見立て、支援の弱め方、共有したい補足など" required />
                   </Label>
                 </div>
                 <div className="md:col-span-2">
@@ -2893,7 +2886,7 @@ function getCaseNextAction(item: CaseDockItem) {
     return { label: "支援を選ぶ", href: item.latestHypothesisId ? `/decide?hypothesisId=${item.latestHypothesisId}` : "/decide", reason: "見立てがあります。試す支援を1つ選びます。" };
   }
   if (item.counts.actReviews === 0) {
-    return { label: "反応を入力", href: item.latestExperimentId ? `/act?experimentId=${item.latestExperimentId}` : "/act", reason: "支援があります。反応から見立てを更新します。" };
+    return { label: "反応を入力", href: item.latestExperimentId ? `/act?experimentId=${item.latestExperimentId}` : "/act", reason: "支援があります。反応から見立ての確からしさを見直します。" };
   }
   return { label: "振り返る", href: `/reflect?caseId=${item.id}`, reason: "OODAが一巡しています。次に見る点を整理します。" };
 }
@@ -2967,7 +2960,7 @@ function reflectionColumnLabel(key: string) {
   switch (key) {
     case "orientation":
     case "hypothesis":
-      return "見立ての更新";
+      return "見立ての確からしさ";
     case "support":
       return "支援の調整";
     case "response":
@@ -2977,9 +2970,15 @@ function reflectionColumnLabel(key: string) {
     case "fact":
       return "材料";
     case "next":
+      return "確認メモ";
     default:
-      return "次に見る一点";
+      return "追記メモ";
   }
+}
+
+function recordPresenceLabel(value: string) {
+  const trimmed = value.trim();
+  return trimmed && trimmed !== "未記録" ? "記録あり" : "未記録";
 }
 
 function hypothesisMemoTargetRef(hypothesisId: string) {
@@ -3013,13 +3012,14 @@ function buildReflectionRows(data: AppData, caseId: string): ReflectionRow[] {
             observationId: observation.id,
             hypothesisId: null,
             label: `${formatShortDate(observation.observedAt)} 観察`,
+            dateLabel: formatShortDate(observation.observedAt),
+            hypothesisLabel: null,
             fact: observationFactText(observation),
             hypothesis: "未記録",
             evidence: compactLines([labeledLine("直前の環境", observation.antecedent), labeledLine("行動", observation.userBehavior)]).join("\n"),
             counter: observation.unknownMemo || "未記録",
             support: "未記録",
-            response: observation.consequence,
-            next: observation.unknownMemo || "次の観察で確認"
+            response: observation.consequence
           }
         ];
       }
@@ -3031,6 +3031,8 @@ function buildReflectionRows(data: AppData, caseId: string): ReflectionRow[] {
           observationId: observation.id,
           hypothesisId: hypothesis.id,
           label: `${formatShortDate(observation.observedAt)} ${hypothesis.category}`,
+          dateLabel: formatShortDate(observation.observedAt),
+          hypothesisLabel: hypothesis.category,
           fact: observationFactText(observation),
           hypothesis: hypothesisContextText(hypothesis),
           evidence: hypothesis.evidence,
@@ -3040,8 +3042,7 @@ function buildReflectionRows(data: AppData, caseId: string): ReflectionRow[] {
             review?.immediateResponse ?? observation.consequence,
             labeledLine("後続", review?.laterResponse),
             labeledLine("比較", review?.comparison)
-          ]).join("\n"),
-          next: review?.nextObservationPoint || hypothesis.nextObservationPoints || observation.unknownMemo || "次の観察で確認"
+          ]).join("\n")
         };
       });
     });
