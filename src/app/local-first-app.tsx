@@ -111,6 +111,8 @@ type ReflectionRow = {
   id: string;
   observationId: string;
   hypothesisId: string | null;
+  experimentId: string | null;
+  reviewId: string | null;
   label: string;
   dateLabel: string;
   hypothesisLabel: string | null;
@@ -409,7 +411,7 @@ function CompactWorkflowBar({
                 onCreateCase={onCreateCase}
                 submitLabel="作って観察へ"
               />
-              <CaseHistoryLink selected={selected} />
+              <CaseHistoryLink selected={selected} label="振り返る" />
             </div>
           </div>
         )}
@@ -650,12 +652,12 @@ function CaseChangeMenu({
   );
 }
 
-function CaseHistoryLink({ selected }: { selected: CaseDockItem | null }) {
+function CaseHistoryLink({ selected, label = "これまでの記録" }: { selected: CaseDockItem | null; label?: string }) {
   const reflectHref = selected ? `/reflect?caseId=${selected.id}` : "/reflect";
 
   return (
     <Link href={reflectHref} className="case-history-link">
-      これまでの記録
+      {label}
     </Link>
   );
 }
@@ -1846,6 +1848,81 @@ function ReflectView({
     event.currentTarget.reset();
   }
 
+  function handleUpdateRowDetails(event: FormEvent<HTMLFormElement>, row: ReflectionRow) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const now = nowIso();
+    commit((current) => ({
+      ...current,
+      settings: { ...current.settings, currentCaseId: caseId },
+      cases: touchCase(current.cases, caseId),
+      observations: current.observations.map((observation) =>
+        observation.id === row.observationId
+          ? {
+              ...observation,
+              factMemo: text(form, "factMemo"),
+              antecedent: text(form, "antecedent"),
+              userBehavior: text(form, "userBehavior"),
+              consequence: text(form, "consequence"),
+              updatedAt: now
+            }
+          : observation
+      ),
+      hypotheses: row.hypothesisId
+        ? current.hypotheses.map((hypothesis) =>
+            hypothesis.id === row.hypothesisId
+              ? {
+                  ...hypothesis,
+                  statement: text(form, "hypothesisStatement"),
+                  evidence: text(form, "hypothesisEvidence"),
+                  counterEvidence: text(form, "hypothesisCounterEvidence"),
+                  unknowns: text(form, "hypothesisUnknowns"),
+                  updatedAt: now
+                }
+              : hypothesis
+          )
+        : current.hypotheses,
+      experiments: row.experimentId
+        ? current.experiments.map((experiment) =>
+            experiment.id === row.experimentId
+              ? {
+                  ...experiment,
+                  support: text(form, "support"),
+                  updatedAt: now
+                }
+              : experiment
+          )
+        : current.experiments,
+      actReviews: row.reviewId
+        ? current.actReviews.map((review) =>
+            review.id === row.reviewId
+              ? {
+                  ...review,
+                  immediateResponse: text(form, "immediateResponse"),
+                  laterResponse: text(form, "laterResponse"),
+                  comparison: text(form, "comparison"),
+                  updatedAt: now
+                }
+              : review
+          )
+        : current.actReviews
+    }));
+  }
+
+  function handleUpdateMemo(event: FormEvent<HTMLFormElement>, memoId: string) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const body = requiredText(form, "body");
+    if (!body) return;
+    const now = nowIso();
+    commit((current) => ({
+      ...current,
+      settings: { ...current.settings, currentCaseId: caseId },
+      cases: touchCase(current.cases, caseId),
+      reflectionMemos: current.reflectionMemos.map((memo) => (memo.id === memoId ? { ...memo, body, updatedAt: now } : memo))
+    }));
+  }
+
   return (
     <>
       <PageHeader
@@ -1910,6 +1987,7 @@ function ReflectView({
                 {rows.map((row, index) => {
                   const rowMemos = memos.filter((memo) => reflectionMemoTargetsRow(memo, row));
                   const missingLabels = missingReflectionLabels(row);
+                  const rowRecords = reflectionRowRecords(data, row);
 
                   return (
                     <article key={row.id} className={`loop-update-card rounded-md border border-ink/10 bg-white p-4 shadow-sm ${index === 0 ? "is-latest" : ""}`}>
@@ -1936,7 +2014,9 @@ function ReflectView({
                         </dl>
                       ) : null}
                       <details className="loop-update-source">
-                        <summary>記録詳細</summary>
+                        <summary>
+                          <span>記録詳細</span>
+                        </summary>
                         <dl className="loop-update-points">
                           <div>
                             <dt>観察</dt>
@@ -1963,6 +2043,71 @@ function ReflectView({
                             <dd>{row.response}</dd>
                           </div>
                         </dl>
+                        <form className="loop-update-edit-form" onSubmit={(event) => handleUpdateRowDetails(event, row)}>
+                          <div className="loop-update-edit-grid">
+                            <Label>
+                              観察メモ
+                              <Textarea name="factMemo" rows={3} defaultValue={rowRecords.observation?.factMemo ?? ""} />
+                            </Label>
+                            <Label>
+                              直前の環境
+                              <Textarea name="antecedent" rows={2} defaultValue={rowRecords.observation?.antecedent ?? ""} />
+                            </Label>
+                            <Label>
+                              行動
+                              <Textarea name="userBehavior" rows={2} defaultValue={rowRecords.observation?.userBehavior ?? ""} />
+                            </Label>
+                            <Label>
+                              直後の変化
+                              <Textarea name="consequence" rows={2} defaultValue={rowRecords.observation?.consequence ?? ""} />
+                            </Label>
+                            {rowRecords.hypothesis ? (
+                              <>
+                                <Label>
+                                  見立て
+                                  <Textarea name="hypothesisStatement" rows={3} defaultValue={rowRecords.hypothesis.statement} />
+                                </Label>
+                                <Label>
+                                  根拠
+                                  <Textarea name="hypothesisEvidence" rows={3} defaultValue={rowRecords.hypothesis.evidence} />
+                                </Label>
+                                <Label>
+                                  反証
+                                  <Textarea name="hypothesisCounterEvidence" rows={2} defaultValue={rowRecords.hypothesis.counterEvidence} />
+                                </Label>
+                                <Label>
+                                  未確認
+                                  <Textarea name="hypothesisUnknowns" rows={2} defaultValue={rowRecords.hypothesis.unknowns} />
+                                </Label>
+                              </>
+                            ) : null}
+                            {rowRecords.experiment ? (
+                              <Label>
+                                支援
+                                <Textarea name="support" rows={3} defaultValue={rowRecords.experiment.support} />
+                              </Label>
+                            ) : null}
+                            {rowRecords.review ? (
+                              <>
+                                <Label>
+                                  反応
+                                  <Textarea name="immediateResponse" rows={3} defaultValue={rowRecords.review.immediateResponse} />
+                                </Label>
+                                <Label>
+                                  後続の反応
+                                  <Textarea name="laterResponse" rows={2} defaultValue={rowRecords.review.laterResponse} />
+                                </Label>
+                                <Label>
+                                  比較
+                                  <Textarea name="comparison" rows={2} defaultValue={rowRecords.review.comparison} />
+                                </Label>
+                              </>
+                            ) : null}
+                          </div>
+                          <div className="loop-update-edit-actions">
+                            <SubmitButton>記録詳細を保存</SubmitButton>
+                          </div>
+                        </form>
                       </details>
                       {rowMemos.length > 0 ? (
                         <div className="loop-update-note-stack" aria-label="見立てへの追記">
@@ -1972,7 +2117,15 @@ function ReflectView({
                                 <Tag>{reflectionColumnLabel(memo.columnKey)}</Tag>
                                 <span>{formatShortDateTime(memo.createdAt)}</span>
                               </div>
-                              <p>{memo.body}</p>
+                              <form className="loop-update-note-form" onSubmit={(event) => handleUpdateMemo(event, memo.id)}>
+                                <Label>
+                                  追記した見立て
+                                  <Textarea name="body" rows={3} defaultValue={memo.body} required />
+                                </Label>
+                                <button type="submit" className="loop-update-note-save focus-ring">
+                                  追記を保存
+                                </button>
+                              </form>
                             </article>
                           ))}
                         </div>
@@ -2958,6 +3111,14 @@ function reflectionMemoTargetsRow(memo: ReflectionMemo, row: ReflectionRow) {
   return memo.targetRef === reflectionRowTargetRef(row) || memo.targetRef === row.id || (!row.hypothesisId && memo.targetRef === row.observationId);
 }
 
+function reflectionRowRecords(data: AppData, row: ReflectionRow) {
+  const observation = data.observations.find((item) => item.id === row.observationId) ?? null;
+  const hypothesis = row.hypothesisId ? data.hypotheses.find((item) => item.id === row.hypothesisId) ?? null : null;
+  const experiment = row.experimentId ? data.experiments.find((item) => item.id === row.experimentId) ?? null : hypothesis ? data.experiments.find((item) => item.hypothesisId === hypothesis.id) ?? null : null;
+  const review = row.reviewId ? data.actReviews.find((item) => item.id === row.reviewId) ?? null : experiment ? data.actReviews.find((item) => item.experimentId === experiment.id) ?? null : null;
+  return { observation, hypothesis, experiment, review };
+}
+
 function reflectionMemosForHypothesis(memos: ReflectionMemo[], hypothesis: HypothesisRecord) {
   const currentTarget = hypothesisMemoTargetRef(hypothesis.id);
   const legacyTarget = `${hypothesis.observationId}-${hypothesis.id}`;
@@ -2976,6 +3137,8 @@ function buildReflectionRows(data: AppData, caseId: string): ReflectionRow[] {
             id: observation.id,
             observationId: observation.id,
             hypothesisId: null,
+            experimentId: null,
+            reviewId: null,
             label: `${formatShortDate(observation.observedAt)} 観察`,
             dateLabel: formatShortDate(observation.observedAt),
             hypothesisLabel: null,
@@ -2995,6 +3158,8 @@ function buildReflectionRows(data: AppData, caseId: string): ReflectionRow[] {
           id: `${observation.id}-${hypothesis.id}`,
           observationId: observation.id,
           hypothesisId: hypothesis.id,
+          experimentId: experiment?.id ?? null,
+          reviewId: review?.id ?? null,
           label: `${formatShortDate(observation.observedAt)} ${hypothesis.category}`,
           dateLabel: formatShortDate(observation.observedAt),
           hypothesisLabel: hypothesis.category,
