@@ -156,10 +156,6 @@ button {
   outline-color: #376f8f;
 }
 
-.app-top-shell-task .brand-utility-links a:first-child {
-  display: none;
-}
-
 .record-brand-subtitle {
   max-width: 42ch;
   line-height: 1.45;
@@ -2307,24 +2303,24 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 .task-context-stage-pill {
   display: inline-flex;
   max-width: 100%;
-  min-height: 24px;
+  min-height: 30px;
   align-items: center;
   gap: 6px;
-  border-left: 3px solid var(--accent);
+  border-left: 4px solid var(--accent);
   color: var(--accent);
-  padding: 1px 0 1px 8px;
+  padding: 2px 0 2px 9px;
 }
 
 .task-context-stage-pill span {
   color: var(--accent);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 900;
   line-height: 1;
 }
 
 .task-context-stage-pill strong {
   color: var(--accent);
-  font-size: 11px;
+  font-size: 17px;
   font-weight: 900;
   line-height: 1;
 }
@@ -2334,14 +2330,6 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   font-size: 10px;
   font-weight: 800;
   line-height: 1;
-}
-
-.task-context-stage-title {
-  min-width: min(100%, 8ch);
-  color: #1f2933;
-  font-size: 17px;
-  font-weight: 900;
-  line-height: 1.18;
 }
 
 .task-context-stage-intro p {
@@ -2417,6 +2405,31 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   min-width: 104px;
 }
 
+.task-context-action a.task-context-form-jump {
+  width: fit-content;
+  min-width: 0;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, rgba(31, 41, 51, 0.12));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 8%, white);
+  box-shadow: none;
+  color: var(--accent);
+  padding: 7px 11px;
+}
+
+.task-context-action a.task-context-form-jump::after {
+  content: "\2193";
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.task-context-action a.task-context-form-jump:hover,
+.task-context-action a.task-context-form-jump:focus-visible {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, white);
+}
+
 .task-context-step-links a small {
   display: grid;
   min-width: 22px;
@@ -2433,19 +2446,25 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 
 .task-context-step-links a[aria-current="step"] {
   z-index: 1;
-  border-color: #1f2933;
-  border-bottom-color: #1f2933;
+  border-color: color-mix(in srgb, var(--accent) 50%, rgba(31, 41, 51, 0.12));
+  border-bottom-color: color-mix(in srgb, var(--accent) 50%, rgba(31, 41, 51, 0.12));
   border-bottom-right-radius: 7px;
   border-bottom-left-radius: 7px;
-  background: #1f2933;
-  color: #ffffff;
-  box-shadow: 0 8px 18px rgba(31, 41, 51, 0.18);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 12%, white), #ffffff);
+  color: #1f2933;
+  box-shadow:
+    inset 4px 0 0 var(--accent),
+    0 6px 14px color-mix(in srgb, var(--accent) 16%, transparent);
   transform: none;
 }
 
+.task-context-step-links a[aria-current="step"] span {
+  color: var(--accent);
+}
+
 .task-context-step-links a[aria-current="step"] small {
-  background: rgba(255, 255, 255, 0.18);
-  color: #ffffff;
+  background: color-mix(in srgb, var(--accent) 12%, white);
+  color: var(--accent);
 }
 
 .task-context-history-link {
@@ -5497,10 +5516,6 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     gap: 4px 7px;
   }
 
-  .task-context-stage-title {
-    font-size: 17px;
-  }
-
   .task-context-stage-pill {
     gap: 5px;
   }
@@ -5509,6 +5524,10 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     min-width: 96px;
     min-height: 32px;
     padding: 7px 10px;
+  }
+
+  .task-context-action-current a.task-context-form-jump {
+    min-width: 0;
   }
 
   .task-context-case > label select {

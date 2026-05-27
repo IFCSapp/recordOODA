@@ -421,16 +421,19 @@ function CompactWorkflowBar({
                   <span className={`task-context-stage-pill ooda-tone-${currentTaskMeta.tone}`}>
                     <span>{currentTaskMeta.step}</span>
                     <strong>{currentTaskMeta.helper}</strong>
-                    <small>{currentTaskMeta.caption}</small>
                   </span>
-                  <strong className="task-context-stage-title">{currentTaskMeta.title}</strong>
+                  {currentStepHasForm ? (
+                    <Link href={actionHref} className="task-context-form-jump">
+                      {actionLabel}
+                    </Link>
+                  ) : null}
                 </div>
                 <p>{currentTaskMeta.description}</p>
               </div>
             ) : (
               <span>{actionCopy}</span>
             )}
-            <Link href={actionHref}>{actionLabel}</Link>
+            {currentStepHasForm ? null : <Link href={actionHref}>{actionLabel}</Link>}
           </div>
         ) : null}
       </div>
@@ -884,7 +887,7 @@ function HomeFlowHeader({
           );
         })}
         <div className="ooda-flow-return" aria-hidden="true">
-          反応 → 次の観察へ戻る
+          反応から見直す
         </div>
       </div>
     </section>
