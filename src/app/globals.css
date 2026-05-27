@@ -5684,4 +5684,9 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   main :where(form.rounded-md, article.rounded-md, details.rounded-md, .record-link-card) {
     padding: 14px;
   }
+
+  /* iOS Safari zooms the page when focused form controls render below 16px. */
+  .record-app-body :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]), select, textarea) {
+    font-size: 16px !important;
+  }
 }
