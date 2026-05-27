@@ -312,7 +312,7 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
         ) : view === "home" ? (
           <HomeView data={data} selectedCaseId={selectedCase?.id ?? ""} onCaseChange={setCurrentCase} onCreateCase={createQuickCase} />
         ) : view === "cases" ? (
-          <CasesView data={data} onCreateCase={createQuickCase} />
+          <CasesView data={data} selectedCaseId={selectedCase?.id ?? ""} onCaseChange={setCurrentCase} onCreateCase={createQuickCase} />
         ) : view === "observe" ? (
           <ObserveView data={data} selectedCaseId={selectedCase?.id ?? ""} commit={commit} onNavigate={navigate} onCreateCase={createQuickCase} />
         ) : view === "orient" ? (
@@ -355,20 +355,30 @@ function CompactWorkflowBar({
   const nextAction = selected ? getCaseNextAction(selected) : null;
   const nextActionPath = nextAction?.href.split("?")[0] ?? "";
   const actionIsCurrentStep = Boolean(nextAction && nextActionPath && isStagePath(currentPath, nextActionPath));
+  const currentStepHasForm = Boolean(
+    selected &&
+      currentStepIndex >= 0 &&
+      (currentStep.stage === "Observe" ||
+        (currentStep.stage === "Orient" && selected.counts.observations > 0) ||
+        (currentStep.stage === "Decide" && selected.counts.hypotheses > 0) ||
+        (currentStep.stage === "Act" && selected.counts.experiments > 0))
+  );
+  const actionIsCurrentContext = currentStepHasForm || actionIsCurrentStep;
   const isObserveEntry = isStagePath(currentPath, "/observe");
-  const actionHref = !hasCases ? (isObserveEntry ? "#case-form" : "/observe") : actionIsCurrentStep ? "#task-form" : nextAction?.href ?? "/observe";
+  const actionHref = !hasCases ? (isObserveEntry ? "#case-form" : "/observe") : currentStepHasForm ? "#task-form" : nextAction?.href ?? "/observe";
+  const currentStepActionCopy = currentStep.stage === "Decide" ? "この画面で支援を1つ選びます。" : `この画面で${currentStep.label}します。`;
   const actionCopy = hasCases
-    ? actionIsCurrentStep
-      ? "選択中のケースは、この画面が次の入力です。"
+    ? currentStepHasForm
+      ? currentStepActionCopy
       : nextAction?.reason ?? "次に入れる場面を選びます。"
     : isObserveEntry
       ? "まず入力先のケースを用意します。"
       : "観察画面でケースを作ると始められます。";
-  const actionLabel = !hasCases ? (isObserveEntry ? "ケースを作る" : "観察から始める") : actionIsCurrentStep ? "入力欄へ" : nextAction?.label ?? "観察を入力";
-  const showNextAction = !hasCases || !actionIsCurrentStep;
+  const actionLabel = !hasCases ? (isObserveEntry ? "ケースを作る" : "観察から始める") : currentStepHasForm ? "入力欄へ" : nextAction?.label ?? "観察を入力";
+  const showNextAction = !hasCases || currentStepHasForm || !actionIsCurrentStep;
 
   return (
-    <section className={`task-context-bar ${actionIsCurrentStep ? "task-context-bar-current" : ""} ${hasCases ? "task-context-bar-utility" : ""} ${showNextAction ? "task-context-bar-with-action" : ""} ooda-tone-${hasCases ? currentStep.tone : "case"}`} aria-label="現在の作業">
+    <section className={`task-context-bar ${actionIsCurrentContext ? "task-context-bar-current" : ""} ${hasCases ? "task-context-bar-utility" : ""} ${showNextAction ? "task-context-bar-with-action" : ""} ooda-tone-${hasCases ? currentStep.tone : "case"}`} aria-label="現在の作業">
       <div className="task-context-summary">
         {!hasCases ? (
           <div className="task-context-case task-context-case-empty" aria-label="ケース">
@@ -389,7 +399,7 @@ function CompactWorkflowBar({
                 onCreateCase={onCreateCase}
                 submitLabel="作って観察へ"
               />
-              <RecordListMenu selected={selected} />
+              <CaseHistoryLink selected={selected} />
             </div>
           </div>
         )}
@@ -585,8 +595,13 @@ function CaseChangeMenu({
         ケース変更
       </button>
       <div className="case-change-menu-body">
-        <label className="case-change-menu-picker">
-          <span>既存ケースを選ぶ</span>
+        <label className="case-change-menu-picker case-change-menu-section case-change-menu-section-select">
+          <span className="case-change-menu-picker-head">
+            <span>既存ケースを選ぶ</span>
+            <Link href="/cases" className="case-change-menu-list-link">
+              ケース一覧
+            </Link>
+          </span>
           <select value={selectedCaseId} onChange={(event) => handleCaseChange(event.target.value)} aria-label={ariaLabel}>
             {items.map((item) => (
               <option key={item.id} value={item.id}>
@@ -595,8 +610,8 @@ function CaseChangeMenu({
             ))}
           </select>
         </label>
-        <div className="case-change-menu-create">
-          <span>新しいケース</span>
+        <div className="case-change-menu-create case-change-menu-section case-change-menu-section-create">
+          <span className="case-change-menu-create-title">新しいケースを作る</span>
           <QuickCaseForm onCreateCase={handleCreateCase} submitLabel={submitLabel} />
         </div>
       </div>
@@ -604,53 +619,13 @@ function CaseChangeMenu({
   );
 }
 
-function RecordListMenu({ selected }: { selected: CaseDockItem | null }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
+function CaseHistoryLink({ selected }: { selected: CaseDockItem | null }) {
   const reflectHref = selected ? `/reflect?caseId=${selected.id}` : "/reflect";
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    function handlePointerDown(event: PointerEvent) {
-      if (menuRef.current?.contains(event.target as Node)) return;
-      setIsOpen(false);
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    setIsOpen(false);
-  }, [selected?.id]);
-
   return (
-    <div ref={menuRef} className={`case-change-menu record-list-menu ${isOpen ? "is-open" : ""}`}>
-      <button type="button" className="case-change-menu-trigger" aria-expanded={isOpen} onClick={() => setIsOpen((current) => !current)}>
-        記録一覧
-      </button>
-      <div className="case-change-menu-body">
-        <div className="record-list-menu-links">
-          <Link href="/cases" className="record-list-menu-link record-list-menu-link-primary" onClick={() => setIsOpen(false)}>
-            ケース一覧
-          </Link>
-          <Link href={reflectHref} className="record-list-menu-link" onClick={() => setIsOpen(false)}>
-            これまでの記録
-          </Link>
-        </div>
-      </div>
-    </div>
+    <Link href={reflectHref} className="case-history-link">
+      これまでの記録
+    </Link>
   );
 }
 
@@ -834,13 +809,15 @@ function HomeFlowHeader({
         {selectedCase ? (
           <div className="home-current-case-actions">
             <CaseChangeMenu items={caseItems} selectedCaseId={selectedCase.id} onCaseChange={onCaseChange} onCreateCase={onCreateCase} />
-            <RecordListMenu selected={selectedCase} />
+            <CaseHistoryLink selected={selectedCase} />
           </div>
         ) : null}
 
-        <Link href={nextAction?.href ?? "/cases"} className="home-current-case-action">
-          {primaryActionLabel}
-        </Link>
+        {selectedCase && nextAction ? (
+          <Link href={nextAction.href} className="home-current-case-action">
+            {primaryActionLabel}
+          </Link>
+        ) : null}
       </div>
       <div className="ooda-flow-map" aria-label={selectedCase ? `${selectedCase.displayName}のOODAステップ` : "OODAステップ"}>
         {stageLinks.map((item, index) => {
@@ -879,6 +856,9 @@ function HomeFlowHeader({
             </div>
           );
         })}
+        <div className="ooda-flow-return" aria-hidden="true">
+          反応 → 次の観察へ戻る
+        </div>
       </div>
     </section>
   );
@@ -916,12 +896,26 @@ function CaseMiniFlow({ item }: { item: CaseDockItem }) {
           </Link>
         );
       })}
+      <div className="case-mini-flow-return" aria-hidden="true">
+        反応 → 観察へ
+      </div>
     </div>
   );
 }
 
-function CasesView({ data, onCreateCase }: { data: AppData; onCreateCase: CreateCase }) {
+function CasesView({
+  data,
+  selectedCaseId,
+  onCaseChange,
+  onCreateCase
+}: {
+  data: AppData;
+  selectedCaseId: string;
+  onCaseChange: (caseId: string) => void;
+  onCreateCase: CreateCase;
+}) {
   const caseItems = buildCaseDockItems(data);
+  const currentCaseId = caseItems.some((item) => item.id === selectedCaseId) ? selectedCaseId : caseItems[0]?.id ?? "";
 
   if (caseItems.length === 0) {
     return (
@@ -938,7 +932,6 @@ function CasesView({ data, onCreateCase }: { data: AppData; onCreateCase: Create
 
   return (
     <>
-      <PageHeader title="使うケースを選ぶ" description="次に進めるケースを選び、必要なときだけ追加します。" image="cases.png" />
       <Section title="ケース一覧">
         <details className="case-list-create">
           <summary>新しいケースを追加</summary>
@@ -946,15 +939,20 @@ function CasesView({ data, onCreateCase }: { data: AppData; onCreateCase: Create
         </details>
         <div className="grid gap-4 lg:grid-cols-2">
           {caseItems.map((item) => {
+            const isCurrent = item.id === currentCaseId;
             const nextAction = getCaseNextAction(item);
             return (
-              <article key={item.id} className="case-record-card rounded-md border border-ink/10 bg-white p-4 shadow-sm">
+              <article
+                key={item.id}
+                className={`case-record-card rounded-md border border-ink/10 bg-white p-4 shadow-sm ${isCurrent ? "is-current" : "is-muted"}`}
+                aria-current={isCurrent ? "true" : undefined}
+              >
                 <div className="case-record-head">
                   <div className="case-record-title-block">
                     <div className="case-record-title-copy">
                       <div className="case-record-title-row">
                         <h2 className="case-record-title">{item.displayName}</h2>
-                        <Tag>{item.isActive ? "利用中" : "停止中"}</Tag>
+                        <Tag>{isCurrent ? "選択中" : item.isActive ? "利用中" : "停止中"}</Tag>
                       </div>
                       <p className="case-record-meta">作成 {formatShortDate(item.createdAt)} / 更新 {formatShortDate(item.updatedAt)}</p>
                     </div>
@@ -962,10 +960,15 @@ function CasesView({ data, onCreateCase }: { data: AppData; onCreateCase: Create
                 </div>
                 <p className="case-record-memo">{item.memo || "メモはまだありません。"}</p>
                 <CaseMiniFlow item={item} />
-                <div className="case-next-action-panel">
-                  <Link href={nextAction.href} className="case-primary-action">
-                    {nextAction.label}
+                <div className="case-next-action-panel case-list-card-actions">
+                  <Link href={nextAction.href} className="case-primary-action" onClick={() => onCaseChange(item.id)}>
+                    次の入力へ: {nextAction.label}
                   </Link>
+                  {!isCurrent ? (
+                    <button type="button" className="case-list-select-button" onClick={() => onCaseChange(item.id)}>
+                      このケースに変更
+                    </button>
+                  ) : null}
                 </div>
                 <details className="case-card-secondary">
                   <summary>ほかの確認</summary>
@@ -1479,6 +1482,10 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
               試す支援 <RequiredMark />
               <Textarea name="support" rows={5} placeholder="今回試す支援を1つ" required />
             </Label>
+            <Label>
+              狙う変化 <RequiredMark />
+              <Textarea name="targetChange" rows={3} placeholder="何がどう変わると見立ての確認になるか" required />
+            </Label>
             <details className="secondary-field-details">
               <summary>今は試さない候補を残す</summary>
               <div className="mt-3">
@@ -1529,11 +1536,7 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
               </Label>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
-              <Label>
-                狙う変化 <RequiredMark />
-                <Textarea name="targetChange" rows={3} placeholder="何がどう変わると見立ての確認になるか" required />
-              </Label>
+            <div className="grid gap-4 md:grid-cols-2">
               <Label>
                 注意点
                 <Textarea name="cautions" rows={3} placeholder="支援を増やしすぎない、声かけを短くする等" />
@@ -1800,7 +1803,17 @@ function ReflectView({
 
   return (
     <>
-      <PageHeader title="OODAの積み重ね" description="一巡ごとの観察、見立て、支援、反応を並べ、次に見る一点へ戻します。" image="reflect.png" action={<LinkButton href={nextObserveHref}>次の観察へ</LinkButton>} />
+      <PageHeader
+        title="OODAの積み重ね"
+        description="一巡ごとの観察、見立て、支援、反応を並べ、次に見る一点を残します。"
+        image="reflect.png"
+        action={
+          <div className="record-page-actions">
+            <LinkButton href={nextObserveHref}>観察を入力</LinkButton>
+            <LinkButton href="/cases">ケース一覧</LinkButton>
+          </div>
+        }
+      />
 
       {data.cases.length === 0 ? (
         <EmptyState>
@@ -1876,9 +1889,14 @@ function ReflectView({
                           ))}
                         </div>
                       ) : null}
-                      <Link href={nextObserveHref} className="loop-update-next-link focus-ring">
-                        次の観察へ
-                      </Link>
+                      <div className="loop-update-next-actions">
+                        <Link href={nextObserveHref} className="loop-update-next-link focus-ring">
+                          観察を入力
+                        </Link>
+                        <Link href="/cases" className="loop-update-next-link loop-update-next-link-secondary focus-ring">
+                          ケース一覧
+                        </Link>
+                      </div>
                     </article>
                   );
                 })}
