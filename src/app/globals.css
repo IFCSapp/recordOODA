@@ -926,14 +926,81 @@ button {
   display: grid;
   gap: 12px;
   margin-top: 12px;
-  border-top: 1px solid rgba(31, 41, 51, 0.08);
+  border-top: 1px solid rgba(55, 111, 143, 0.12);
   padding-top: 12px;
+}
+
+.loop-update-edit-sections {
+  display: grid;
+  gap: 12px;
+}
+
+.loop-update-edit-section {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  border: 1px solid rgba(31, 41, 51, 0.08);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.82);
+  padding: 12px;
+}
+
+.loop-update-edit-section h4 {
+  color: #173047;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.35;
 }
 
 .loop-update-edit-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.loop-update-edit-checkboxes {
+  display: grid;
+  gap: 10px;
+}
+
+.loop-update-edit-checkbox-group {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.loop-update-edit-checkbox-group legend {
+  color: rgba(31, 41, 51, 0.72);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.loop-update-edit-checkbox-group > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.loop-update-edit-checkbox-group label {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(55, 111, 143, 0.16);
+  border-radius: 6px;
+  background: rgba(248, 250, 247, 0.78);
+  color: rgba(31, 41, 51, 0.78);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.25;
+  padding: 7px 9px;
+}
+
+.loop-update-edit-checkbox-group input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
 }
 
 .loop-update-edit-actions {
@@ -978,7 +1045,26 @@ button {
   gap: 8px;
 }
 
-.loop-update-note-save {
+.loop-update-note-body {
+  color: #1f2933;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.65;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.loop-update-note-actions,
+.loop-update-note-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.loop-update-note-save,
+.loop-update-note-quiet,
+.loop-update-note-delete {
   width: fit-content;
   min-height: 34px;
   border: 1px solid rgba(55, 111, 143, 0.28);
@@ -992,9 +1078,22 @@ button {
 }
 
 .loop-update-note-save:hover,
-.loop-update-note-save:focus-visible {
+.loop-update-note-save:focus-visible,
+.loop-update-note-quiet:hover,
+.loop-update-note-quiet:focus-visible {
   border-color: #376f8f;
   background: rgba(225, 240, 249, 0.56);
+}
+
+.loop-update-note-delete {
+  border-color: rgba(164, 95, 69, 0.28);
+  color: #8a4f38;
+}
+
+.loop-update-note-delete:hover,
+.loop-update-note-delete:focus-visible {
+  border-color: #a45f45;
+  background: rgba(255, 248, 245, 0.9);
 }
 
 .loop-update-next-actions {
