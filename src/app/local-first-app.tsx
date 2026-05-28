@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element -- Public PNGs need explicit GitHub Pages paths on mobile Safari. */
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode, type TextareaHTMLAttributes } from "react";
 
 export type LocalFirstView = "home" | "cases" | "observe" | "orient" | "decide" | "act" | "reflect" | "search" | "export" | "files";
 
@@ -170,9 +170,54 @@ function publicAssetPath(path: string) {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   return `${PUBLIC_BASE_PATH}${normalizedPath}`;
 }
-const BEHAVIOR_TAGS = ["開始できない", "手が止まる", "席を離れる", "返事のみ", "質問しない", "確認を繰り返す", "表情が硬い", "自分から話す"];
-const OBSERVATION_CHECK_ITEMS = ["行動", "表情・身体", "環境変化", "本人の言葉", "直前の支援者行動", "安全リスク"];
-const OBSERVATION_TIMING_OPTIONS = ["開始前", "開始直後", "実施中", "終了前", "終了後", "休憩後", "予定変更後", "未確認"];
+type AbaTagOption = {
+  label: string;
+  note?: string;
+  insertText?: string;
+};
+
+const ABA_SCENE_CONTEXT_TAGS: AbaTagOption[] = [
+  { label: "疲れ・眠気" },
+  { label: "空腹・体調" },
+  { label: "予定変更" },
+  { label: "課題前の流れ" },
+  { label: "待ち時間" },
+  { label: "周囲の刺激" },
+  { label: "人の多さ" },
+  { label: "見通し不足" }
+];
+const ABA_ANTECEDENT_TAGS: AbaTagOption[] = [
+  { label: "指示が出た" },
+  { label: "声かけがあった" },
+  { label: "課題が提示された" },
+  { label: "選択肢が示された" },
+  { label: "場所が変わった" },
+  { label: "物の配置が変わった" },
+  { label: "支援者が近づいた" },
+  { label: "周囲の反応があった" }
+];
+const ABA_BEHAVIOR_TAGS: AbaTagOption[] = [
+  { label: "開始できない" },
+  { label: "手が止まる" },
+  { label: "席を離れる" },
+  { label: "返事のみ" },
+  { label: "質問しない" },
+  { label: "確認を繰り返す" },
+  { label: "表情が硬い" },
+  { label: "自分から話す" },
+  { label: "援助を求める" },
+  { label: "拒否する" }
+];
+const ABA_CONSEQUENCE_TAGS: AbaTagOption[] = [
+  { label: "正の強化", note: "称賛・好きな活動が増えた", insertText: "正の強化: 称賛・好きな活動が増えた" },
+  { label: "正の弱化", note: "注意・叱責が加わった", insertText: "正の弱化: 注意・叱責が加わった" },
+  { label: "負の強化", note: "苦手な課題・刺激が減った", insertText: "負の強化: 苦手な課題・刺激が減った" },
+  { label: "負の弱化", note: "好きな活動・物・関わりがなくなった", insertText: "負の弱化: 好きな活動・物・関わりがなくなった" },
+  { label: "待った" },
+  { label: "手順を再提示した" },
+  { label: "課題量を調整した" },
+  { label: "反応なし" }
+];
 const HYPOTHESIS_CATEGORIES = ["予定変更への弱さ", "理解・段取り負荷", "感覚・環境負荷", "対人・評価負荷", "疲労・体調", "援助要求の難しさ", "好み・価値とのずれ"];
 const HYPOTHESIS_STATUSES: HypothesisStatus[] = ["未検証", "検証中", "強まった", "弱まった", "保留"];
 const EXPERIMENT_STATUSES: ExperimentStatus[] = ["予定", "実施中", "完了", "中止"];
@@ -761,7 +806,7 @@ function HomeView({
               <LinkCard key={item.id} href={`/orient?observationId=${item.id}`}>
                 <CardTop title={caseName(data, item.caseId)} meta={formatShortDateTime(item.observedAt)} />
                 <p className="mt-2 line-clamp-2 text-sm leading-6 text-ink/70">{item.factMemo || item.userBehavior || "事実メモは未記録です。"}</p>
-                <TagRow tags={[item.programName, item.timing, ...item.behaviorTags.slice(0, 2)]} />
+                <TagRow tags={[item.programName, ...item.behaviorTags.slice(0, 2)]} />
               </LinkCard>
             ))
           )}
@@ -1087,7 +1132,7 @@ function ObserveView({
     if (!observation.location || !observation.programName || !observation.timing || !observation.antecedent || !observation.userBehavior || !observation.consequence) {
       if (!observation.location) errors.location = "場所を入力してください。";
       if (!observation.programName) errors.programName = "活動を入力してください。";
-      if (!observation.timing) errors.timing = "タイミングを選んでください。";
+      if (!observation.timing) errors.timing = "場面の状況・詳細を入力してください。";
       if (!observation.antecedent) errors.antecedent = "直前の環境を入力してください。";
       if (!observation.userBehavior) errors.userBehavior = "利用者の行動を入力してください。";
       if (!observation.consequence) errors.consequence = "直後の環境の変化を入力してください。";
@@ -1159,51 +1204,21 @@ function ObserveView({
                   <Input name="programName" placeholder="PC課題、面談、清掃など" required aria-invalid={hasFieldError(fieldErrors, "programName")} aria-describedby={fieldErrorId("programName")} />
                   <FieldError errors={fieldErrors} name="programName" />
                 </Label>
-                <Label>
-                  タイミング <RequiredMark />
-                  <Select name="timing" required defaultValue="開始前" aria-invalid={hasFieldError(fieldErrors, "timing")} aria-describedby={fieldErrorId("timing")}>
-                    {["開始前", "開始直後", "実施中", "終了前", "終了後", "休憩後", "予定変更後", "未確認"].map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </Select>
-                  <FieldError errors={fieldErrors} name="timing" />
-                </Label>
-                <Label>
-                  直前の環境 <RequiredMark />
-                  <Input name="antecedent" placeholder="指示、予定変更、場所の変化、周囲の声かけなど" required aria-invalid={hasFieldError(fieldErrors, "antecedent")} aria-describedby={fieldErrorId("antecedent")} />
-                  <FieldError errors={fieldErrors} name="antecedent" />
-                </Label>
               </div>
 
-              <Label>
-                利用者の行動 <RequiredMark />
-                <Textarea name="userBehavior" rows={3} placeholder="手が止まった、席を離れた、質問せず画面を見ていたなど" required aria-invalid={hasFieldError(fieldErrors, "userBehavior")} aria-describedby={fieldErrorId("userBehavior")} />
-                <FieldError errors={fieldErrors} name="userBehavior" />
-              </Label>
+              <AbaTextAreaField label="場面の状況・詳細" name="timing" required rows={3} placeholder="疲れ、空腹、予定変更、課題前の流れ、周囲の刺激、待ち時間など" errors={fieldErrors} exampleHelper="疲れ、空腹、予定変更など" options={ABA_SCENE_CONTEXT_TAGS} />
 
-              <Label>
-                直後の環境の変化 <RequiredMark />
-                <Textarea name="consequence" rows={3} placeholder="支援者の対応、周囲の変化、本人の次の行動など" required aria-invalid={hasFieldError(fieldErrors, "consequence")} aria-describedby={fieldErrorId("consequence")} />
-                <FieldError errors={fieldErrors} name="consequence" />
-              </Label>
+              <AbaTextAreaField label="直前の環境" name="antecedent" required rows={3} placeholder="指示、予定変更、場所の変化、周囲の声かけなど" errors={fieldErrors} exampleHelper="指示、声かけ、課題提示など" options={ABA_ANTECEDENT_TAGS} />
+
+              <AbaTextAreaField label="利用者の行動" name="userBehavior" required rows={3} placeholder="手が止まった、席を離れた、質問せず画面を見ていたなど" errors={fieldErrors} exampleHelper="止まる、離席、確認など" options={ABA_BEHAVIOR_TAGS} />
+
+              <AbaTextAreaField label="直後の環境の変化" name="consequence" required rows={3} placeholder="支援者の対応、周囲の変化、本人の次の行動など" errors={fieldErrors} exampleHelper="強化・弱化の候補" options={ABA_CONSEQUENCE_TAGS} />
             </div>
 
             <details className="observe-disclosure">
               <summary>
-                <span>迷ったら見るチェック</span>
-                <small>行動、表情、環境、安全など</small>
-              </summary>
-              <div className="observe-disclosure-body">
-                <CheckboxGroup name="observationChecklist" title="今回見たもの" options={OBSERVATION_CHECK_ITEMS} />
-              </div>
-            </details>
-
-            <details className="observe-disclosure">
-              <summary>
                 <span>必要なら補足</span>
-                <small>本人の言葉、タグ、未確認点</small>
+                <small>本人の言葉、未確認点</small>
               </summary>
               <div className="observe-disclosure-body">
                 <Label>
@@ -1215,8 +1230,6 @@ function ObserveView({
                   一行メモ <OptionalMark />
                   <Textarea name="freeText" rows={3} placeholder="見えた流れを一行で置く" />
                 </Label>
-
-                <CheckboxGroup name="behaviorTags" title="行動タグ" options={BEHAVIOR_TAGS} />
 
                 <Label>
                   未確認メモ <OptionalMark />
@@ -2258,16 +2271,14 @@ function ReflectionRowDetails({
               ["日時", formatShortDateTime(observation.observedAt)],
               ["場所", observation.location],
               ["活動", observation.programName],
-              ["タイミング", observation.timing],
+              ["場面の状況・詳細", observation.timing],
               ["直前の環境", observation.antecedent],
               ["利用者の行動", observation.userBehavior],
               ["直後の環境の変化", observation.consequence],
               ["事実メモ", observation.factMemo],
               ["本人の言葉", observation.personWords],
               ["一行メモ", observation.freeText],
-              ["未確認メモ", observation.unknownMemo],
-              ["今回見たもの", observation.observationChecklist.join("、")],
-              ["行動タグ", observation.behaviorTags.join("、")]
+              ["未確認メモ", observation.unknownMemo]
             ]}
           />
         </ReflectionDetailSection>
@@ -2431,28 +2442,10 @@ function ReflectionObservationEditForm({
           活動
           <Input name="observationProgramName" defaultValue={observation.programName} />
         </Label>
-        <Label>
-          タイミング
-          <Select name="observationTiming" defaultValue={observation.timing}>
-            {uniqueOptions(OBSERVATION_TIMING_OPTIONS, observation.timing).map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </Select>
-        </Label>
-        <Label>
-          直前の環境
-          <Textarea name="observationAntecedent" rows={2} defaultValue={observation.antecedent} />
-        </Label>
-        <Label>
-          利用者の行動
-          <Textarea name="observationUserBehavior" rows={2} defaultValue={observation.userBehavior} />
-        </Label>
-        <Label>
-          直後の環境の変化
-          <Textarea name="observationConsequence" rows={2} defaultValue={observation.consequence} />
-        </Label>
+        <AbaTextAreaField label="場面の状況・詳細" name="observationTiming" rows={2} defaultValue={observation.timing} exampleHelper="疲れ、空腹、予定変更など" options={ABA_SCENE_CONTEXT_TAGS} />
+        <AbaTextAreaField label="直前の環境" name="observationAntecedent" rows={2} defaultValue={observation.antecedent} exampleHelper="指示、声かけ、課題提示など" options={ABA_ANTECEDENT_TAGS} />
+        <AbaTextAreaField label="利用者の行動" name="observationUserBehavior" rows={2} defaultValue={observation.userBehavior} exampleHelper="止まる、離席、確認など" options={ABA_BEHAVIOR_TAGS} />
+        <AbaTextAreaField label="直後の環境の変化" name="observationConsequence" rows={2} defaultValue={observation.consequence} exampleHelper="強化・弱化の候補" options={ABA_CONSEQUENCE_TAGS} />
         <Label>
           事実メモ
           <Textarea name="observationFactMemo" rows={3} defaultValue={observation.factMemo} />
@@ -2469,10 +2462,6 @@ function ReflectionObservationEditForm({
           未確認メモ
           <Textarea name="observationUnknownMemo" rows={2} defaultValue={observation.unknownMemo} />
         </Label>
-      </div>
-      <div className="loop-update-edit-checkboxes">
-        <EditableCheckboxGroup name="observationChecklist" title="今回見たもの" options={OBSERVATION_CHECK_ITEMS} selected={observation.observationChecklist} />
-        <EditableCheckboxGroup name="observationBehaviorTags" title="行動タグ" options={BEHAVIOR_TAGS} selected={observation.behaviorTags} />
       </div>
       <ReflectionEditActions saveLabel="観察を保存" onCancel={onCancel} />
     </form>
@@ -3047,6 +3036,105 @@ function hasFieldError(errors: FieldErrors, name: string) {
   return Boolean(errors[name]);
 }
 
+function AbaTextAreaField({
+  label,
+  name,
+  required = false,
+  exampleHelper,
+  options,
+  errors,
+  id,
+  ...textareaProps
+}: {
+  label: string;
+  name: string;
+  exampleHelper: string;
+  options: readonly AbaTagOption[];
+  errors?: FieldErrors;
+} & TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const fieldId = id ?? name;
+  const errorProps = errors
+    ? {
+        "aria-invalid": hasFieldError(errors, name),
+        "aria-describedby": fieldErrorId(name)
+      }
+    : {};
+
+  return (
+    <div className="observe-aba-field">
+      <label htmlFor={fieldId} className="record-label block text-sm font-medium text-ink/80">
+        {label} {required ? <RequiredMark /> : null}
+      </label>
+      <AbaTagDisclosure helper={exampleHelper} targetName={name} options={options} />
+      <Textarea {...textareaProps} {...errorProps} id={fieldId} name={name} required={required} />
+      {errors ? <FieldError errors={errors} name={name} /> : null}
+    </div>
+  );
+}
+
+function AbaTagDisclosure({
+  helper,
+  targetName,
+  options
+}: {
+  helper: string;
+  targetName: string;
+  options: readonly AbaTagOption[];
+}) {
+  function handleChange(event: ChangeEvent<HTMLInputElement>) {
+    const checkbox = event.currentTarget;
+    const field = checkbox.form?.elements.namedItem(targetName);
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return;
+    updateTextFieldWithTag(field, checkbox.value, checkbox.checked);
+  }
+
+  return (
+    <details className="observe-disclosure observe-aba-disclosure">
+      <summary>
+        <span>記述例：{helper}</span>
+      </summary>
+      <div className="observe-disclosure-body">
+        <div className="observe-aba-tag-grid">
+          {options.map((option) => {
+            const value = option.insertText ?? option.label;
+            return (
+              <label key={value} className="observe-aba-tag-option">
+                <input type="checkbox" value={value} onChange={handleChange} />
+                <span>
+                  <strong>{option.label}</strong>
+                  {option.note ? <small>{option.note}</small> : null}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+    </details>
+  );
+}
+
+function updateTextFieldWithTag(field: HTMLInputElement | HTMLTextAreaElement, tag: string, checked: boolean) {
+  const line = `・${tag}`;
+  const lines = field.value
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const normalizedTag = normalizeTagLine(line);
+  const hasTag = lines.some((item) => normalizeTagLine(item) === normalizedTag);
+  const nextLines = checked
+    ? hasTag
+      ? lines
+      : [...lines, line]
+    : lines.filter((item) => normalizeTagLine(item) !== normalizedTag);
+  field.value = nextLines.join("\n");
+  field.dispatchEvent(new Event("input", { bubbles: true }));
+  field.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+function normalizeTagLine(value: string) {
+  return value.trim().replace(/^・\s*/, "");
+}
+
 function Notice({ children }: { children: ReactNode }) {
   return <div className="record-notice rounded-md border border-skyline/30 bg-skyline/10 px-4 py-3 text-sm leading-6 text-skyline">{children}</div>;
 }
@@ -3067,6 +3155,22 @@ function TagRow({ tags }: { tags: string[] }) {
   );
 }
 
+function CheckboxGroup({ title, name, options }: { title: string; name: string; options: readonly string[] }) {
+  return (
+    <fieldset>
+      <legend className="mb-2 text-sm font-semibold text-ink/80">{title}</legend>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => (
+          <label key={option} className="flex items-center gap-2 rounded-md border border-ink/10 bg-field px-3 py-2 text-sm text-ink/75">
+            <input type="checkbox" name={name} value={option} className="h-4 w-4 rounded border-ink/20" />
+            {option}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
 function LinkCard({ href, children }: { href: string; children: ReactNode }) {
   return (
     <Link href={href} className="record-link-card rounded-md border border-ink/10 bg-white p-4 shadow-sm transition hover:border-skyline hover:bg-field/60">
@@ -3081,22 +3185,6 @@ function CardTop({ title, meta }: { title: string; meta: string }) {
       <strong className="record-card-title">{title}</strong>
       <span className="record-card-meta">{meta}</span>
     </div>
-  );
-}
-
-function CheckboxGroup({ title, name, options }: { title: string; name: string; options: readonly string[] }) {
-  return (
-    <fieldset>
-      <legend className="mb-2 text-sm font-semibold text-ink/80">{title}</legend>
-      <div className="flex flex-wrap gap-2">
-        {options.map((option) => (
-          <label key={option} className="flex items-center gap-2 rounded-md border border-ink/10 bg-field px-3 py-2 text-sm text-ink/75">
-            <input type="checkbox" name={name} value={option} className="h-4 w-4 rounded border-ink/20" />
-            {option}
-          </label>
-        ))}
-      </div>
-    </fieldset>
   );
 }
 

@@ -24,7 +24,7 @@ export const observationSchema = z.object({
   observedAt: dateLike,
   location: requiredText("場所"),
   programName: requiredText("プログラム名"),
-  timing: requiredText("タイミング"),
+  timing: requiredText("場面の状況・詳細"),
   freeText: optionalText,
   factMemo: requiredText("事実メモ"),
   behaviorTags: z.array(z.string()).default([]),
