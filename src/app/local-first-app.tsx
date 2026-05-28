@@ -109,10 +109,13 @@ type ReflectionMemo = {
 
 type ReflectionRow = {
   id: string;
+  caseId: string;
   observationId: string;
   hypothesisId: string | null;
   experimentId: string | null;
   reviewId: string | null;
+  observedAt: string;
+  updatedAt: string;
   label: string;
   dateLabel: string;
   hypothesisLabel: string | null;
@@ -125,6 +128,7 @@ type ReflectionRow = {
 };
 
 type ReflectionRecordSectionKey = "observation" | "hypothesis" | "experiment" | "review";
+type ReflectionSortMode = "newest" | "oldest" | "updated" | "missing";
 
 type AppData = {
   version: 1;
@@ -334,10 +338,8 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
           <DecideView data={data} commit={commit} onNavigate={navigate} />
         ) : view === "act" ? (
           <ActView data={data} commit={commit} onNavigate={navigate} />
-        ) : view === "reflect" ? (
+        ) : view === "reflect" || view === "search" ? (
           <ReflectView data={data} selectedCaseId={selectedCase?.id ?? ""} commit={commit} onNavigate={navigate} onCreateCase={createCaseAndOpenReflection} />
-        ) : view === "search" ? (
-          <SearchView data={data} />
         ) : view === "export" ? (
           <ExportView data={data} />
         ) : (
@@ -1022,12 +1024,6 @@ function CasesView({
                     振り返る
                   </Link>
                 </div>
-                <details className="case-card-secondary">
-                  <summary>ほかの確認</summary>
-                  <div className="case-card-secondary-links">
-                    <ActionLink href={`/search?caseId=${item.id}`}>類似場面</ActionLink>
-                  </div>
-                </details>
               </article>
             );
           })}
@@ -1800,39 +1796,57 @@ function ReflectView({
   onNavigate: (href: string) => void;
   onCreateCase: CreateCase;
 }) {
-  const [formError, setFormError] = useState("");
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get("q") || "";
+  const [filterQuery, setFilterQuery] = useState(initialQuery);
+  const [sortMode, setSortMode] = useState<ReflectionSortMode>("newest");
+  const [memoFormError, setMemoFormError] = useState<{ targetRef: string; message: string } | null>(null);
   const [editingMemoIds, setEditingMemoIds] = useState<string[]>([]);
   const [editingDetailSectionIds, setEditingDetailSectionIds] = useState<string[]>([]);
   const caseId = selectedCaseId || data.cases[0]?.id || "";
   const selectedCase = data.cases.find((item) => item.id === caseId) ?? null;
   const caseItems = buildCaseDockItems(data);
   const rows = buildReflectionRows(data, caseId);
-  const memos = data.reflectionMemos.filter((memo) => memo.caseId === caseId).sort(byNewest);
+  const allRows = data.cases.flatMap((item) => buildReflectionRows(data, item.id));
+  const allMemos = [...data.reflectionMemos].sort(byNewest);
+  const memos = allMemos.filter((memo) => memo.caseId === caseId);
   const memoTargetRows = rows.filter((row) => row.hypothesisId);
   const unplacedMemos = memos.filter((memo) => !rows.some((row) => reflectionMemoTargetsRow(memo, row)));
+  const normalizedQuery = filterQuery.trim().toLowerCase();
+  const visibleRows = sortReflectionRows(
+    (normalizedQuery ? allRows.filter((row) => reflectionRowMatchesSearch(data, row, normalizedQuery)) : rows),
+    sortMode,
+    allMemos
+  );
+  const isSearching = Boolean(normalizedQuery);
   const nextObserveHref = caseId ? `/observe?caseId=${caseId}` : "/observe";
+
+  useEffect(() => {
+    setFilterQuery(initialQuery);
+  }, [initialQuery]);
 
   function handleCreateMemo(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const targetRef = text(form, "targetRef");
+    const targetCaseId = text(form, "caseId") || caseId;
     const body = requiredText(form, "body");
-    if (!caseId) {
-      setFormError("ケースを選んでください。");
+    if (!targetCaseId) {
+      setMemoFormError({ targetRef, message: "ケースを選んでください。" });
+      return;
+    }
+    if (!targetRef) {
+      setMemoFormError({ targetRef, message: "見立てを追記する記録を選んでください。" });
       return;
     }
     if (!body) {
-      setFormError("追記メモを入力してください。");
-      return;
-    }
-    const targetRef = text(form, "targetRef");
-    if (!targetRef) {
-      setFormError("見立てを追記する記録を選んでください。");
+      setMemoFormError({ targetRef, message: "追記メモを入力してください。" });
       return;
     }
     const now = nowIso();
     const memo: ReflectionMemo = {
       id: newId("memo"),
-      caseId,
+      caseId: targetCaseId,
       targetRef,
       columnKey: text(form, "columnKey") || "orientation",
       body,
@@ -1841,11 +1855,11 @@ function ReflectView({
     };
     commit((current) => ({
       ...current,
-      settings: { ...current.settings, currentCaseId: caseId },
-      cases: touchCase(current.cases, caseId),
+      settings: { ...current.settings, currentCaseId: current.settings.currentCaseId || targetCaseId },
+      cases: touchCase(current.cases, targetCaseId),
       reflectionMemos: [memo, ...current.reflectionMemos]
     }));
-    setFormError("");
+    setMemoFormError(null);
     event.currentTarget.reset();
   }
 
@@ -1856,8 +1870,8 @@ function ReflectView({
     const now = nowIso();
     commit((current) => ({
       ...current,
-      settings: { ...current.settings, currentCaseId: caseId },
-      cases: touchCase(current.cases, caseId),
+      settings: { ...current.settings, currentCaseId: current.settings.currentCaseId || row.caseId },
+      cases: touchCase(current.cases, row.caseId),
       observations:
         editSection === "observation"
           ? current.observations.map((observation) => {
@@ -1953,11 +1967,12 @@ function ReflectView({
     const form = new FormData(event.currentTarget);
     const body = requiredText(form, "body");
     if (!body) return;
+    const memoCaseId = data.reflectionMemos.find((memo) => memo.id === memoId)?.caseId || caseId;
     const now = nowIso();
     commit((current) => ({
       ...current,
-      settings: { ...current.settings, currentCaseId: caseId },
-      cases: touchCase(current.cases, caseId),
+      settings: { ...current.settings, currentCaseId: current.settings.currentCaseId || memoCaseId },
+      cases: touchCase(current.cases, memoCaseId),
       reflectionMemos: current.reflectionMemos.map((memo) => (memo.id === memoId ? { ...memo, body, updatedAt: now } : memo))
     }));
     setEditingMemoIds((current) => current.filter((id) => id !== memoId));
@@ -1965,10 +1980,11 @@ function ReflectView({
 
   function handleDeleteMemo(memoId: string) {
     if (!window.confirm("追記した見立てを削除しますか？")) return;
+    const memoCaseId = data.reflectionMemos.find((memo) => memo.id === memoId)?.caseId || caseId;
     commit((current) => ({
       ...current,
-      settings: { ...current.settings, currentCaseId: caseId },
-      cases: touchCase(current.cases, caseId),
+      settings: { ...current.settings, currentCaseId: current.settings.currentCaseId || memoCaseId },
+      cases: touchCase(current.cases, memoCaseId),
       reflectionMemos: current.reflectionMemos.filter((memo) => memo.id !== memoId)
     }));
     setEditingMemoIds((current) => current.filter((id) => id !== memoId));
@@ -2050,24 +2066,60 @@ function ReflectView({
             </div>
           </section>
 
-          <Section title="積み重ねたループ" description={selectedCase?.memo || "反応までの記録を一巡ごとに並べて確認します。"}>
-            {rows.length === 0 ? (
+          <section className="reflection-search-panel" aria-label="検索と並び替え">
+            <div className="reflection-search-panel-head">
+              <div>
+                <strong>検索と並び替え</strong>
+                <span>{isSearching ? `全ケースから ${visibleRows.length}件` : `このケースの記録 ${visibleRows.length}件`}</span>
+              </div>
+              <small>キーワード入力時は全ケースから探します。</small>
+            </div>
+            <div className="reflection-search-controls">
+              <Label>
+                キーワード
+                <Input type="search" value={filterQuery} onChange={(event) => setFilterQuery(event.target.value)} placeholder="場所、活動、行動、見立て、支援、反応" />
+              </Label>
+              <Label>
+                並び替え
+                <Select value={sortMode} onChange={(event) => setSortMode(event.target.value as ReflectionSortMode)}>
+                  <option value="newest">新しい順</option>
+                  <option value="oldest">古い順</option>
+                  <option value="updated">最近更新した順</option>
+                  <option value="missing">記録なしがある順</option>
+                </Select>
+              </Label>
+            </div>
+          </section>
+
+          <Section
+            title="積み重ねたループ"
+            description={isSearching ? `「${filterQuery.trim()}」に合う記録を表示しています。` : selectedCase?.memo || "反応までの記録を一巡ごとに並べて確認します。"}
+          >
+            {visibleRows.length === 0 ? (
               <EmptyState>
-                まだOODAの積み重ねはありません。観察から始めると、ここに順番に並びます。
+                {isSearching ? "一致する記録はありません。" : "まだOODAの積み重ねはありません。観察から始めると、ここに順番に並びます。"}
               </EmptyState>
             ) : (
               <div className="loop-update-grid">
-                {rows.map((row, index) => {
-                  const rowMemos = memos.filter((memo) => reflectionMemoTargetsRow(memo, row));
+                {visibleRows.map((row) => {
+                  const rowMemos = allMemos.filter((memo) => memo.caseId === row.caseId && reflectionMemoTargetsRow(memo, row));
                   const missingLabels = missingReflectionLabels(row);
                   const rowRecords = reflectionRowRecords(data, row);
+                  const targetRef = reflectionRowTargetRef(row);
+                  const isLatestCurrentRow = row.caseId === caseId && row.id === rows[0]?.id;
 
                   return (
-                    <article key={row.id} className={`loop-update-card rounded-md border border-ink/10 bg-white p-4 shadow-sm ${index === 0 ? "is-latest" : ""}`}>
+                    <article key={row.id} className={`loop-update-card rounded-md border border-ink/10 bg-white p-4 shadow-sm ${isLatestCurrentRow ? "is-latest" : ""}`}>
                       <div className="loop-update-card-head">
-                        <span>{index === 0 ? "最新の積み重ね" : "積み重ね"}</span>
+                        <span>{isLatestCurrentRow ? "最新の積み重ね" : "積み重ね"}</span>
                         <div className="loop-update-card-meta" aria-label="記録の見出し">
                           <strong>{row.dateLabel}</strong>
+                          {isSearching && row.caseId !== caseId ? (
+                            <span>
+                              <b>ケース</b>
+                              {caseName(data, row.caseId)}
+                            </span>
+                          ) : null}
                           {row.hypothesisLabel ? (
                             <span>
                               <b>見立て</b>
@@ -2142,11 +2194,21 @@ function ReflectView({
                         </div>
                       ) : null}
                       {row.hypothesisId ? (
-                        <div className="loop-update-next-actions">
-                          <a href="#reflection-memo-form" className="loop-update-next-link loop-update-next-link-secondary focus-ring">
-                            見立てに追記する
-                          </a>
-                        </div>
+                        <form className="loop-update-inline-memo" onSubmit={handleCreateMemo} noValidate>
+                          <input type="hidden" name="caseId" value={row.caseId} />
+                          <input type="hidden" name="targetRef" value={targetRef} />
+                          <input type="hidden" name="columnKey" value="orientation" />
+                          {memoFormError?.targetRef === targetRef ? <FormError>{memoFormError.message}</FormError> : null}
+                          <Label>
+                            追記メモ
+                            <Textarea name="body" rows={2} placeholder="反応から気づいた補足、支援の調整、チーム共有したいこと" required />
+                          </Label>
+                          <div className="loop-update-inline-memo-actions">
+                            <button type="submit" className="loop-update-note-save loop-update-note-save-primary focus-ring">
+                              追記する
+                            </button>
+                          </div>
+                        </form>
                       ) : null}
                     </article>
                   );
@@ -2155,43 +2217,8 @@ function ReflectView({
             )}
           </Section>
 
-          <Section title="見立てへの追記" description="反応から気づいたことを、選んだ見立てに残します。">
-            {memoTargetRows.length === 0 ? (
-              <EmptyState>追記できる見立てはまだありません。</EmptyState>
-            ) : (
-              <form id="reflection-memo-form" onSubmit={handleCreateMemo} className="grid gap-4 rounded-md border border-ink/10 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr]" noValidate>
-                {formError ? (
-                  <div className="md:col-span-2">
-                    <FormError>{formError}</FormError>
-                  </div>
-                ) : null}
-
-                <input type="hidden" name="columnKey" value="orientation" />
-                <div className="md:col-span-2">
-                  <Label>
-                    見立てを追記する記録
-                    <Select name="targetRef">
-                      {memoTargetRows.map((row) => (
-                        <option key={row.id} value={reflectionRowTargetRef(row)}>
-                          {row.label}
-                        </option>
-                      ))}
-                    </Select>
-                  </Label>
-                </div>
-                <div className="md:col-span-2">
-                  <Label>
-                    追記メモ <RequiredMark />
-                    <Textarea name="body" rows={4} placeholder="支援の調整、チーム共有したい補足など" required />
-                  </Label>
-                </div>
-                <div className="md:col-span-2">
-                  <SubmitButton>見立てに追記する</SubmitButton>
-                </div>
-              </form>
-            )}
-
-            {unplacedMemos.length > 0 ? (
+          {unplacedMemos.length > 0 ? (
+            <Section title="ケース全体の追記">
               <div className="mt-4 grid gap-3">
                 <h3 className="text-sm font-semibold text-ink">ケース全体の追記</h3>
                 {unplacedMemos.map((memo) => (
@@ -2233,21 +2260,9 @@ function ReflectView({
                   </article>
                 ))}
               </div>
-            ) : null}
-          </Section>
+            </Section>
+          ) : null}
 
-          <Section title="積み重ねから確認する">
-            <div className="reflection-utility-grid">
-              <LinkCard href="/search">
-                <CardTop title="似た場面" meta="過去の観察" />
-                <p className="mt-2 text-sm leading-6 text-ink/70">入力済みの観察から、似ている場面を探して材料として見ます。</p>
-              </LinkCard>
-              <LinkCard href="/export">
-                <CardTop title="要約" meta="転記用" />
-                <p className="mt-2 text-sm leading-6 text-ink/70">記録詳細をもとに、共有前の短い文章を作ります。</p>
-              </LinkCard>
-            </div>
-          </Section>
         </>
       )}
     </>
@@ -2773,63 +2788,6 @@ function EditableCheckboxGroup({ title, name, options, selected }: { title: stri
   );
 }
 
-function SearchView({ data }: { data: AppData }) {
-  const searchParams = useSearchParams();
-  const initial = searchParams.get("q") || "";
-  const [query, setQuery] = useState(initial);
-  const normalized = query.trim().toLowerCase();
-  const observations = [...data.observations]
-    .filter((item) => !normalized || [caseName(data, item.caseId), item.factMemo, item.antecedent, item.userBehavior, item.consequence, item.behaviorTags.join(" ")].join(" ").toLowerCase().includes(normalized))
-    .sort(byNewest);
-
-  return (
-    <>
-      <PageHeader title="類似場面" description="過去の観察を探し、同じ原因だと決めつけずに材料として使います。" image="search.png" action={<LinkButton href="/reflect">積み重ね</LinkButton>} />
-
-      <Section title="検索">
-        <div className="rounded-md border border-ink/10 bg-white p-4 shadow-sm">
-          <Label>
-            キーワード
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="場所、活動、利用者の行動、行動タグ、事実メモ" />
-          </Label>
-        </div>
-      </Section>
-
-      <Section title="見つかった場面">
-        {observations.length === 0 ? (
-          <EmptyState>
-            {data.observations.length === 0 ? (
-              <>
-                まだ探せる観察がありません。<Link href="/observe" className="font-medium text-skyline">観察を入力</Link>から観察を残すと、ここに場面が並びます。
-              </>
-            ) : (
-              <>一致する観察はありません。</>
-            )}
-          </EmptyState>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {observations.map((observation) => {
-              const relatedHypotheses = data.hypotheses.filter((item) => item.observationId === observation.id);
-              return (
-                <LinkCard key={observation.id} href={`/reflect?caseId=${observation.caseId}`}>
-                  <CardTop title={caseName(data, observation.caseId)} meta={formatShortDateTime(observation.observedAt)} />
-                  <p className="mt-2 text-sm leading-6 text-ink/75">{observation.factMemo}</p>
-                  <TagRow tags={[observation.programName, observation.timing, ...observation.behaviorTags]} />
-                  {relatedHypotheses.length > 0 ? (
-                    <div className="hypothesis-record-panel hypothesis-record-panel-embedded">
-                      <HypothesisRecordCard data={data} hypothesis={relatedHypotheses[0]} />
-                    </div>
-                  ) : null}
-                </LinkCard>
-              );
-            })}
-          </div>
-        )}
-      </Section>
-    </>
-  );
-}
-
 function ExportView({ data }: { data: AppData }) {
   const observations = [...data.observations].sort(byNewest);
   const [selectedId, setSelectedId] = useState(observations[0]?.id ?? "");
@@ -3103,14 +3061,6 @@ function SubmitButton({ children }: { children: ReactNode }) {
 function LinkButton({ href, children }: { href: string; children: ReactNode }) {
   return (
     <Link href={href} className="record-link-button focus-ring rounded-md border border-ink/15 bg-white px-3 py-2 text-sm font-medium text-ink transition hover:border-skyline hover:text-skyline">
-      {children}
-    </Link>
-  );
-}
-
-function ActionLink({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <Link href={href} className="rounded-md border border-ink/15 bg-white px-3 py-2 text-sm font-medium text-ink transition hover:border-skyline hover:text-skyline">
       {children}
     </Link>
   );
@@ -3663,6 +3613,38 @@ function reflectionMemosForHypothesis(memos: ReflectionMemo[], hypothesis: Hypot
   return memos.filter((memo) => memo.targetRef === currentTarget || memo.targetRef === legacyTarget).sort(byNewest);
 }
 
+function latestTimestamp(...values: Array<string | undefined>) {
+  return values.filter(Boolean).sort().at(-1) ?? "";
+}
+
+function reflectionRowMatchesSearch(data: AppData, row: ReflectionRow, normalizedQuery: string) {
+  const searchable = [
+    caseName(data, row.caseId),
+    row.dateLabel,
+    row.label,
+    row.hypothesisLabel ?? "",
+    row.fact,
+    row.hypothesis,
+    row.evidence,
+    row.counter,
+    row.support,
+    row.response
+  ]
+    .join(" ")
+    .toLowerCase();
+  return searchable.includes(normalizedQuery);
+}
+
+function sortReflectionRows(rows: ReflectionRow[], sortMode: ReflectionSortMode, memos: ReflectionMemo[]) {
+  const memoCount = (row: ReflectionRow) => memos.filter((memo) => memo.caseId === row.caseId && reflectionMemoTargetsRow(memo, row)).length;
+  return [...rows].sort((a, b) => {
+    if (sortMode === "oldest") return a.observedAt.localeCompare(b.observedAt);
+    if (sortMode === "updated") return b.updatedAt.localeCompare(a.updatedAt);
+    if (sortMode === "missing") return missingReflectionLabels(b).length - missingReflectionLabels(a).length || b.observedAt.localeCompare(a.observedAt);
+    return b.observedAt.localeCompare(a.observedAt) || memoCount(b) - memoCount(a);
+  });
+}
+
 function buildReflectionRows(data: AppData, caseId: string): ReflectionRow[] {
   return data.observations
     .filter((observation) => observation.caseId === caseId)
@@ -3673,10 +3655,13 @@ function buildReflectionRows(data: AppData, caseId: string): ReflectionRow[] {
         return [
           {
             id: observation.id,
+            caseId: observation.caseId,
             observationId: observation.id,
             hypothesisId: null,
             experimentId: null,
             reviewId: null,
+            observedAt: observation.observedAt,
+            updatedAt: observation.updatedAt,
             label: `${formatShortDate(observation.observedAt)} 観察`,
             dateLabel: formatShortDate(observation.observedAt),
             hypothesisLabel: null,
@@ -3694,10 +3679,13 @@ function buildReflectionRows(data: AppData, caseId: string): ReflectionRow[] {
         const review = experiment ? data.actReviews.find((item) => item.experimentId === experiment.id) : undefined;
         return {
           id: `${observation.id}-${hypothesis.id}`,
+          caseId: observation.caseId,
           observationId: observation.id,
           hypothesisId: hypothesis.id,
           experimentId: experiment?.id ?? null,
           reviewId: review?.id ?? null,
+          observedAt: observation.observedAt,
+          updatedAt: latestTimestamp(observation.updatedAt, hypothesis.updatedAt, experiment?.updatedAt, review?.updatedAt),
           label: `${formatShortDate(observation.observedAt)} ${hypothesis.category}`,
           dateLabel: formatShortDate(observation.observedAt),
           hypothesisLabel: hypothesis.category,

@@ -1140,6 +1140,22 @@ button {
   overflow-wrap: anywhere;
 }
 
+.loop-update-inline-memo {
+  display: grid;
+  gap: 9px;
+  border-top: 1px solid rgba(55, 111, 143, 0.14);
+  padding-top: 10px;
+}
+
+.loop-update-inline-memo textarea {
+  min-height: 76px;
+}
+
+.loop-update-inline-memo-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
 .loop-update-note-actions,
 .loop-update-note-edit-actions {
   display: flex;
@@ -1169,6 +1185,18 @@ button {
 .loop-update-note-quiet:focus-visible {
   border-color: #376f8f;
   background: rgba(225, 240, 249, 0.56);
+}
+
+.loop-update-note-save-primary {
+  border-color: rgba(23, 48, 71, 0.7);
+  background: #173047;
+  color: #ffffff;
+}
+
+.loop-update-note-save-primary:hover,
+.loop-update-note-save-primary:focus-visible {
+  border-color: #376f8f;
+  background: #376f8f;
 }
 
 .loop-update-note-delete {
@@ -3403,10 +3431,55 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   width: 100%;
 }
 
-.reflection-utility-grid {
+.reflection-search-panel {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
+  margin: -10px 0 22px;
+  border: 1px solid rgba(55, 111, 143, 0.16);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 247, 0.9)),
+    #ffffff;
+  padding: 14px;
+  box-shadow: var(--shadow-card);
+}
+
+.reflection-search-panel-head {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.reflection-search-panel-head > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.reflection-search-panel-head strong {
+  color: #1f2933;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.reflection-search-panel-head span,
+.reflection-search-panel-head small {
+  color: rgba(31, 41, 51, 0.62);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.reflection-search-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
+  gap: 12px;
+  align-items: end;
 }
 
 .observe-form-shell {
@@ -5517,7 +5590,7 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     grid-template-columns: 1fr;
   }
 
-  .reflection-utility-grid {
+  .reflection-search-controls {
     grid-template-columns: 1fr;
   }
 
