@@ -209,10 +209,10 @@ const ABA_BEHAVIOR_TAGS: AbaTagOption[] = [
   { label: "手で押し返す" }
 ];
 const ABA_CONSEQUENCE_TAGS: AbaTagOption[] = [
-  { label: "正の強化", note: "称賛・好きな活動が増えた", insertText: "正の強化: 称賛・好きな活動が増えた" },
-  { label: "正の弱化", note: "注意・叱責が加わった", insertText: "正の弱化: 注意・叱責が加わった" },
-  { label: "負の強化", note: "苦手な課題・刺激が減った", insertText: "負の強化: 苦手な課題・刺激が減った" },
-  { label: "負の弱化", note: "好きな活動・物・関わりがなくなった", insertText: "負の弱化: 好きな活動・物・関わりがなくなった" },
+  { label: "称賛・好きな活動が増えた", note: "（正の強化）", insertText: "称賛・好きな活動が増えた（正の強化）" },
+  { label: "注意・叱責が加わった", note: "（正の弱化）", insertText: "注意・叱責が加わった（正の弱化）" },
+  { label: "苦手な課題・刺激が減った", note: "（負の強化）", insertText: "苦手な課題・刺激が減った（負の強化）" },
+  { label: "好きな活動・物・関わりがなくなった", note: "（負の弱化）", insertText: "好きな活動・物・関わりがなくなった（負の弱化）" },
   { label: "待った" },
   { label: "手順を再提示した" },
   { label: "課題量を調整した" },
@@ -1212,7 +1212,7 @@ function ObserveView({
 
               <AbaTextAreaField label="利用者の行動" name="userBehavior" required rows={3} placeholder="席を離れた、教材を見た、首を振った、確認を繰り返したなど" errors={fieldErrors} exampleHelper="見る、離席、確認など" options={ABA_BEHAVIOR_TAGS} />
 
-              <AbaTextAreaField label="直後の環境の変化" name="consequence" required rows={3} placeholder="支援者の対応、周囲の変化、本人の次の行動など" errors={fieldErrors} exampleHelper="強化・弱化の候補" options={ABA_CONSEQUENCE_TAGS} />
+              <AbaTextAreaField label="直後の環境の変化" name="consequence" required rows={3} placeholder="支援者の対応、周囲の変化、本人の次の行動など" errors={fieldErrors} exampleHelper="直後の変化（強化・弱化の候補）" options={ABA_CONSEQUENCE_TAGS} />
             </div>
 
             <details className="observe-disclosure">
@@ -2445,7 +2445,7 @@ function ReflectionObservationEditForm({
         <AbaTextAreaField label="場面の状況・詳細" name="observationTiming" rows={2} defaultValue={observation.timing} exampleHelper="疲れ、空腹、予定変更など" options={ABA_SCENE_CONTEXT_TAGS} />
         <AbaTextAreaField label="直前の環境" name="observationAntecedent" rows={2} defaultValue={observation.antecedent} exampleHelper="指示、声かけ、課題提示など" options={ABA_ANTECEDENT_TAGS} />
         <AbaTextAreaField label="利用者の行動" name="observationUserBehavior" rows={2} defaultValue={observation.userBehavior} exampleHelper="見る、離席、確認など" options={ABA_BEHAVIOR_TAGS} />
-        <AbaTextAreaField label="直後の環境の変化" name="observationConsequence" rows={2} defaultValue={observation.consequence} exampleHelper="強化・弱化の候補" options={ABA_CONSEQUENCE_TAGS} />
+        <AbaTextAreaField label="直後の環境の変化" name="observationConsequence" rows={2} defaultValue={observation.consequence} exampleHelper="直後の変化（強化・弱化の候補）" options={ABA_CONSEQUENCE_TAGS} />
         <Label>
           事実メモ
           <Textarea name="observationFactMemo" rows={3} defaultValue={observation.factMemo} />
