@@ -722,6 +722,13 @@ button {
   gap: 4px;
 }
 
+.record-section-title-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  align-items: center;
+}
+
 .record-section-title {
   display: flex;
   align-items: center;
@@ -739,6 +746,25 @@ button {
 
 .record-section-description {
   max-width: 78ch;
+}
+
+.record-section-heading-meta {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.record-page-title.record-page-title-fit {
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.record-page-title.record-page-title-fit-long {
+  font-size: 1.65rem;
+}
+
+.record-page-title.record-page-title-fit-xlong {
+  font-size: 1.35rem;
 }
 
 .loop-update-grid {
@@ -3313,9 +3339,14 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 .reflection-overview-panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: start;
-  margin-bottom: 22px;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.reflection-overview-panel-compact {
+  width: min(100%, 390px);
+  padding: 12px;
 }
 
 .reflection-overview-main,
@@ -3325,85 +3356,27 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 
 .reflection-overview-main {
   display: grid;
-  gap: 12px;
-}
-
-.reflection-case-current {
-  display: grid;
-  min-width: 0;
-  gap: 4px;
-}
-
-.reflection-case-current span {
-  color: rgba(31, 41, 51, 0.52);
-  font-size: 11px;
-  font-weight: 900;
-  line-height: 1.2;
-}
-
-.reflection-case-current strong {
-  overflow: hidden;
-  color: #1f2933;
-  font-size: 17px;
-  font-weight: 900;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.reflection-case-current small {
-  overflow: hidden;
-  color: rgba(31, 41, 51, 0.62);
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.45;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.reflection-overview-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 16px;
-  border-top: 1px solid rgba(31, 41, 51, 0.08);
-  padding-top: 10px;
-}
-
-.reflection-overview-stats > div {
-  display: inline-flex;
-  gap: 4px;
-  align-items: baseline;
-  border: 0;
-  background: transparent;
-  padding: 0;
-}
-
-.reflection-overview-stats dt {
-  color: rgba(31, 41, 51, 0.54);
-  font-size: 11px;
-  font-weight: 900;
-  line-height: 1.2;
-}
-
-.reflection-overview-stats dd {
-  color: #1f2933;
-  font-size: 15px;
-  font-weight: 900;
-  line-height: 1.2;
+  gap: 0;
 }
 
 .reflection-overview-actions {
   display: flex;
-  max-width: 420px;
+  width: 100%;
+  max-width: none;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
 }
 
+.reflection-overview-actions .loop-update-next-link,
+.reflection-overview-panel-compact .case-change-menu-trigger {
+  min-height: 42px;
+}
+
 .reflection-overview-switch {
   display: flex;
   justify-content: flex-end;
-  align-items: start;
+  align-items: center;
 }
 
 .reflection-case-create {
@@ -3433,53 +3406,47 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 
 .reflection-search-panel {
   display: grid;
-  gap: 12px;
-  margin: -10px 0 22px;
-  border: 1px solid rgba(55, 111, 143, 0.16);
+  gap: 0;
+  margin: -4px 0 18px;
+  border: 1px solid rgba(31, 41, 51, 0.09);
   border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 247, 0.9)),
-    #ffffff;
-  padding: 14px;
-  box-shadow: var(--shadow-card);
-}
-
-.reflection-search-panel-head {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  gap: 8px 14px;
-  align-items: flex-end;
-  justify-content: space-between;
-}
-
-.reflection-search-panel-head > div {
-  display: grid;
-  min-width: 0;
-  gap: 3px;
-}
-
-.reflection-search-panel-head strong {
-  color: #1f2933;
-  font-size: 15px;
-  font-weight: 900;
-  line-height: 1.35;
-}
-
-.reflection-search-panel-head span,
-.reflection-search-panel-head small {
-  color: rgba(31, 41, 51, 0.62);
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 9px 10px;
 }
 
 .reflection-search-controls {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
-  gap: 12px;
-  align-items: end;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px;
+  align-items: center;
+}
+
+.reflection-search-controls .record-field {
+  margin-top: 0;
+  min-height: 38px;
+  box-shadow: none;
+}
+
+.reflection-search-controls select.record-field {
+  width: 132px;
+  min-width: 0;
+  min-height: 36px;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.86);
+  color: rgba(31, 41, 51, 0.78);
+  font-size: 13px;
+  font-weight: 800;
+  padding: 6px 28px 6px 11px;
+}
+
+.reflection-search-result-count {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  color: rgba(31, 41, 51, 0.56);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .observe-form-shell {
@@ -5309,8 +5276,16 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     grid-template-columns: 1fr;
   }
 
+  .reflection-overview-panel.reflection-overview-panel-compact {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
   .reflection-overview-switch {
     justify-content: flex-start;
+  }
+
+  .reflection-overview-panel-compact .reflection-overview-switch {
+    justify-content: flex-end;
   }
 
   .reflection-overview-switch .case-change-menu.is-open .case-change-menu-body {
@@ -5318,6 +5293,12 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     left: 0;
     width: min(320px, 84vw);
     transform: none;
+  }
+
+  .reflection-overview-panel-compact .case-change-menu.is-open .case-change-menu-body {
+    right: 0;
+    left: auto;
+    width: min(320px, calc(100vw - 40px));
   }
 
   .app-top-container {
@@ -5591,7 +5572,7 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   }
 
   .reflection-search-controls {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .home-flow-header {
@@ -5644,6 +5625,10 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     justify-self: start;
   }
 
+  .reflection-overview-panel-compact .reflection-overview-switch .case-change-menu {
+    justify-self: end;
+  }
+
   .reflection-overview-actions,
   .loop-update-next-actions {
     gap: 6px;
@@ -5659,11 +5644,6 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 
   .loop-update-detail-list {
     grid-template-columns: 1fr;
-  }
-
-  .reflection-case-current strong,
-  .reflection-case-current small {
-    white-space: normal;
   }
 
   .ooda-flow-map {

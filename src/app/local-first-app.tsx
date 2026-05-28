@@ -1810,7 +1810,6 @@ function ReflectView({
   const allRows = data.cases.flatMap((item) => buildReflectionRows(data, item.id));
   const allMemos = [...data.reflectionMemos].sort(byNewest);
   const memos = allMemos.filter((memo) => memo.caseId === caseId);
-  const memoTargetRows = rows.filter((row) => row.hypothesisId);
   const unplacedMemos = memos.filter((memo) => !rows.some((row) => reflectionMemoTargetsRow(memo, row)));
   const normalizedQuery = filterQuery.trim().toLowerCase();
   const visibleRows = sortReflectionRows(
@@ -1820,6 +1819,7 @@ function ReflectView({
   );
   const isSearching = Boolean(normalizedQuery);
   const nextObserveHref = caseId ? `/observe?caseId=${caseId}` : "/observe";
+  const reflectTitle = selectedCase ? `${selectedCase.displayName || "未設定ケース"}の記録一覧` : "記録一覧";
 
   useEffect(() => {
     setFilterQuery(initialQuery);
@@ -2015,9 +2015,10 @@ function ReflectView({
   return (
     <>
       <PageHeader
-        title="OODAの積み重ね"
-        description="一巡ごとの観察、見立て、支援、反応を並べ、記録の流れを確認します。"
+        title={reflectTitle}
+        description=""
         image="reflect.png"
+        titleClassName={recordListTitleClass(reflectTitle)}
       />
 
       {data.cases.length === 0 ? (
@@ -2026,33 +2027,11 @@ function ReflectView({
         </EmptyState>
       ) : (
         <>
-          <section className="reflection-overview-panel rounded-md border border-ink/10 bg-white p-4 shadow-sm" aria-label="積み重ねの概要">
+          <section className="reflection-overview-panel reflection-overview-panel-compact rounded-md border border-ink/10 bg-white p-4 shadow-sm" aria-label="記録の操作">
             <div className="reflection-overview-main">
-              <div className="reflection-case-current">
-                <span>現在のケース</span>
-                <strong>{selectedCase?.displayName ?? "ケース未選択"}</strong>
-                <small>{selectedCase?.memo || "このケースの積み重ねを確認します。"}</small>
-              </div>
-              <dl className="reflection-overview-stats" aria-label="記録件数">
-                <div>
-                  <dt>積み重ね</dt>
-                  <dd>{rows.length}件</dd>
-                </div>
-                <div>
-                  <dt>追記</dt>
-                  <dd>{memos.length}件</dd>
-                </div>
-                <div>
-                  <dt>見立て</dt>
-                  <dd>{memoTargetRows.length}件</dd>
-                </div>
-              </dl>
               <div className="reflection-overview-actions">
                 <Link href={nextObserveHref} className="loop-update-next-link focus-ring">
                   観察を入力
-                </Link>
-                <Link href="/cases" className="loop-update-next-link loop-update-next-link-secondary focus-ring">
-                  ケース一覧
                 </Link>
               </div>
             </div>
@@ -2066,34 +2045,21 @@ function ReflectView({
             </div>
           </section>
 
-          <section className="reflection-search-panel" aria-label="検索と並び替え">
-            <div className="reflection-search-panel-head">
-              <div>
-                <strong>検索と並び替え</strong>
-                <span>{isSearching ? `全ケースから ${visibleRows.length}件` : `このケースの記録 ${visibleRows.length}件`}</span>
-              </div>
-              <small>キーワード入力時は全ケースから探します。</small>
-            </div>
+          <section className="reflection-search-panel" aria-label="記録の検索と並び替え">
             <div className="reflection-search-controls">
-              <Label>
-                キーワード
-                <Input type="search" value={filterQuery} onChange={(event) => setFilterQuery(event.target.value)} placeholder="場所、活動、行動、見立て、支援、反応" />
-              </Label>
-              <Label>
-                並び替え
-                <Select value={sortMode} onChange={(event) => setSortMode(event.target.value as ReflectionSortMode)}>
-                  <option value="newest">新しい順</option>
-                  <option value="oldest">古い順</option>
-                  <option value="updated">最近更新した順</option>
-                  <option value="missing">記録なしがある順</option>
-                </Select>
-              </Label>
+              <Input aria-label="記録を検索" type="search" value={filterQuery} onChange={(event) => setFilterQuery(event.target.value)} placeholder="記録を検索" />
+              <Select aria-label="並び替え" value={sortMode} onChange={(event) => setSortMode(event.target.value as ReflectionSortMode)}>
+                <option value="newest">新しい順</option>
+                <option value="oldest">古い順</option>
+                <option value="updated">最近更新順</option>
+                <option value="missing">記録なし優先</option>
+              </Select>
             </div>
           </section>
 
           <Section
-            title="積み重ねたループ"
-            description={isSearching ? `「${filterQuery.trim()}」に合う記録を表示しています。` : selectedCase?.memo || "反応までの記録を一巡ごとに並べて確認します。"}
+            title="記録"
+            headingMeta={<span className="reflection-search-result-count">{isSearching ? `全ケースから ${visibleRows.length}件` : `表示 ${visibleRows.length}件`}</span>}
           >
             {visibleRows.length === 0 ? (
               <EmptyState>
@@ -2945,20 +2911,22 @@ function PageHeader({
   stageMeta,
   compact = false,
   imageClassName = "",
+  titleClassName = "",
 }: {
   title: string;
-  description: string;
+  description?: string;
   image?: string;
   action?: ReactNode;
   stageMeta?: { step: string; helper: string; caption: string; tone: string };
   compact?: boolean;
   imageClassName?: string;
+  titleClassName?: string;
 }) {
   if (compact) {
     return (
       <>
         <h1 className="sr-only">{title}</h1>
-        <p className="sr-only">{description}</p>
+        {description ? <p className="sr-only">{description}</p> : null}
       </>
     );
   }
@@ -2979,7 +2947,7 @@ function PageHeader({
         ) : null}
         <div className="record-page-copy">
           <div className="record-page-title-row">
-            <h1 className="record-page-title text-3xl font-bold tracking-normal text-ink">{title}</h1>
+            <h1 className={`record-page-title text-3xl font-bold tracking-normal text-ink ${titleClassName}`}>{title}</h1>
             {stageMeta ? (
               <span className={`record-page-stage ooda-tone-${stageMeta.tone}`}>
                 <span className="record-page-stage-index">{stageMeta.step}</span>
@@ -2988,7 +2956,7 @@ function PageHeader({
               </span>
             ) : null}
           </div>
-          <p className="record-page-description mt-2 max-w-3xl text-sm leading-6 text-ink/70">{description}</p>
+          {description ? <p className="record-page-description mt-2 max-w-3xl text-sm leading-6 text-ink/70">{description}</p> : null}
         </div>
       </div>
       {action ? (
@@ -3000,11 +2968,14 @@ function PageHeader({
   );
 }
 
-function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
+function Section({ title, description, headingMeta, children }: { title: string; description?: string; headingMeta?: ReactNode; children: ReactNode }) {
   return (
     <section className="record-section mb-8">
       <div className="record-section-heading mb-3">
-        <h2 className="record-section-title text-lg font-semibold text-ink">{title}</h2>
+        <div className="record-section-title-line">
+          <h2 className="record-section-title text-lg font-semibold text-ink">{title}</h2>
+          {headingMeta ? <span className="record-section-heading-meta">{headingMeta}</span> : null}
+        </div>
         {description ? <p className="record-section-description mt-1 text-sm leading-6 text-ink/65">{description}</p> : null}
       </div>
       {children}
@@ -3597,6 +3568,12 @@ function reflectionRowTargetRef(row: ReflectionRow) {
 
 function reflectionMemoTargetsRow(memo: ReflectionMemo, row: ReflectionRow) {
   return memo.targetRef === reflectionRowTargetRef(row) || memo.targetRef === row.id || (!row.hypothesisId && memo.targetRef === row.observationId);
+}
+
+function recordListTitleClass(title: string) {
+  if (title.length >= 28) return "record-page-title-fit record-page-title-fit-xlong";
+  if (title.length >= 18) return "record-page-title-fit record-page-title-fit-long";
+  return "record-page-title-fit";
 }
 
 function reflectionRowRecords(data: AppData, row: ReflectionRow) {
