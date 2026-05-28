@@ -3518,7 +3518,7 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   position: relative;
   display: grid;
   grid-column: 1 / -1;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   padding-top: 5px;
 }
@@ -3527,8 +3527,8 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   content: "";
   position: absolute;
   top: 17px;
-  right: 9%;
-  left: 9%;
+  right: 12%;
+  left: 12%;
   height: 2px;
   border-radius: 999px;
   background: rgba(55, 111, 143, 0.16);
@@ -3652,11 +3652,6 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 
 .observe-disclosure-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.observe-disclosure-ethics {
-  border-color: rgba(164, 95, 69, 0.18);
-  background: rgba(164, 95, 69, 0.05);
 }
 
 .record-context-panel {
@@ -5563,8 +5558,8 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 
   .observe-core-flow::before {
     top: 15px;
-    right: 10%;
-    left: 10%;
+    right: 12%;
+    left: 12%;
   }
 
   .observe-core-flow span {

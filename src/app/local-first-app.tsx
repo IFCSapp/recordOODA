@@ -760,7 +760,7 @@ function HomeView({
             recentObservations.map((item) => (
               <LinkCard key={item.id} href={`/orient?observationId=${item.id}`}>
                 <CardTop title={caseName(data, item.caseId)} meta={formatShortDateTime(item.observedAt)} />
-                <p className="mt-2 line-clamp-2 text-sm leading-6 text-ink/70">{item.factMemo}</p>
+                <p className="mt-2 line-clamp-2 text-sm leading-6 text-ink/70">{item.factMemo || item.userBehavior || "事実メモは未記録です。"}</p>
                 <TagRow tags={[item.programName, item.timing, ...item.behaviorTags.slice(0, 2)]} />
               </LinkCard>
             ))
@@ -1080,7 +1080,7 @@ function ObserveView({
       observationChecklist: allText(form, "observationChecklist"),
       personWords: text(form, "personWords"),
       consentScope: "",
-      shareScope: text(form, "shareScope"),
+      shareScope: "",
       createdAt: now,
       updatedAt: now
     };
@@ -1092,7 +1092,6 @@ function ObserveView({
       if (!observation.userBehavior) errors.userBehavior = "利用者の行動を入力してください。";
       if (!observation.consequence) errors.consequence = "直後の環境の変化を入力してください。";
     }
-    if (!factMemo) errors.factMemo = "事実メモを入力してください。";
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       setFormError("未入力の必須項目があります。表示された項目を確認してください。");
@@ -1137,9 +1136,9 @@ function ObserveView({
 
             <div className="observe-minimum-group">
               <div className="observe-minimum-head">
-                <p>場面、直前の環境、行動、直後の環境の変化を区切ってから、事実メモにまとめます。</p>
+                <p>場面、直前の環境、行動、直後の環境の変化を区切って残します。必要なら最後に事実メモへまとめます。</p>
                 <div className="observe-core-flow" aria-label="入力の流れ">
-                  {["場面", "環境", "行動", "変化", "まとめ"].map((item) => (
+                  {["場面", "環境", "行動", "変化"].map((item) => (
                     <span key={item}>{item}</span>
                   ))}
                 </div>
@@ -1189,17 +1188,6 @@ function ObserveView({
                 <Textarea name="consequence" rows={3} placeholder="支援者の対応、周囲の変化、本人の次の行動など" required aria-invalid={hasFieldError(fieldErrors, "consequence")} aria-describedby={fieldErrorId("consequence")} />
                 <FieldError errors={fieldErrors} name="consequence" />
               </Label>
-
-              <Label>
-                事実メモ（まとめ） <RequiredMark />
-                <Textarea name="factMemo" rows={4} placeholder="上の項目を見ながら、見えたことを一文でまとめる" required aria-invalid={hasFieldError(fieldErrors, "factMemo")} aria-describedby={fieldErrorId("factMemo")} />
-                <FieldError errors={fieldErrors} name="factMemo" />
-              </Label>
-            </div>
-
-            <div className="observe-form-actions">
-              <SubmitButton>保存して見立てへ</SubmitButton>
-              <span>任意項目は空欄でも保存できます。</span>
             </div>
 
             <details className="observe-disclosure">
@@ -1237,18 +1225,15 @@ function ObserveView({
               </div>
             </details>
 
-            <details className="observe-disclosure observe-disclosure-ethics">
-              <summary>
-                <span>共有前の確認</span>
-                <small>共有範囲</small>
-              </summary>
-              <div className="observe-disclosure-body">
-                <Label>
-                  共有範囲 <OptionalMark />
-                  <Input name="shareScope" placeholder="例: 支援チーム内のみ / 記録者のみ" />
-                </Label>
-              </div>
-            </details>
+            <Label>
+              事実メモ（まとめ） <OptionalMark />
+              <Textarea name="factMemo" rows={4} placeholder="上の項目を見ながら、必要なら見えたことを一文でまとめる" />
+            </Label>
+
+            <div className="observe-form-actions">
+              <SubmitButton>保存して見立てへ</SubmitButton>
+              <span>任意項目は空欄でも保存できます。</span>
+            </div>
           </form>
         )}
       </Section>
@@ -1262,7 +1247,7 @@ function ObserveView({
               {recentObservations.map((observation) => (
                 <LinkCard key={observation.id} href={`/orient?observationId=${observation.id}`}>
                   <CardTop title={caseName(data, observation.caseId)} meta={formatShortDateTime(observation.observedAt)} />
-                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-ink/70">{observation.factMemo}</p>
+                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-ink/70">{observation.factMemo || observation.userBehavior || "事実メモは未記録です。"}</p>
                   {observation.userBehavior ? <p className="mt-2 line-clamp-2 text-xs leading-5 text-ink/55">行動: {observation.userBehavior}</p> : null}
                   <TagRow tags={observation.behaviorTags} />
                 </LinkCard>
@@ -1892,7 +1877,7 @@ function ReflectView({
                 observationChecklist: allText(form, "observationChecklist"),
                 personWords: text(form, "observationPersonWords"),
                 consentScope: "",
-                shareScope: text(form, "observationShareScope"),
+                shareScope: "",
                 updatedAt: now
               };
             })
@@ -2282,8 +2267,7 @@ function ReflectionRowDetails({
               ["一行メモ", observation.freeText],
               ["未確認メモ", observation.unknownMemo],
               ["今回見たもの", observation.observationChecklist.join("、")],
-              ["行動タグ", observation.behaviorTags.join("、")],
-              ["共有範囲", observation.shareScope]
+              ["行動タグ", observation.behaviorTags.join("、")]
             ]}
           />
         </ReflectionDetailSection>
@@ -2484,10 +2468,6 @@ function ReflectionObservationEditForm({
         <Label>
           未確認メモ
           <Textarea name="observationUnknownMemo" rows={2} defaultValue={observation.unknownMemo} />
-        </Label>
-        <Label>
-          共有範囲
-          <Input name="observationShareScope" defaultValue={observation.shareScope} />
         </Label>
       </div>
       <div className="loop-update-edit-checkboxes">
@@ -3524,8 +3504,7 @@ function observationFactText(observation: ObservationRecord) {
     observation.factMemo,
     labeledLine("利用者の行動", observation.userBehavior),
     listLine("確認", observation.observationChecklist),
-    labeledLine("本人の言葉", observation.personWords),
-    labeledLine("共有", observation.shareScope)
+    labeledLine("本人の言葉", observation.personWords)
   ]).join("\n");
 }
 
@@ -3692,8 +3671,7 @@ function buildSummary(data: AppData, observation: ObservationRecord) {
   const behaviorSentence = observation.userBehavior ? `利用者の行動として「${observation.userBehavior}」が見られ、` : "";
   const observationDetails = compactLines([
     listLine("確認した観察", observation.observationChecklist),
-    labeledLine("本人の言葉", observation.personWords),
-    labeledLine("共有", observation.shareScope)
+    labeledLine("本人の言葉", observation.personWords)
   ]).join("。");
   const orientContext = hypothesis
     ? compactLines([
