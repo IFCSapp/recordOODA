@@ -416,7 +416,6 @@ function CompactWorkflowBar({
                 onCreateCase={onCreateCase}
                 submitLabel="作って観察へ"
               />
-              <CaseHistoryLink selected={selected} label="振り返る" />
             </div>
           </div>
         )}
@@ -430,6 +429,7 @@ function CompactWorkflowBar({
                     <span>{currentTaskMeta.step}</span>
                     <strong>{currentTaskMeta.helper}</strong>
                   </span>
+                  <CaseHistoryLink selected={selected} label="記録を振り返る" />
                   {currentStepHasForm ? (
                     <Link href={actionHref} className="task-context-form-jump">
                       {actionLabel}

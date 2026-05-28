@@ -2433,14 +2433,13 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 }
 
 .task-context-case-actions {
-  display: grid;
+  display: flex;
   gap: 6px;
-  align-items: stretch;
+  align-items: end;
   justify-content: end;
 }
 
-.task-context-case-actions .case-change-menu,
-.task-context-case-actions .case-history-link {
+.task-context-case-actions .case-change-menu {
   width: 100%;
 }
 
@@ -2614,6 +2613,7 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 }
 
 .task-context-stage-pill {
+  order: 1;
   display: inline-flex;
   max-width: 100%;
   min-height: 30px;
@@ -2719,6 +2719,7 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 }
 
 .task-context-action a.task-context-form-jump {
+  order: 2;
   width: fit-content;
   min-width: 0;
   gap: 6px;
@@ -2741,6 +2742,27 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 .task-context-action a.task-context-form-jump:focus-visible {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 14%, white);
+}
+
+.task-context-stage-title-row .case-history-link {
+  order: 3;
+  margin-left: auto;
+  min-height: 30px;
+  min-width: 0;
+  border-color: rgba(31, 41, 51, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: none;
+  color: rgba(31, 41, 51, 0.68);
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+.task-context-stage-title-row .case-history-link:hover,
+.task-context-stage-title-row .case-history-link:focus-visible {
+  border-color: rgba(55, 111, 143, 0.34);
+  background: rgba(255, 255, 255, 0.94);
+  color: #376f8f;
 }
 
 .task-context-step-links a small {
@@ -5733,10 +5755,6 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     font-size: 20px;
   }
 
-  .app-top-shell-task .task-context-case-actions .case-history-link {
-    display: inline-flex;
-  }
-
   .record-brand-subtitle {
     display: none;
   }
@@ -5814,6 +5832,12 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 
   .task-context-stage-pill {
     gap: 5px;
+  }
+
+  .task-context-stage-title-row .case-history-link {
+    min-height: 30px;
+    padding: 6px 8px;
+    font-size: 11px;
   }
 
   .task-context-action-current a {
