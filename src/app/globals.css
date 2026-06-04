@@ -2389,11 +2389,20 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 10px;
-  align-items: end;
+  align-items: center;
+  border: 1px solid rgba(55, 111, 143, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 8px 18px rgba(31, 41, 51, 0.05);
+  padding: 9px;
 }
 
 .task-context-bar-with-action .task-context-summary {
   grid-template-columns: minmax(0, 0.86fr) minmax(190px, 0.82fr);
+}
+
+.task-context-bar-utility.task-context-bar-with-action .task-context-summary {
+  grid-template-columns: minmax(180px, 0.72fr) minmax(360px, 1.28fr) minmax(310px, 0.95fr);
 }
 
 .task-context-action,
@@ -2412,6 +2421,7 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 
 .task-context-case {
   display: grid;
+  order: 1;
   gap: 3px;
 }
 
@@ -2589,12 +2599,13 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 .task-context-action {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
+  order: 3;
   gap: 8px;
   align-items: center;
 }
 
 .task-context-action-current {
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
 }
 
@@ -2680,11 +2691,12 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 .task-context-index-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  width: min(100%, 640px);
+  order: 2;
+  width: 100%;
   gap: 0;
-  align-items: end;
+  align-items: center;
   border-bottom: 0;
-  margin-top: 2px;
+  margin-top: 0;
   margin-bottom: 0;
   padding-bottom: 0;
 }
@@ -2756,7 +2768,7 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 
 .task-context-stage-title-row .case-history-link {
   order: 3;
-  margin-left: auto;
+  margin-left: 0;
   min-height: 30px;
   min-width: 0;
   border-color: rgba(31, 41, 51, 0.12);
@@ -5623,6 +5635,25 @@ main fieldset label:has(input[type="checkbox"]:checked) {
     grid-template-columns: 1fr;
   }
 
+  .task-context-summary,
+  .task-context-bar-with-action .task-context-summary,
+  .task-context-bar-utility.task-context-bar-with-action .task-context-summary {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .task-context-action {
+    order: 2;
+  }
+
+  .task-context-index-row {
+    order: 3;
+  }
+
   .task-context-action {
     grid-template-columns: 1fr;
     width: 100%;
@@ -6034,7 +6065,8 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   }
 
   .task-context-summary,
-  .task-context-bar-with-action .task-context-summary {
+  .task-context-bar-with-action .task-context-summary,
+  .task-context-bar-utility.task-context-bar-with-action .task-context-summary {
     grid-template-columns: 1fr;
     gap: 7px;
   }

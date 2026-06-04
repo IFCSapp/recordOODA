@@ -512,6 +512,19 @@ function CompactWorkflowBar({
           </div>
         )}
 
+        {hasCases ? (
+          <div className="task-context-index-row">
+            <nav className="task-context-step-links" aria-label="OODAステップ移動">
+              {stageLinks.map((item) => (
+                <Link key={item.href} href={selected ? hrefForCaseStage(selected, item.href) : item.href} aria-current={isStagePath(currentPath, item.href) ? "step" : undefined}>
+                  <span>{item.stageLabel}</span>
+                  <small>{selected ? countForCaseStage(selected, item.stage) : 0}</small>
+                </Link>
+              ))}
+            </nav>
+          </div>
+        ) : null}
+
         {showNextAction ? (
           <div className={`task-context-action ${showCurrentStepIntro ? "task-context-action-current" : ""}`}>
             {showCurrentStepIntro && currentTaskMeta ? (
@@ -537,19 +550,6 @@ function CompactWorkflowBar({
           </div>
         ) : null}
       </div>
-
-      {hasCases ? (
-        <div className="task-context-index-row">
-          <nav className="task-context-step-links" aria-label="OODAステップ移動">
-            {stageLinks.map((item) => (
-              <Link key={item.href} href={selected ? hrefForCaseStage(selected, item.href) : item.href} aria-current={isStagePath(currentPath, item.href) ? "step" : undefined}>
-                <span>{item.stageLabel}</span>
-                <small>{selected ? countForCaseStage(selected, item.stage) : 0}</small>
-              </Link>
-            ))}
-          </nav>
-        </div>
-      ) : null}
     </section>
   );
 }
