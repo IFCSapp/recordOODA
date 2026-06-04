@@ -13,24 +13,24 @@ const dateLike = z.coerce.date();
 const optionalNumber = z.coerce.number().int().nonnegative().optional();
 
 export const caseSchema = z.object({
-  displayName: requiredText("表示名"),
+  displayName: requiredText("記録したい人や場面"),
   memo: optionalText,
   isActive: z.coerce.boolean().optional().default(true)
 });
 
 export const observationSchema = z.object({
-  caseId: requiredText("ケースID"),
+  caseId: requiredText("記録先"),
   staffId: z.string().trim().optional(),
   observedAt: dateLike,
   location: requiredText("場所"),
   programName: requiredText("プログラム名"),
-  timing: requiredText("場面の状況・詳細"),
+  timing: requiredText("その時の状況"),
   freeText: optionalText,
   factMemo: requiredText("事実メモ"),
   behaviorTags: z.array(z.string()).default([]),
-  antecedent: requiredText("直前の環境"),
-  userBehavior: requiredText("利用者の行動"),
-  consequence: requiredText("直後の環境の変化"),
+  antecedent: requiredText("行動の前にあったこと"),
+  userBehavior: requiredText("本人がしたこと"),
+  consequence: requiredText("その後に起きたこと"),
   startLatencySeconds: optionalNumber,
   stoppedDurationSeconds: optionalNumber,
   promptCount: optionalNumber,
@@ -45,11 +45,11 @@ export const observationSchema = z.object({
 });
 
 export const hypothesisSchema = z.object({
-  caseId: requiredText("ケースID"),
+  caseId: requiredText("記録先"),
   observationId: z.string().trim().optional(),
   staffId: z.string().trim().optional(),
   category: z.enum(HYPOTHESIS_CATEGORIES),
-  statement: requiredText("見立て文"),
+  statement: requiredText("次に確かめる仮説"),
   evidence: requiredText("根拠"),
   counterEvidence: optionalText,
   unknowns: optionalText,
@@ -59,12 +59,12 @@ export const hypothesisSchema = z.object({
 });
 
 export const smallExperimentSchema = z.object({
-  caseId: requiredText("ケースID"),
+  caseId: requiredText("記録先"),
   hypothesisId: requiredText("見立て"),
   staffId: z.string().trim().optional(),
-  support: requiredText("試す支援"),
+  support: requiredText("どこをどう変えるか"),
   supportCategory: requiredText("支援カテゴリー"),
-  targetChange: requiredText("狙う変化"),
+  targetChange: requiredText("変えた後に見る点"),
   metric: z.enum(METRIC_OPTIONS),
   reviewDueAt: dateLike,
   plannedAt: dateLike,
@@ -74,13 +74,13 @@ export const smallExperimentSchema = z.object({
 });
 
 export const actReviewSchema = z.object({
-  caseId: requiredText("ケースID"),
+  caseId: requiredText("記録先"),
   experimentId: requiredText("実験カード"),
   hypothesisId: requiredText("見立て"),
   staffId: z.string().trim().optional(),
   implementation: requiredText("実施内容"),
   implementationStatus: z.enum(IMPLEMENTATION_STATUSES),
-  immediateResponse: requiredText("直後反応"),
+  immediateResponse: requiredText("支援の後に見えた変化"),
   laterResponse: optionalText,
   measuredValue: optionalText,
   comparison: optionalText,
@@ -90,7 +90,7 @@ export const actReviewSchema = z.object({
 });
 
 export const reflectionMemoSchema = z.object({
-  caseId: requiredText("ケースID"),
+  caseId: requiredText("記録先"),
   observationId: z.string().trim().optional(),
   hypothesisId: z.string().trim().optional(),
   staffId: z.string().trim().optional(),
@@ -99,7 +99,7 @@ export const reflectionMemoSchema = z.object({
 });
 
 export const exportSummarySchema = z.object({
-  caseId: requiredText("ケースID"),
+  caseId: requiredText("記録先"),
   observationId: requiredText("観察"),
   hypothesisId: z.string().trim().optional(),
   experimentId: z.string().trim().optional(),

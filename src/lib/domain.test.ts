@@ -79,7 +79,7 @@ describe("OODA MVP domain rules", () => {
   });
 
   it("複数支援を同時に選んだときに警告が出る", () => {
-    expect(getMultipleSupportWarning(["予告", "席変更"])).toContain("一度に一つ");
+    expect(getMultipleSupportWarning(["予告", "席変更"])).toContain("変える場所を一つ");
     expect(getMultipleSupportWarning(["予告", ""])).toBeNull();
   });
 

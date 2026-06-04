@@ -64,11 +64,11 @@ export const WARNING_DICTIONARY = [
 ] as const;
 
 export const FACT_WARNING_MESSAGE =
-  "この表現は解釈や評価に見える可能性があります。実際に見えた行動、時間、場面、直前の環境、直後の環境の変化として書き換えてください。";
+  "この表現は解釈や評価に見える可能性があります。実際に見えた行動、時間、場面、行動の前にあったこと、その後に起きたこととして書き換えてください。";
 
 export const SINGLE_HYPOTHESIS_PROMPT = "別の可能性も一つ考えてください。保存はできます。";
 
-export const MULTIPLE_SUPPORT_WARNING = "一度に一つの支援に絞ると、反応を見やすくなります。";
+export const MULTIPLE_SUPPORT_WARNING = "一度に変える場所を一つに絞ると、反応を見やすくなります。";
 
 export const SIMILAR_SCENE_NOTICE =
   "類似している場面でも、同じ原因とは限りません。事実、仮説、未確認点を分けて確認してください。";

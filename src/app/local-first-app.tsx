@@ -223,21 +223,67 @@ const HYPOTHESIS_STATUSES: HypothesisStatus[] = ["未検証", "検証中", "強�
 const EXPERIMENT_STATUSES: ExperimentStatus[] = ["予定", "実施中", "完了", "中止"];
 const IMPLEMENTATION_STATUSES: ImplementationStatus[] = ["予定通り", "一部変更", "未実施"];
 const METRIC_OPTIONS = ["開始までの時間", "再開までの時間", "停止回数", "声かけ回数", "継続時間", "質問回数", "離席回数", "本人の楽さ", "その他"];
-const SUPPORT_CATEGORIES = ["見通し支援", "環境調整", "課題調整", "声かけ調整", "休憩・回復", "援助要求支援", "選択肢提示", "その他"];
-const DECISION_CHECK_ITEMS = ["本人の価値に沿う", "後戻りできる", "当日中に試せる", "失敗しても再挑戦できる"];
+const SUPPORT_CATEGORIES = ["声かけ", "手順", "環境", "時間", "相談", "選択肢", "休憩", "その他"];
+const DECISION_CHECK_ITEMS = ["声かけを短くする", "手順を見えるようにする", "周囲の音や人の動きを減らす", "時間の区切りを決める", "相談をメモで出せるようにする"];
+
+const OBSERVATION_FIELD_COPY = {
+  timing: {
+    label: "その時、どんな状況でしたか？",
+    helper: "本人の様子、周囲の音、人の動き、予定変更、待ち時間などを書きます。",
+    examples: "本人の様子、音、人の動きなど"
+  },
+  antecedent: {
+    label: "行動の前に、周りで何がありましたか？",
+    helper: "声かけ、指示、課題提示、予定変更、周囲の音や人の動きなどを書きます。補足：ABCでいう「A：先行事象」です。",
+    examples: "声かけ、指示、予定変更など"
+  },
+  userBehavior: {
+    label: "本人は何をしましたか？",
+    helper: "気持ちの推測ではなく、見えた行動や聞こえた言葉を書きます。例：「嫌がった」ではなく「首を振った」「席を離れた」。",
+    examples: "見えた行動、聞こえた言葉"
+  },
+  consequence: {
+    label: "その後、どうなりましたか？",
+    helper: "支援者の対応、周囲の変化、本人の次の行動を書きます。補足：ABCでいう「C：直後の結果」です。",
+    examples: "対応、周囲の変化、次の行動"
+  }
+} as const;
+
+const SUPPORT_EXAMPLE_GROUPS = [
+  { title: "声かけ", items: ["短く伝える", "一度に伝える数を減らす", "質問の前にひと呼吸置く"] },
+  { title: "手順", items: ["見る場所を決める", "見本を横に置く", "最初だけ一緒に確認する"] },
+  { title: "環境", items: ["席を変える", "周囲の音や人の動きを減らす", "画面や机上の情報を減らす"] },
+  { title: "時間", items: ["始める時刻を決める", "10分ごとに確認する", "休憩後に何から始めるかを決める"] },
+  { title: "相談", items: ["口頭ではなくメモで出せるようにする", "「ここを見てください」と伝えるカードを用意する", "相談する相手とタイミングを決める"] }
+] as const;
+
+const ORIENT_REWRITE_EXAMPLES = [
+  ["やる気がない", "作業の始め方が分からない場面で、手が止まりやすい"],
+  ["話すのが苦手", "急に質問されると、短い返答になりやすい"],
+  ["怒りっぽい", "予定外の質問があると、強い口調になりやすい"]
+] as const;
+
+const RESPONSE_CHECK_POINTS = [
+  "作業を始めたか",
+  "手が止まる時間が変わったか",
+  "質問や相談が出たか",
+  "表情や姿勢に変化があったか",
+  "席を離れる、戻る、確認するなどの行動が変わったか",
+  "支援が合わなかった様子はあったか"
+] as const;
 
 const stageLinks = [
   { href: "/observe", stage: "Observe", stageLabel: "観察", label: "観察を入力", helper: "事実を残す", tone: "observe" },
   { href: "/orient", stage: "Orient", stageLabel: "見立て", label: "見立てを入力", helper: "見方を整理", tone: "orient" },
-  { href: "/decide", stage: "Decide", stageLabel: "支援", label: "支援を選ぶ", helper: "1つ選ぶ", tone: "decide" },
+  { href: "/decide", stage: "Decide", stageLabel: "支援", label: "支援を決める", helper: "場面を変える", tone: "decide" },
   { href: "/act", stage: "Act", stageLabel: "反応", label: "反応を入力", helper: "反応で更新", tone: "act" }
 ] as const;
 
 const taskStageMeta = {
-  Observe: { title: "観察を入力", description: "評価や解釈と分けて、見えたことだけ先に残します。", step: "01", helper: "事実を残す", caption: "今の入力", tone: "observe" },
-  Orient: { title: "見立てを1つ置く", description: "観察から考えられる説明を仮置きし、根拠と合わない点を分けます。", step: "02", helper: "見方を整理", caption: "今の入力", tone: "orient" },
-  Decide: { title: "支援を選ぶ", description: "今回は一つだけ試します。反応が見える小ささに絞ります。", step: "03", helper: "1つ選ぶ", caption: "今の入力", tone: "decide" },
-  Act: { title: "反応を入力", description: "支援の良し悪しではなく、反応から見立ての確からしさを見直します。", step: "04", helper: "反応で更新", caption: "今の入力", tone: "act" }
+  Observe: { title: "観察を入力", description: "見たままの事実を短く書きます。分からないところは未確認で残せます。", step: "01", helper: "事実を残す", caption: "今の入力", tone: "observe" },
+  Orient: { title: "見立てを仮に置く", description: "本人を説明しきる言葉ではなく、次に確かめる仮説として書きます。", step: "02", helper: "見方を整理", caption: "今の入力", tone: "orient" },
+  Decide: { title: "支援を決める", description: "声かけ、手順、環境、時間、相談の出し方のどこを変えるか決めます。", step: "03", helper: "場面を変える", caption: "今の入力", tone: "decide" },
+  Act: { title: "反応を入力", description: "支援の後に、本人や周囲に何が変わったかを見ます。", step: "04", helper: "反応で見る", caption: "今の入力", tone: "act" }
 } as const;
 
 const emptyData: AppData = {
@@ -345,7 +391,7 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
                   <Link href="/files">バックアップ</Link>
                 </span>
               </span>
-              <span className={`record-brand-subtitle text-sm text-ink/60 ${isTaskPage ? "record-brand-subtitle-task" : ""}`}>観察から小さな支援まで、今日の一手を残す</span>
+              <span className={`record-brand-subtitle text-sm text-ink/60 ${isTaskPage ? "record-brand-subtitle-task" : ""}`}>観察から場面を少し変える支援まで、今日の一手を残す</span>
             </div>
           </div>
 
@@ -427,16 +473,17 @@ function CompactWorkflowBar({
   const actionIsCurrentContext = currentStepHasForm || actionIsCurrentStep;
   const isObserveEntry = isStagePath(currentPath, "/observe");
   const actionHref = !hasCases ? (isObserveEntry ? "#case-form" : "/observe") : currentStepHasForm ? "#task-form" : nextAction?.href ?? "/observe";
-  const currentStepActionCopy = currentStep.stage === "Decide" ? "この画面で支援を1つ選びます。" : `この画面で${currentStep.label}します。`;
+  const currentStepActionCopy =
+    currentStep.stage === "Decide" ? "この画面で、場面のどこを変えるか決めます。" : `この画面で${currentStep.label}します。`;
   const showCurrentStepIntro = Boolean(currentTaskMeta && (currentStepHasForm || (!hasCases && isObserveEntry)));
   const actionCopy = hasCases
     ? currentStepHasForm
       ? currentStepActionCopy
       : nextAction?.reason ?? "次に入れる場面を選びます。"
     : isObserveEntry
-      ? "まず入力先のケースを用意します。"
-      : "観察画面でケースを作ると始められます。";
-  const actionLabel = !hasCases ? (isObserveEntry ? "ケースを作る" : "観察から始める") : currentStepHasForm ? "入力欄へ" : nextAction?.label ?? "観察を入力";
+      ? "まず、今日記録したい人や場面を作成します。"
+      : "ケースを作成または選択すると、観察・見立て・支援・反応を記録できます。";
+  const actionLabel = !hasCases ? (isObserveEntry ? "記録を始める" : "観察から始める") : currentStepHasForm ? "入力欄へ" : nextAction?.label ?? "観察を入力";
   const showNextAction = !hasCases || currentStepHasForm || !actionIsCurrentStep;
 
   return (
@@ -531,7 +578,8 @@ function HomeStartBar({
         ) : (
           <>
             <span>最初の一手</span>
-            <strong>ケースを作る</strong>
+            <strong>記録を始める</strong>
+            <p>まず、今日記録したい人や場面を作成します。例：Aさん 午前の作業、Bさん 面談後の様子</p>
           </>
         )}
       </div>
@@ -551,11 +599,11 @@ function HomeStartBar({
           </>
         ) : (
           <>
-            <QuickCaseForm onCreateCase={onCreateCase} submitLabel="ケースを作る" />
+            <QuickCaseForm onCreateCase={onCreateCase} submitLabel="記録を始める" />
             <details className="home-start-alternative">
-              <summary>新しいケース</summary>
+              <summary>別の記録先</summary>
               <Link href="/cases" className="home-start-secondary-link">
-                ケース画面を開く
+                記録先の一覧を開く
               </Link>
             </details>
           </>
@@ -579,7 +627,7 @@ function QuickCaseForm({
     const form = new FormData(event.currentTarget);
     const displayName = text(form, "displayName");
     if (!displayName) {
-      setFormError("ケース名を入力してください。");
+      setFormError("記録したい人や場面を入力してください。");
       return;
     }
     setFormError("");
@@ -596,7 +644,7 @@ function QuickCaseForm({
       ) : null}
       <label>
         <span>
-          ケース名 <RequiredMark />
+          記録したい人や場面 <RequiredMark />
         </span>
         <input name="displayName" placeholder="Aさん、午前の作業など" required />
       </label>
@@ -617,7 +665,7 @@ function CaseChangeMenu({
   onCaseChange,
   onCreateCase,
   submitLabel = "作って選択",
-  ariaLabel = "入力先を変更",
+  ariaLabel = "記録先を変更",
   showListLink = true
 }: {
   items: CaseDockItem[];
@@ -673,12 +721,12 @@ function CaseChangeMenu({
   return (
     <div ref={menuRef} className={`case-change-menu ${isOpen ? "is-open" : ""}`}>
       <button type="button" className="case-change-menu-trigger" aria-expanded={isOpen} onClick={() => setIsOpen((current) => !current)}>
-        ケース変更
+        記録先変更
       </button>
       <div className="case-change-menu-body">
         <label className="case-change-menu-picker case-change-menu-section case-change-menu-section-select">
           <span className="case-change-menu-picker-head">
-            <span>既存ケースを選ぶ</span>
+            <span>既存の記録先を選ぶ</span>
             {showListLink ? (
               <Link href="/cases" className="case-change-menu-list-link">
                 ケース一覧
@@ -694,7 +742,7 @@ function CaseChangeMenu({
           </select>
         </label>
         <div className="case-change-menu-create case-change-menu-section case-change-menu-section-create">
-          <span className="case-change-menu-create-title">新しいケースを作る</span>
+          <span className="case-change-menu-create-title">新しい記録先を作る</span>
           <QuickCaseForm onCreateCase={handleCreateCase} submitLabel={submitLabel} />
         </div>
       </div>
@@ -731,7 +779,7 @@ function HypothesisRecordCard({
       labeledLine("大事な方向", hypothesis.valueDirection),
       labeledLine("避けたい体験", hypothesis.avoidancePattern),
       labeledLine("強く働く考え", hypothesis.fusedStory),
-      labeledLine("小さな一歩", hypothesis.smallStep)
+      labeledLine("今なら始めやすいこと", hypothesis.smallStep)
     ]).join("\n") || "未記録";
   const statusLabel = currentObservationId && hypothesis.observationId === currentObservationId ? "今回の観察" : hypothesis.status;
 
@@ -824,7 +872,7 @@ function HomeView({
           )}
         </DashboardBlock>
 
-        <DashboardBlock title="支援" href="/decide" actionLabel="支援を選ぶ">
+        <DashboardBlock title="支援" href="/decide" actionLabel="支援を決める">
           {dueExperiments.length === 0 ? (
             <EmptyState>支援はまだありません。</EmptyState>
           ) : (
@@ -876,8 +924,8 @@ function HomeFlowHeader({
     ? selectedCase.memo
       ? `メモ: ${selectedCase.memo}`
       : `記録: 観察 ${selectedCase.counts.observations} / 見立て ${selectedCase.counts.hypotheses} / 支援 ${selectedCase.counts.experiments} / 反応 ${selectedCase.counts.actReviews}`
-    : "ケース未選択";
-  const primaryActionLabel = selectedCase && nextAction ? `このケースで${nextAction.label}` : "ケースを作る";
+    : "ケースを作成または選択すると、観察・見立て・支援・反応を記録できます。";
+  const primaryActionLabel = selectedCase && nextAction ? `このケースで${nextAction.label}` : "記録を始める";
 
   return (
     <section className="home-flow-header" aria-label="OODAの入力">
@@ -940,7 +988,7 @@ function HomeFlowHeader({
           );
         })}
         <div className="ooda-flow-return" aria-hidden="true">
-          反応から見直す
+          反応を見て見直す
         </div>
       </div>
     </section>
@@ -1003,10 +1051,11 @@ function CasesView({
   if (caseItems.length === 0) {
     return (
       <>
-        <PageHeader title="ケースを作る" description="観察を残す前に、入力先だけ用意します。" image="cases.png" />
-        <Section title="最初のケース">
+        <PageHeader title="記録を始める" description="ケースは、記録したい人や場面のまとまりです。" image="cases.png" />
+        <Section title="記録したい人や場面">
           <div id="case-form" className="case-create-panel">
-            <QuickCaseForm onCreateCase={onCreateCase} submitLabel="ケースを作る" />
+            <p className="case-create-guide">まず、今日記録したい人や場面を作成します。例：Aさん 午前の作業、Bさん 面談後の様子</p>
+            <QuickCaseForm onCreateCase={onCreateCase} submitLabel="記録を始める" />
           </div>
         </Section>
       </>
@@ -1027,7 +1076,7 @@ function CasesView({
             onCaseChange={onCaseChange}
             onCreateCase={onCreateCase}
             submitLabel="作って選択"
-            ariaLabel="ケースを変更"
+            ariaLabel="記録先を変更"
             showListLink={false}
           />
         </div>
@@ -1100,7 +1149,7 @@ function ObserveView({
     const caseId = requiredText(form, "caseId");
     const errors: FieldErrors = {};
     if (!caseId) {
-      errors.caseId = "ケースを選んでください。";
+      errors.caseId = "記録先を選んでください。";
       setFieldErrors(errors);
       setFormError("未入力の必須項目があります。表示された項目を確認してください。");
       focusFirstError(event.currentTarget, errors);
@@ -1132,10 +1181,10 @@ function ObserveView({
     if (!observation.location || !observation.programName || !observation.timing || !observation.antecedent || !observation.userBehavior || !observation.consequence) {
       if (!observation.location) errors.location = "場所を入力してください。";
       if (!observation.programName) errors.programName = "活動を入力してください。";
-      if (!observation.timing) errors.timing = "場面の状況・詳細を入力してください。";
-      if (!observation.antecedent) errors.antecedent = "直前の環境を入力してください。";
-      if (!observation.userBehavior) errors.userBehavior = "利用者の行動を入力してください。";
-      if (!observation.consequence) errors.consequence = "直後の環境の変化を入力してください。";
+      if (!observation.timing) errors.timing = "その時の状況を入力してください。分からない場合は「未確認」で保存できます。";
+      if (!observation.antecedent) errors.antecedent = "行動の前にあったことを入力してください。分からない場合は「未確認」で保存できます。";
+      if (!observation.userBehavior) errors.userBehavior = "本人がしたことを入力してください。見えた行動や聞こえた言葉を書きます。";
+      if (!observation.consequence) errors.consequence = "その後どうなったかを入力してください。分からない場合は「未確認」で保存できます。";
     }
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -1162,17 +1211,17 @@ function ObserveView({
     <>
       <PageHeader
         title="観察を入力"
-        description={hasCases ? "評価や解釈と分けて、見えたことだけ先に残します。" : "まずケースを作ると、この画面を使えます。"}
+        description={hasCases ? "見たままの事実を短く書きます。分からないところは未確認で残せます。" : "まず記録したい人や場面を作ると、この画面を使えます。"}
         image="observe.png"
         stageMeta={{ step: "01", helper: "事実を残す", caption: "今の入力", tone: "observe" }}
         compact
       />
 
-      <Section title="事実と前後">
+      <Section title="見たこと、聞いたこと">
         {!hasCases ? (
           <div id="case-form" className="observe-empty-case">
-            <EmptyState>まず入力先のケースを作ると、このまま観察を入力できます。</EmptyState>
-            <QuickCaseForm onCreateCase={onCreateCase} submitLabel="ケースを作る" />
+            <EmptyState>まず、今日記録したい人や場面を作成します。</EmptyState>
+            <QuickCaseForm onCreateCase={onCreateCase} submitLabel="記録を始める" />
           </div>
         ) : (
           <form id="task-form" onSubmit={handleCreateObservation} className="observe-form-shell" noValidate>
@@ -1181,14 +1230,18 @@ function ObserveView({
 
             <div className="observe-minimum-group">
               <div className="observe-minimum-head">
-                <p>場面、直前の環境、行動、直後の環境の変化を区切って残します。必要なら最後に事実メモへまとめます。</p>
+                <p>見たままの事実を短く書いてください。分からないところは「未確認」で構いません。まずは、本人が何をしたかを具体的に残します。</p>
                 <div className="observe-core-flow" aria-label="入力の流れ">
-                  {["場面", "環境", "行動", "変化"].map((item) => (
+                  {["場面", "直前", "行動", "直後"].map((item) => (
                     <span key={item}>{item}</span>
                   ))}
                 </div>
               </div>
 
+              <div className="observe-block-label">
+                <strong>1. 場面</strong>
+                <span>いつ・どこで・何をしていましたか？</span>
+              </div>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <Label>
                   日時 <RequiredMark />
@@ -1206,13 +1259,25 @@ function ObserveView({
                 </Label>
               </div>
 
-              <AbaTextAreaField label="場面の状況・詳細" name="timing" required rows={3} placeholder="疲れ、空腹、予定変更、課題前の流れ、周囲の刺激、待ち時間など" errors={fieldErrors} exampleHelper="疲れ、空腹、予定変更など" options={ABA_SCENE_CONTEXT_TAGS} />
+              <AbaTextAreaField label={OBSERVATION_FIELD_COPY.timing.label} description={OBSERVATION_FIELD_COPY.timing.helper} name="timing" required rows={3} placeholder="疲れ、空腹、予定変更、課題前の流れ、周囲の刺激、待ち時間など" errors={fieldErrors} exampleHelper={OBSERVATION_FIELD_COPY.timing.examples} options={ABA_SCENE_CONTEXT_TAGS} />
 
-              <AbaTextAreaField label="直前の環境" name="antecedent" required rows={3} placeholder="指示、予定変更、場所の変化、周囲の声かけなど" errors={fieldErrors} exampleHelper="指示、声かけ、課題提示など" options={ABA_ANTECEDENT_TAGS} />
+              <div className="observe-block-label">
+                <strong>2. 直前</strong>
+                <span>行動の前に、周りで何がありましたか？</span>
+              </div>
+              <AbaTextAreaField label={OBSERVATION_FIELD_COPY.antecedent.label} description={OBSERVATION_FIELD_COPY.antecedent.helper} name="antecedent" required rows={3} placeholder="声かけ、指示、予定変更、場所の変化、周囲の音や人の動きなど" errors={fieldErrors} exampleHelper={OBSERVATION_FIELD_COPY.antecedent.examples} options={ABA_ANTECEDENT_TAGS} />
 
-              <AbaTextAreaField label="利用者の行動" name="userBehavior" required rows={3} placeholder="席を離れた、教材を見た、首を振った、確認を繰り返したなど" errors={fieldErrors} exampleHelper="見る、離席、確認など" options={ABA_BEHAVIOR_TAGS} />
+              <div className="observe-block-label">
+                <strong>3. 行動</strong>
+                <span>本人は何をしましたか？</span>
+              </div>
+              <AbaTextAreaField label={OBSERVATION_FIELD_COPY.userBehavior.label} description={OBSERVATION_FIELD_COPY.userBehavior.helper} name="userBehavior" required rows={3} placeholder="首を振った、席を離れた、教材を見た、確認を繰り返したなど" errors={fieldErrors} exampleHelper={OBSERVATION_FIELD_COPY.userBehavior.examples} options={ABA_BEHAVIOR_TAGS} />
 
-              <AbaTextAreaField label="直後の環境の変化" name="consequence" required rows={3} placeholder="支援者の対応、周囲の変化、本人の次の行動など" errors={fieldErrors} exampleHelper="直後の変化（強化・弱化の候補）" options={ABA_CONSEQUENCE_TAGS} />
+              <div className="observe-block-label">
+                <strong>4. 直後</strong>
+                <span>その後、どうなりましたか？</span>
+              </div>
+              <AbaTextAreaField label={OBSERVATION_FIELD_COPY.consequence.label} description={OBSERVATION_FIELD_COPY.consequence.helper} name="consequence" required rows={3} placeholder="支援者の対応、周囲の変化、本人の次の行動など" errors={fieldErrors} exampleHelper={OBSERVATION_FIELD_COPY.consequence.examples} options={ABA_CONSEQUENCE_TAGS} />
             </div>
 
             <details className="observe-disclosure">
@@ -1245,7 +1310,7 @@ function ObserveView({
 
             <div className="observe-form-actions">
               <SubmitButton>保存して見立てへ</SubmitButton>
-              <span>任意項目は空欄でも保存できます。</span>
+              <span>必須項目も一文や箇条書きで構いません。分からない場合は「未確認」と書いて保存できます。</span>
             </div>
           </form>
         )}
@@ -1337,7 +1402,7 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
       return;
     }
     if (created.length === 0) {
-      errors["statement-0"] = "主な見立て文を入力してください。";
+      errors["statement-0"] = "主な仮説を入力してください。";
       setFieldErrors(errors);
       setFormError("未入力の必須項目があります。表示された項目を確認してください。");
       focusFirstError(event.currentTarget, errors);
@@ -1359,9 +1424,9 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
 
   return (
     <>
-      <PageHeader title="見立てを1つ置く" description={hasCases ? "観察から考えられる説明を仮置きし、根拠と合わない点を分けます。" : "まずケースを作ると、この画面を使えます。"} image="orient.png" stageMeta={{ step: "02", helper: "見方を整理", caption: "今の入力", tone: "orient" }} compact />
+      <PageHeader title="見立てを仮に置く" description={hasCases ? "本人を説明しきる言葉ではなく、次に確かめる仮説として書きます。" : "まず記録したい人や場面を作ると、この画面を使えます。"} image="orient.png" stageMeta={{ step: "02", helper: "見方を整理", caption: "今の入力", tone: "orient" }} compact />
 
-      <Section title="主な見立て">
+      <Section title="次に確かめる仮説">
         {observations.length === 0 ? (
           <EmptyState>
             {!hasCases ? (
@@ -1393,7 +1458,12 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
 
             <div className="orient-workbench">
               <div className="orient-input-panel">
-                <p className="orient-form-note">まず主な見立てだけを入力します。別方向からの見立てとACT軸は必要な時だけ開けます。</p>
+                <div className="orient-guidance-panel">
+                  <p>見立ては、本人を説明しきる言葉ではありません。次に確かめるための仮説として書きます。</p>
+                  <p>「やる気がない」「わがまま」などのまとめ言葉ではなく、どの場面で、何が起きやすいかを書きます。</p>
+                </div>
+                <RewriteExampleList examples={ORIENT_REWRITE_EXAMPLES} />
+                <p className="orient-form-note">まず主な仮説だけを入力します。別方向からの見立ては必要な時だけ開けます。</p>
                 <div id="task-form" className="orient-entry-layout">
                   <HypothesisEditor index={0} role="primary" errors={fieldErrors} />
                   <details className="optional-hypothesis-details orient-optional-bundle">
@@ -1448,7 +1518,7 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
     }
     const support = requiredText(form, "support");
     if (!support) {
-      setFormError("試す支援を入力してください。");
+      setFormError("どこを、どう変えるかを入力してください。");
       return;
     }
     const now = nowIso();
@@ -1470,7 +1540,7 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
       updatedAt: now
     };
     if (!experiment.targetChange) {
-      setFormError("狙う変化を入力してください。");
+      setFormError("変えた後に見る点を入力してください。");
       return;
     }
     setFormError("");
@@ -1490,16 +1560,17 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
 
   return (
     <>
-      <PageHeader title="支援を選ぶ" description="今回は一つだけ試します。反応が見える小ささに絞ります。" image="decide.png" stageMeta={{ step: "03", helper: "1つ選ぶ", caption: "今の入力", tone: "decide" }} compact />
+      <PageHeader title="支援を決める" description="声かけ、手順、環境、時間、相談の出し方のどこを変えるか決めます。変えた後は、本人の反応を見ます。" image="decide.png" stageMeta={{ step: "03", helper: "場面を変える", caption: "今の入力", tone: "decide" }} compact />
 
-      <Section title="小さな支援を登録">
+      <Section title="変える場所を決める">
         {hypotheses.length === 0 ? (
           <EmptyState>
             見立てがまだありません。<Link href="/orient" className="font-medium text-skyline">見立てを入力</Link>から始めてください。
           </EmptyState>
         ) : (
-          <form id="task-form" onSubmit={handleCreateExperiment} className="grid gap-5 rounded-md border border-ink/10 bg-white p-4 shadow-sm" noValidate>
+          <form id="task-form" onSubmit={handleCreateExperiment} className="grid gap-5 rounded-md border border-ink/10 bg-white p-4 shadow-sm support-form-shell" noValidate>
             {formError ? <FormError>{formError}</FormError> : null}
+            <Notice>本人を変えようとする前に、場面の一部を変えます。声のかけ方、手順、環境、時間、相談の出し方のどこを変えるか決めます。</Notice>
 
             <Label>
               見立て
@@ -1518,31 +1589,34 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
               </div>
             ) : null}
 
+            <SupportExampleMenu />
+
             <Label>
-              試す支援 <RequiredMark />
-              <Textarea name="support" rows={5} placeholder="今回試す支援を1つ" required />
+              どこを、どう変えますか？ <RequiredMark />
+              <FieldHelp>声かけ、手順、環境、時間、相談の出し方など、支援者が変えられるものを書きます。</FieldHelp>
+              <Textarea name="support" rows={5} placeholder="例：質問の前にひと呼吸置く。見本を横に置く。休憩後に何から始めるかを決める。" required />
             </Label>
             <Label>
-              狙う変化 <RequiredMark />
-              <Textarea name="targetChange" rows={3} placeholder="何がどう変わると見立ての確認になるか" required />
+              変えた後に何を見ますか？ <RequiredMark />
+              <Textarea name="targetChange" rows={3} placeholder="例：作業を始めるまでの時間、質問が出るか、席に戻った後の最初の作業" required />
             </Label>
             <details className="secondary-field-details">
-              <summary>今は試さない候補を残す</summary>
+              <summary>今は変えない候補を残す</summary>
               <div className="mt-3">
                 <Label>
                   次回候補
-                  <Textarea name="nextTryCandidate" rows={4} placeholder="次回候補として残す" />
+                  <Textarea name="nextTryCandidate" rows={4} placeholder="次回、別の声かけや環境調整として考えること" />
                 </Label>
               </div>
             </details>
-            <Notice>ここでは支援を一つに絞ります。複数を同時に変えると、反応を見立てに戻しにくくなります。</Notice>
+            <Notice>ここでは変える場所を一つに絞ります。複数を同時に変えると、どれが反応につながったか見えにくくなります。</Notice>
 
             <div className="record-context-panel record-context-panel-decision">
               <div className="record-context-panel-head">
-                <strong>小さく試す条件</strong>
-                <span>価値に沿い、戻せて、当日試せる単位にする</span>
+                <strong>変える場所の候補</strong>
+                <span>声かけ、手順、環境、時間、相談の出し方から選ぶ</span>
               </div>
-              <CheckboxGroup name="decisionChecks" title="今回満たす条件" options={DECISION_CHECK_ITEMS} />
+              <CheckboxGroup name="decisionChecks" title="今回変える場所" options={DECISION_CHECK_ITEMS} />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -1579,7 +1653,7 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
             <div className="grid gap-4 md:grid-cols-2">
               <Label>
                 注意点
-                <Textarea name="cautions" rows={3} placeholder="支援を増やしすぎない、声かけを短くする等" />
+                <Textarea name="cautions" rows={3} placeholder="声かけを増やしすぎない、本人の前で長く説明しない等" />
               </Label>
               <Label>
                 ステータス
@@ -1598,9 +1672,9 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
         )}
       </Section>
 
-      <Section title="登録済みの支援">
+      <Section title="決めた支援">
         {experiments.length === 0 ? (
-          <EmptyState>小さな支援はまだ登録されていません。</EmptyState>
+          <EmptyState>支援はまだ登録されていません。</EmptyState>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {experiments.map((experiment) => (
@@ -1630,12 +1704,12 @@ function ActView({ data, commit, onNavigate }: { data: AppData; commit: Commit; 
     const experimentId = requiredText(form, "experimentId");
     const experiment = data.experiments.find((item) => item.id === experimentId);
     if (!experiment) {
-      setFormError("支援を選んでください。");
+      setFormError("支援記録を選んでください。");
       return;
     }
     const immediateResponse = requiredText(form, "immediateResponse");
     if (!immediateResponse) {
-      setFormError("直後反応を入力してください。");
+      setFormError("支援の後に見えた変化を入力してください。");
       return;
     }
     const now = nowIso();
@@ -1676,16 +1750,18 @@ function ActView({ data, commit, onNavigate }: { data: AppData; commit: Commit; 
 
   return (
     <>
-      <PageHeader title="反応を入力" description="支援の良し悪しではなく、反応から見立ての確からしさを見直します。" image="act.png" stageMeta={{ step: "04", helper: "反応で更新", caption: "今の入力", tone: "act" }} compact />
+      <PageHeader title="反応を入力" description="支援の後に、本人や周囲に何が変わったかを見ます。うまくいったかどうかを決めつけず、見えた変化を残します。" image="act.png" stageMeta={{ step: "04", helper: "反応で見る", caption: "今の入力", tone: "act" }} compact />
 
       <Section title="反応を記録">
         {experiments.length === 0 ? (
           <EmptyState>
-            支援がまだありません。<Link href="/decide" className="font-medium text-skyline">支援を選ぶ</Link>から始めてください。
+            支援がまだありません。<Link href="/decide" className="font-medium text-skyline">支援を決める</Link>から始めてください。
           </EmptyState>
         ) : (
           <form id="task-form" onSubmit={handleCreateActReview} className="grid gap-5 rounded-md border border-ink/10 bg-white p-4 shadow-sm" noValidate>
             {formError ? <FormError>{formError}</FormError> : null}
+            <Notice>支援の後に、本人や周囲に何が変わったかを見ます。うまくいったかどうかを決めつけず、見えた変化を残します。</Notice>
+            <ResponsePointList />
 
             <Label>
               支援
@@ -1722,8 +1798,8 @@ function ActView({ data, commit, onNavigate }: { data: AppData; commit: Commit; 
                 <Textarea name="implementation" rows={4} placeholder="実際に行った支援。予定から変えた点も入力" required />
               </Label>
               <Label>
-                直後反応 <RequiredMark />
-                <Textarea name="immediateResponse" rows={4} placeholder="支援後すぐの行動、時間、表情、次の行動" required />
+                支援の後、何が変わりましたか？ <RequiredMark />
+                <Textarea name="immediateResponse" rows={4} placeholder="作業を始めた、手が止まる時間が変わった、質問が出た、席に戻ったなど" required />
               </Label>
             </div>
 
@@ -1744,7 +1820,7 @@ function ActView({ data, commit, onNavigate }: { data: AppData; commit: Commit; 
               </Label>
               <Label>
                 以前との比較
-                <Input name="comparison" placeholder="短くなった、変わらない等" />
+                <Input name="comparison" placeholder="短くなった、変わらない、未確認など" />
               </Label>
               <Label>
                 見立ての確からしさ
@@ -1761,7 +1837,7 @@ function ActView({ data, commit, onNavigate }: { data: AppData; commit: Commit; 
             <div className="grid gap-4 md:grid-cols-3">
               <Label>
                 後から見えた反応
-                <Textarea name="laterResponse" rows={3} placeholder="時間を置いて見えた変化" />
+                <Textarea name="laterResponse" rows={3} placeholder="時間を置いて見えた本人や周囲の変化" />
               </Label>
               <Label>
                 次に見る点
@@ -1773,7 +1849,7 @@ function ActView({ data, commit, onNavigate }: { data: AppData; commit: Commit; 
               </Label>
             </div>
 
-            <SubmitButton>保存して、履歴へ</SubmitButton>
+            <SubmitButton>保存して、記録を見返す</SubmitButton>
           </form>
         )}
       </Section>
@@ -1830,7 +1906,7 @@ function ReflectView({
     const targetCaseId = text(form, "caseId") || caseId;
     const body = requiredText(form, "body");
     if (!targetCaseId) {
-      setMemoFormError({ targetRef, message: "ケースを選んでください。" });
+      setMemoFormError({ targetRef, message: "記録先を選んでください。" });
       return;
     }
     if (!targetRef) {
@@ -2021,7 +2097,7 @@ function ReflectView({
 
       {data.cases.length === 0 ? (
         <EmptyState>
-          ケースがまだありません。<Link href="/cases" className="font-medium text-skyline">ケースを作る</Link>と振り返りを始められます。
+          ケースがまだありません。<Link href="/cases" className="font-medium text-skyline">記録を始める</Link>と振り返りを始められます。
         </EmptyState>
       ) : (
         <>
@@ -2272,9 +2348,9 @@ function ReflectionRowDetails({
               ["場所", observation.location],
               ["活動", observation.programName],
               ["場面の状況・詳細", observation.timing],
-              ["直前の環境", observation.antecedent],
-              ["利用者の行動", observation.userBehavior],
-              ["直後の環境の変化", observation.consequence],
+              ["行動の前にあったこと", observation.antecedent],
+              ["本人がしたこと", observation.userBehavior],
+              ["その後に起きたこと", observation.consequence],
               ["事実メモ", observation.factMemo],
               ["本人の言葉", observation.personWords],
               ["一行メモ", observation.freeText],
@@ -2305,7 +2381,7 @@ function ReflectionRowDetails({
               ["大事な方向", hypothesis.valueDirection],
               ["避けたい体験", hypothesis.avoidancePattern],
               ["強い言葉・考え", hypothesis.fusedStory],
-              ["小さな一歩", hypothesis.smallStep],
+              ["今なら始めやすいこと", hypothesis.smallStep],
               ["確からしさ", `${hypothesis.confidence}`]
             ]}
           />
@@ -2325,14 +2401,14 @@ function ReflectionRowDetails({
             items={[
               ["支援カテゴリ", experiment.supportCategory],
               ["ステータス", experiment.status],
-              ["試す支援", experiment.support],
-              ["狙う変化", experiment.targetChange],
+              ["どこをどう変えたか", experiment.support],
+              ["変えた後に見る点", experiment.targetChange],
               ["次回候補", experiment.nextTryCandidate],
               ["測定指標", experiment.metric],
               ["実施予定日", formatShortDateTime(experiment.plannedAt)],
               ["観察期限", formatShortDateTime(experiment.reviewDueAt)],
               ["注意点", experiment.cautions],
-              ["今回満たす条件", experiment.decisionChecks.join("、")]
+              ["今回変えた場所", experiment.decisionChecks.join("、")]
             ]}
           />
         </ReflectionDetailSection>
@@ -2442,10 +2518,10 @@ function ReflectionObservationEditForm({
           活動
           <Input name="observationProgramName" defaultValue={observation.programName} />
         </Label>
-        <AbaTextAreaField label="場面の状況・詳細" name="observationTiming" rows={2} defaultValue={observation.timing} exampleHelper="疲れ、空腹、予定変更など" options={ABA_SCENE_CONTEXT_TAGS} />
-        <AbaTextAreaField label="直前の環境" name="observationAntecedent" rows={2} defaultValue={observation.antecedent} exampleHelper="指示、声かけ、課題提示など" options={ABA_ANTECEDENT_TAGS} />
-        <AbaTextAreaField label="利用者の行動" name="observationUserBehavior" rows={2} defaultValue={observation.userBehavior} exampleHelper="見る、離席、確認など" options={ABA_BEHAVIOR_TAGS} />
-        <AbaTextAreaField label="直後の環境の変化" name="observationConsequence" rows={2} defaultValue={observation.consequence} exampleHelper="直後の変化（強化・弱化の候補）" options={ABA_CONSEQUENCE_TAGS} />
+        <AbaTextAreaField label={OBSERVATION_FIELD_COPY.timing.label} description={OBSERVATION_FIELD_COPY.timing.helper} name="observationTiming" rows={2} defaultValue={observation.timing} exampleHelper={OBSERVATION_FIELD_COPY.timing.examples} options={ABA_SCENE_CONTEXT_TAGS} />
+        <AbaTextAreaField label={OBSERVATION_FIELD_COPY.antecedent.label} description={OBSERVATION_FIELD_COPY.antecedent.helper} name="observationAntecedent" rows={2} defaultValue={observation.antecedent} exampleHelper={OBSERVATION_FIELD_COPY.antecedent.examples} options={ABA_ANTECEDENT_TAGS} />
+        <AbaTextAreaField label={OBSERVATION_FIELD_COPY.userBehavior.label} description={OBSERVATION_FIELD_COPY.userBehavior.helper} name="observationUserBehavior" rows={2} defaultValue={observation.userBehavior} exampleHelper={OBSERVATION_FIELD_COPY.userBehavior.examples} options={ABA_BEHAVIOR_TAGS} />
+        <AbaTextAreaField label={OBSERVATION_FIELD_COPY.consequence.label} description={OBSERVATION_FIELD_COPY.consequence.helper} name="observationConsequence" rows={2} defaultValue={observation.consequence} exampleHelper={OBSERVATION_FIELD_COPY.consequence.examples} options={ABA_CONSEQUENCE_TAGS} />
         <Label>
           事実メモ
           <Textarea name="observationFactMemo" rows={3} defaultValue={observation.factMemo} />
@@ -2536,7 +2612,7 @@ function ReflectionHypothesisEditForm({
           <Textarea name="hypothesisFusedStory" rows={2} defaultValue={hypothesis.fusedStory} />
         </Label>
         <Label>
-          小さな一歩
+          今なら始めやすいこと
           <Textarea name="hypothesisSmallStep" rows={2} defaultValue={hypothesis.smallStep} />
         </Label>
         <Label>
@@ -2585,11 +2661,11 @@ function ReflectionExperimentEditForm({
           </Select>
         </Label>
         <Label>
-          試す支援
+          どこをどう変えるか
           <Textarea name="experimentSupport" rows={3} defaultValue={experiment.support} />
         </Label>
         <Label>
-          狙う変化
+          変えた後に見る点
           <Textarea name="experimentTargetChange" rows={2} defaultValue={experiment.targetChange} />
         </Label>
         <Label>
@@ -2620,7 +2696,7 @@ function ReflectionExperimentEditForm({
         </Label>
       </div>
       <div className="loop-update-edit-checkboxes">
-        <EditableCheckboxGroup name="experimentDecisionChecks" title="今回満たす条件" options={DECISION_CHECK_ITEMS} selected={experiment.decisionChecks} />
+        <EditableCheckboxGroup name="experimentDecisionChecks" title="今回変える場所" options={DECISION_CHECK_ITEMS} selected={experiment.decisionChecks} />
       </div>
       <ReflectionEditActions saveLabel="支援を保存" onCancel={onCancel} />
     </form>
@@ -2737,12 +2813,12 @@ function ExportView({ data }: { data: AppData }) {
 
   return (
     <>
-      <PageHeader title="要約" description="転記用の短い文章を作ります。公式記録や診断の代替ではありません。" image="export.png" action={<LinkButton href={data.cases.length === 0 ? "/cases" : "/reflect"}>{data.cases.length === 0 ? "ケースを作る" : "積み重ね"}</LinkButton>} />
+      <PageHeader title="要約" description="転記用の短い文章を作ります。公式記録や診断の代替ではありません。" image="export.png" action={<LinkButton href={data.cases.length === 0 ? "/cases" : "/reflect"}>{data.cases.length === 0 ? "記録を始める" : "積み重ね"}</LinkButton>} />
 
       <Section title="要約する観察">
         {observations.length === 0 ? (
           <EmptyState>
-            観察がまだありません。<Link href={data.cases.length === 0 ? "/cases" : "/observe"} className="font-medium text-skyline">{data.cases.length === 0 ? "ケースを作る" : "観察を入力"}</Link>から始めてください。
+            観察がまだありません。<Link href={data.cases.length === 0 ? "/cases" : "/observe"} className="font-medium text-skyline">{data.cases.length === 0 ? "記録を始める" : "観察を入力"}</Link>から始めてください。
           </EmptyState>
         ) : (
           <div className="grid gap-4 rounded-md border border-ink/10 bg-white p-4 shadow-sm">
@@ -3028,6 +3104,10 @@ function FieldError({ errors, name }: { errors: FieldErrors; name: string }) {
   );
 }
 
+function FieldHelp({ children }: { children: ReactNode }) {
+  return <p className="record-field-help">{children}</p>;
+}
+
 function fieldErrorId(name: string) {
   return `${name}-error`;
 }
@@ -3038,6 +3118,7 @@ function hasFieldError(errors: FieldErrors, name: string) {
 
 function AbaTextAreaField({
   label,
+  description,
   name,
   required = false,
   exampleHelper,
@@ -3047,6 +3128,7 @@ function AbaTextAreaField({
   ...textareaProps
 }: {
   label: string;
+  description?: ReactNode;
   name: string;
   exampleHelper: string;
   options: readonly AbaTagOption[];
@@ -3065,6 +3147,7 @@ function AbaTextAreaField({
       <label htmlFor={fieldId} className="record-label block text-sm font-medium text-ink/80">
         {label} {required ? <RequiredMark /> : null}
       </label>
+      {description ? <FieldHelp>{description}</FieldHelp> : null}
       <AbaTagDisclosure helper={exampleHelper} targetName={name} options={options} />
       <Textarea {...textareaProps} {...errorProps} id={fieldId} name={name} required={required} />
       {errors ? <FieldError errors={errors} name={name} /> : null}
@@ -3139,6 +3222,57 @@ function Notice({ children }: { children: ReactNode }) {
   return <div className="record-notice rounded-md border border-skyline/30 bg-skyline/10 px-4 py-3 text-sm leading-6 text-skyline">{children}</div>;
 }
 
+function RewriteExampleList({ examples }: { examples: readonly (readonly [string, string])[] }) {
+  return (
+    <div className="rewrite-example-list" aria-label="見立ての書き換え例">
+      {examples.map(([avoid, rewrite]) => (
+        <div key={avoid} className="rewrite-example-item">
+          <span>避けたい書き方</span>
+          <p>{avoid}</p>
+          <span>書き換え例</span>
+          <p>{rewrite}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SupportExampleMenu() {
+  return (
+    <div className="support-example-panel" aria-label="支援メニューの例">
+      <div className="record-context-panel-head">
+        <strong>支援メニューの例</strong>
+        <span>実際に変えられるものから選ぶ</span>
+      </div>
+      <div className="support-example-grid">
+        {SUPPORT_EXAMPLE_GROUPS.map((group) => (
+          <div key={group.title} className="support-example-group">
+            <strong>{group.title}</strong>
+            <ul>
+              {group.items.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ResponsePointList() {
+  return (
+    <div className="response-point-panel" aria-label="反応を見るポイント">
+      <strong>見るポイント</strong>
+      <ul>
+        {RESPONSE_CHECK_POINTS.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function Tag({ children }: { children: ReactNode }) {
   return <span className="record-tag inline-flex rounded-md bg-field px-2 py-1 text-xs font-medium text-ink/70">{children}</span>;
 }
@@ -3200,18 +3334,18 @@ function SelectedObservationFocus({ observation, caseLabel }: { observation: Obs
       <p>{observation.factMemo || observation.userBehavior || "観察メモは未記録です。"}</p>
       {observation.userBehavior ? <small>行動: {observation.userBehavior}</small> : null}
       <details className="orient-observation-detail">
-        <summary>直前・行動・直後を見る</summary>
+        <summary>行動の前後を見る</summary>
         <dl>
           <div>
-            <dt>直前の環境</dt>
+            <dt>行動の前に、周りで何がありましたか？</dt>
             <dd>{observation.antecedent || "未記録"}</dd>
           </div>
           <div>
-            <dt>利用者の行動</dt>
+            <dt>本人は何をしましたか？</dt>
             <dd>{observation.userBehavior || "未記録"}</dd>
           </div>
           <div>
-            <dt>直後の環境の変化</dt>
+            <dt>その後、どうなりましたか？</dt>
             <dd>{observation.consequence || "未記録"}</dd>
           </div>
         </dl>
@@ -3232,7 +3366,7 @@ function HypothesisEditor({ index, role, errors = {} }: { index: number; role: "
       </legend>
       <input type="hidden" name={`confidence-${index}`} defaultValue="50" />
       <input type="hidden" name={`status-${index}`} defaultValue="未検証" />
-      {role === "primary" ? <p className="hypothesis-input-guide">必須は、カテゴリー、見立て文、根拠の3つです。</p> : null}
+      {role === "primary" ? <p className="hypothesis-input-guide">必須は、カテゴリー、仮説、根拠の3つです。本人の性格ではなく、次に確かめたい場面のつながりを書きます。</p> : null}
       <div className="grid gap-3">
         <Label>
           見立てカテゴリー
@@ -3245,8 +3379,9 @@ function HypothesisEditor({ index, role, errors = {} }: { index: number; role: "
           </Select>
         </Label>
         <Label>
-          見立て文 {isRequired ? <RequiredMark /> : null}
-          <Textarea name={`statement-${index}`} rows={3} placeholder="何が影響している可能性があるか" required={isRequired} aria-invalid={hasFieldError(errors, `statement-${index}`)} aria-describedby={fieldErrorId(`statement-${index}`)} />
+          どの場面で、何が起きやすいですか？ {isRequired ? <RequiredMark /> : null}
+          <FieldHelp>見立ては、次に確かめるための仮説です。断定せず「可能性がある」で残します。</FieldHelp>
+          <Textarea name={`statement-${index}`} rows={3} placeholder="例：作業の始め方が分からない場面で、手が止まりやすい可能性がある" required={isRequired} aria-invalid={hasFieldError(errors, `statement-${index}`)} aria-describedby={fieldErrorId(`statement-${index}`)} />
           <FieldError errors={errors} name={`statement-${index}`} />
         </Label>
         <Label>
@@ -3255,7 +3390,7 @@ function HypothesisEditor({ index, role, errors = {} }: { index: number; role: "
           <FieldError errors={errors} name={`evidence-${index}`} />
         </Label>
         <details className="secondary-field-details hypothesis-support-details hypothesis-act-details">
-          <summary>ACTの補助軸</summary>
+          <summary>必要なら本人の大事なことも残す</summary>
           <div className="record-context-grid mt-3">
             <Label>
               大事な方向 <OptionalMark />
@@ -3270,8 +3405,8 @@ function HypothesisEditor({ index, role, errors = {} }: { index: number; role: "
               <Textarea name={`fusedStory-${index}`} rows={2} placeholder="こうしないといけない、無理、失敗できない等" />
             </Label>
             <Label>
-              今できる小さな一歩 <OptionalMark />
-              <Textarea name={`smallStep-${index}`} rows={2} placeholder="その場で試せる最小の行動" />
+              今なら始めやすいこと <OptionalMark />
+              <Textarea name={`smallStep-${index}`} rows={2} placeholder="最初に見る場所を決める、相談をメモで出すなど" />
             </Label>
           </div>
         </details>
@@ -3540,7 +3675,7 @@ function getCaseNextAction(item: CaseDockItem) {
     return { label: "見立てを入力", href: item.latestObservationId ? `/orient?observationId=${item.latestObservationId}` : "/orient", reason: "観察があります。見立てを整理します。" };
   }
   if (item.counts.experiments === 0) {
-    return { label: "支援を選ぶ", href: item.latestHypothesisId ? `/decide?hypothesisId=${item.latestHypothesisId}` : "/decide", reason: "見立てがあります。試す支援を1つ選びます。" };
+    return { label: "支援を決める", href: item.latestHypothesisId ? `/decide?hypothesisId=${item.latestHypothesisId}` : "/decide", reason: "見立てがあります。声かけ、手順、環境、時間、相談のどこを変えるか決めます。" };
   }
   if (item.counts.actReviews === 0) {
     return { label: "反応を入力", href: item.latestExperimentId ? `/act?experimentId=${item.latestExperimentId}` : "/act", reason: "支援があります。反応から見立ての確からしさを見直します。" };
@@ -3590,7 +3725,7 @@ function listLine(label: string, values: string[] | undefined) {
 function observationFactText(observation: ObservationRecord) {
   return compactLines([
     observation.factMemo,
-    labeledLine("利用者の行動", observation.userBehavior),
+    labeledLine("本人がしたこと", observation.userBehavior),
     listLine("確認", observation.observationChecklist),
     labeledLine("本人の言葉", observation.personWords)
   ]).join("\n");
@@ -3602,13 +3737,13 @@ function hypothesisContextText(hypothesis: HypothesisRecord) {
     labeledLine("大事な方向", hypothesis.valueDirection),
     labeledLine("避けたい体験", hypothesis.avoidancePattern),
     labeledLine("強く働く考え", hypothesis.fusedStory),
-    labeledLine("小さな一歩", hypothesis.smallStep)
+    labeledLine("今なら始めやすいこと", hypothesis.smallStep)
   ]).join("\n");
 }
 
 function experimentSupportText(experiment: SmallExperimentRecord | undefined) {
   if (!experiment) return "未記録";
-  return compactLines([experiment.support, listLine("条件", experiment.decisionChecks)]).join("\n");
+  return compactLines([experiment.support, listLine("変える場所", experiment.decisionChecks)]).join("\n");
 }
 
 function hasReflectionRecord(value: string) {
@@ -3711,7 +3846,7 @@ function buildReflectionRows(data: AppData, caseId: string): ReflectionRow[] {
             hypothesisLabel: null,
             fact: observationFactText(observation),
             hypothesis: "未記録",
-            evidence: compactLines([labeledLine("直前の環境", observation.antecedent), labeledLine("行動", observation.userBehavior)]).join("\n"),
+            evidence: compactLines([labeledLine("行動の前にあったこと", observation.antecedent), labeledLine("本人がしたこと", observation.userBehavior)]).join("\n"),
             counter: observation.unknownMemo || "未記録",
             support: "未記録",
             response: observation.consequence
@@ -3756,7 +3891,7 @@ function buildSummary(data: AppData, observation: ObservationRecord) {
   const hypothesisText = hypothesis?.statement ?? "見立ては未記録";
   const support = experiment?.support ?? "支援は未記録";
   const response = review?.immediateResponse ?? observation.consequence;
-  const behaviorSentence = observation.userBehavior ? `利用者の行動として「${observation.userBehavior}」が見られ、` : "";
+  const behaviorSentence = observation.userBehavior ? `本人は「${observation.userBehavior}」をしており、` : "";
   const observationDetails = compactLines([
     listLine("確認した観察", observation.observationChecklist),
     labeledLine("本人の言葉", observation.personWords)
@@ -3766,11 +3901,11 @@ function buildSummary(data: AppData, observation: ObservationRecord) {
         labeledLine("大事な方向", hypothesis.valueDirection),
         labeledLine("避けたい体験", hypothesis.avoidancePattern),
         labeledLine("強く働く考え", hypothesis.fusedStory),
-        labeledLine("小さな一歩", hypothesis.smallStep)
+        labeledLine("今なら始めやすいこと", hypothesis.smallStep)
       ]).join("。")
     : "";
-  const decisionContext = experiment?.decisionChecks.length ? `試す条件は「${experiment.decisionChecks.join("、")}」。` : "";
-  return `本日は${scene}で、「${observation.factMemo}」が見られた。直前の環境は「${observation.antecedent}」で、${behaviorSentence}直後の環境の変化として「${observation.consequence}」があった。${observationDetails ? `${observationDetails}。` : ""}「${hypothesisText}」の可能性を置いた。${orientContext ? `${orientContext}。` : ""}次に「${support}」を試す。${decisionContext}反応として「${response}」を確認し、次回は「${review?.nextObservationPoint || hypothesis?.nextObservationPoints || observation.unknownMemo || "未確認点"}」を見る。`;
+  const decisionContext = experiment?.decisionChecks.length ? `変える場所は「${experiment.decisionChecks.join("、")}」。` : "";
+  return `本日は${scene}で、「${observation.factMemo}」が見られた。行動の前には「${observation.antecedent}」があり、${behaviorSentence}その後「${observation.consequence}」があった。${observationDetails ? `${observationDetails}。` : ""}「${hypothesisText}」の可能性を置いた。${orientContext ? `${orientContext}。` : ""}次に「${support}」を行う。${decisionContext}反応として「${response}」を確認し、次回は「${review?.nextObservationPoint || hypothesis?.nextObservationPoints || observation.unknownMemo || "未確認点"}」を見る。`;
 }
 
 function caseName(data: AppData, caseId: string) {

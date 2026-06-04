@@ -109,7 +109,7 @@ export function OrientDepthPreview({ observation }: { observation: ObservationPr
           {observation.personWords ? <p className="mt-2 rounded-md bg-white/75 p-2 text-xs leading-5 text-ink/65">本人の言葉: {observation.personWords}</p> : null}
           <div className="mt-4 grid gap-2 text-xs text-ink/65">
             <div>
-              <span className="font-semibold text-ink">直前の環境</span> {observation.antecedent}
+              <span className="font-semibold text-ink">行動の前にあったこと</span> {observation.antecedent}
             </div>
             {observation.userBehavior ? (
               <div>
@@ -117,7 +117,7 @@ export function OrientDepthPreview({ observation }: { observation: ObservationPr
               </div>
             ) : null}
             <div>
-              <span className="font-semibold text-ink">直後の環境の変化</span> {observation.consequence}
+              <span className="font-semibold text-ink">その後に起きたこと</span> {observation.consequence}
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -140,7 +140,7 @@ export function OrientDepthPreview({ observation }: { observation: ObservationPr
               <LayerLabel number={`0${index + 2}`} label={`可能性 ${index + 1}`} />
               <div className="mt-2 text-xs font-semibold text-skyline">{hypothesis.category}</div>
               <p className="mt-2 min-h-12 text-sm leading-6 text-ink/80">
-                {hypothesis.statement || "ここに見立て文を入力すると、観察から浮かぶ可能性として見えます。"}
+                {hypothesis.statement || "ここに仮説を入力すると、観察から浮かぶ可能性として見えます。"}
               </p>
               <div className="mt-3 rounded-md bg-white/70 p-2 text-xs leading-5 text-ink/60">
                 根拠: {hypothesis.evidence || "どの事実からそう考えたか"}
@@ -148,7 +148,7 @@ export function OrientDepthPreview({ observation }: { observation: ObservationPr
               <div className="mt-2 grid gap-1 text-xs leading-5 text-ink/60">
                 <PreviewLine label="大事な方向" value={hypothesis.valueDirection} />
                 <PreviewLine label="回避" value={hypothesis.avoidancePattern} />
-                <PreviewLine label="小さな一歩" value={hypothesis.smallStep} />
+                <PreviewLine label="今なら始めやすいこと" value={hypothesis.smallStep} />
               </div>
             </div>
           ))}
@@ -171,7 +171,7 @@ export function OrientDepthPreview({ observation }: { observation: ObservationPr
             />
             <CheckRow
               label="次に見る点"
-              value={firstFilled(hypotheses.map((item) => item.nextObservationPoints)) || "次の観察で見る条件を決める"}
+              value={firstFilled(hypotheses.map((item) => item.nextObservationPoints)) || "次の観察で見る点を決める"}
             />
           </div>
         </div>
