@@ -231,13 +231,50 @@ const HYPOTHESIS_STATUSES: HypothesisStatus[] = ["未検証", "検証中", "強�
 const EXPERIMENT_STATUSES: ExperimentStatus[] = ["予定", "実施中", "完了", "中止"];
 const IMPLEMENTATION_STATUSES: ImplementationStatus[] = ["予定通り", "一部変更", "未実施"];
 const METRIC_OPTIONS = ["開始までの時間", "再開までの時間", "停止回数", "声かけ回数", "継続時間", "質問回数", "離席回数", "本人の楽さ", "その他"];
-const SUPPORT_CATEGORIES = ["声かけ", "手順", "環境", "時間", "相談", "選択肢", "休憩", "その他"];
+const SUPPORT_CATEGORIES = ["声かけ", "手順", "環境", "時間", "相談", "その他", "選択肢", "休憩"];
 const DECISION_CHANGE_OPTIONS = [
-  { label: "声かけを短くする", category: "声かけ" },
-  { label: "手順を見えるようにする", category: "手順" },
-  { label: "周囲の音や人の動きを減らす", category: "環境" },
-  { label: "時間の区切りを決める", category: "時間" },
-  { label: "相談をメモで出せるようにする", category: "相談" }
+  {
+    label: "声かけ",
+    category: "声かけ",
+    examples: ["短く伝える", "一度に伝える数を減らす", "質問の前にひと呼吸置く"],
+    prompt: "声かけを、どう変えますか？",
+    placeholder: "例：質問の前にひと呼吸置き、最初の一問だけ短く伝える。"
+  },
+  {
+    label: "手順",
+    category: "手順",
+    examples: ["見る場所を決める", "見本を横に置く", "最初だけ一緒に確認する"],
+    prompt: "手順を、どう変えますか？",
+    placeholder: "例：最初に取り組む一問を、作業前に一緒に確認する。"
+  },
+  {
+    label: "環境",
+    category: "環境",
+    examples: ["音や人の動きを減らす", "席を変える", "机上の情報を減らす"],
+    prompt: "環境を、どう変えますか？",
+    placeholder: "例：入力前に机上の資料を一つにし、見る場所を減らす。"
+  },
+  {
+    label: "時間",
+    category: "時間",
+    examples: ["始める時刻を決める", "10分ごとに確認する", "休憩後の再開手順を決める"],
+    prompt: "時間の区切りを、どう変えますか？",
+    placeholder: "例：開始前に5分だけ取り組むことを確認し、終わりの時刻を決める。"
+  },
+  {
+    label: "相談",
+    category: "相談",
+    examples: ["メモで相談できるようにする", "相談する相手を決める", "相談するタイミングを決める"],
+    prompt: "相談の出し方を、どう変えますか？",
+    placeholder: "例：困った時は、口頭ではなくメモで職員に渡せるようにする。"
+  },
+  {
+    label: "その他",
+    category: "その他",
+    examples: ["道具", "役割", "選択肢", "事前予告"],
+    prompt: "何を、どう変えますか？",
+    placeholder: "例：本人が先に選べる作業を二つ用意する。"
+  }
 ] as const;
 const DECISION_CHECK_ITEMS = DECISION_CHANGE_OPTIONS.map((item) => item.label);
 
@@ -267,9 +304,10 @@ const OBSERVATION_FIELD_COPY = {
 const SUPPORT_EXAMPLE_GROUPS = [
   { title: "声かけ", items: ["短く伝える", "一度に伝える数を減らす", "質問の前にひと呼吸置く"] },
   { title: "手順", items: ["見る場所を決める", "見本を横に置く", "最初だけ一緒に確認する"] },
-  { title: "環境", items: ["席を変える", "周囲の音や人の動きを減らす", "画面や机上の情報を減らす"] },
-  { title: "時間", items: ["始める時刻を決める", "10分ごとに確認する", "休憩後に何から始めるかを決める"] },
-  { title: "相談", items: ["口頭ではなくメモで出せるようにする", "「ここを見てください」と伝えるカードを用意する", "相談する相手とタイミングを決める"] }
+  { title: "環境", items: ["音や人の動きを減らす", "席を変える", "机上の情報を減らす"] },
+  { title: "時間", items: ["始める時刻を決める", "10分ごとに確認する", "休憩後の再開手順を決める"] },
+  { title: "相談", items: ["メモで相談できるようにする", "相談する相手を決める", "相談するタイミングを決める"] },
+  { title: "その他", items: ["道具を変える", "役割を変える", "選択肢を増やす", "事前予告を入れる"] }
 ] as const;
 
 const ORIENT_REWRITE_EXAMPLES = [
@@ -297,7 +335,7 @@ const stageLinks = [
 const taskStageMeta = {
   Observe: { title: "観察を入力", description: "次にすること：この観察をもとに、次に確かめたい見立てを考えます。", step: "01", helper: "事実を残す", caption: "今ここ", tone: "observe" },
   Orient: { title: "仮の見立てを立てる", description: "次にすること：仮の見立てを確かめるために、場面の一部を変えます。", step: "02", helper: "見立てを立てる", caption: "今ここ", tone: "orient" },
-  Decide: { title: "支援を決める", description: "次にすること：変えた後の本人の反応を見ます。", step: "03", helper: "一つだけ変える", caption: "今ここ", tone: "decide" },
+  Decide: { title: "支援を決める", description: "反応を見て、見立てが合っていたかを確かめます。", step: "03", helper: "一つだけ変える", caption: "今ここ", tone: "decide" },
   Act: { title: "反応を入力", description: "次にすること：見立てを続けるか、修正するかを決めます。", step: "04", helper: "反応を見る", caption: "今ここ", tone: "act" }
 } as const;
 
@@ -393,6 +431,13 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
     return newCaseId;
   }
 
+  function handleTaskCaseChange(caseId: string) {
+    setCurrentCase(caseId);
+    if (isStagePath(pathname, "/decide")) {
+      navigate("/");
+    }
+  }
+
   return (
     <div className="min-h-screen">
       <div className={`app-top-shell ${isTaskPage ? "app-top-shell-task" : ""}`}>
@@ -415,7 +460,7 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
               items={caseItems}
               selectedCaseId={selectedCase?.id ?? ""}
               currentPath={pathname}
-              onCaseChange={(caseId) => setCurrentCase(caseId)}
+              onCaseChange={handleTaskCaseChange}
               onCreateCase={createCaseAndStartObservation}
             />
           ) : isHomePage && caseItems.length === 0 ? (
@@ -441,7 +486,7 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
         ) : view === "orient" ? (
           <OrientView data={data} commit={commit} onNavigate={navigate} />
         ) : view === "decide" ? (
-          <DecideView data={data} commit={commit} onNavigate={navigate} />
+          <DecideView data={data} selectedCaseId={selectedCase?.id ?? ""} commit={commit} onNavigate={navigate} />
         ) : view === "act" ? (
           <ActView data={data} commit={commit} onNavigate={navigate} />
         ) : view === "reflect" || view === "search" ? (
@@ -1541,10 +1586,12 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
   );
 }
 
-function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commit; onNavigate: (href: string) => void }) {
+function DecideView({ data, selectedCaseId, commit, onNavigate }: { data: AppData; selectedCaseId: string; commit: Commit; onNavigate: (href: string) => void }) {
   const searchParams = useSearchParams();
   const [formError, setFormError] = useState("");
-  const hypotheses = [...data.hypotheses].sort(byUpdated);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const selectedCase = selectedCaseId ? data.cases.find((item) => item.id === selectedCaseId) ?? null : null;
+  const hypotheses = [...data.hypotheses.filter((hypothesis) => !selectedCaseId || hypothesis.caseId === selectedCaseId)].sort(byUpdated);
   const selected = hypotheses.find((item) => item.id === searchParams.get("hypothesisId")) ?? hypotheses[0] ?? null;
 
   function handleCreateExperiment(event: FormEvent<HTMLFormElement>) {
@@ -1553,27 +1600,50 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
     const hypothesisId = requiredText(form, "hypothesisId");
     const hypothesis = data.hypotheses.find((item) => item.id === hypothesisId);
     if (!hypothesis) {
+      setFieldErrors({});
       setFormError("見立てを選んでください。");
       return;
     }
-    const decisionChecks = allText(form, "decisionChecks");
-    if (decisionChecks.length === 0) {
-      setFormError("今回変える場所を一つ選んでください。");
+    if (selectedCaseId && hypothesis.caseId !== selectedCaseId) {
+      setFieldErrors({});
+      setFormError("選択中のケースと見立てが合っていません。ケーストップから選び直してください。");
       return;
     }
-    const support = requiredText(form, "support");
+    const errors: FieldErrors = {};
+    const selectedDecision = requiredText(form, "decisionChecks");
+    const support = text(form, "support");
+    const targetChange = text(form, "targetChange");
+    const supportOtherCategory = text(form, "supportOtherCategory");
+    if (!selectedDecision) {
+      errors.decisionChecks = "今回変える場所を一つ選んでください。";
+    }
     if (!support) {
-      setFormError("どこを、どう変えるかを入力してください。");
+      errors.support = "この項目を入力してください。";
+    }
+    if (!targetChange) {
+      errors.targetChange = "この項目を入力してください。";
+    }
+    if (selectedDecision === "その他" && !supportOtherCategory) {
+      errors.supportOtherCategory = "その他の変える場所を入力してください。";
+    }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setFormError("未入力の項目があります。「どこを、どう変えますか？」と「変えた後に何を見ますか？」を入力してください。");
+      focusFirstError(event.currentTarget, errors);
       return;
     }
+    const decisionLabel = selectedDecision === "その他" && supportOtherCategory ? `その他: ${supportOtherCategory}` : selectedDecision;
+    const decisionChecks = [decisionLabel];
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    const submitIntent = submitter instanceof HTMLButtonElement && submitter.value === "case" ? "case" : "act";
     const now = nowIso();
     const experiment: SmallExperimentRecord = {
       id: newId("exp"),
       caseId: hypothesis.caseId,
       hypothesisId: hypothesis.id,
       support,
-      supportCategory: supportCategoryForDecision(decisionChecks[0]) || SUPPORT_CATEGORIES[0],
-      targetChange: requiredText(form, "targetChange"),
+      supportCategory: supportCategoryForDecision(decisionChecks[0]) || selectedDecision || SUPPORT_CATEGORIES[0],
+      targetChange,
       metric: text(form, "metric") || METRIC_OPTIONS[0],
       plannedAt: toIsoFromLocal(text(form, "plannedAt")) || now,
       reviewDueAt: toIsoFromLocal(text(form, "reviewDueAt")) || now,
@@ -1584,10 +1654,7 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
       createdAt: now,
       updatedAt: now
     };
-    if (!experiment.targetChange) {
-      setFormError("変えた後に見る点を入力してください。");
-      return;
-    }
+    setFieldErrors({});
     setFormError("");
     commit((current) => ({
       ...current,
@@ -1596,27 +1663,29 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
       hypotheses: current.hypotheses.map((item) => (item.id === hypothesis.id ? { ...item, status: "検証中", updatedAt: now } : item)),
       experiments: [experiment, ...current.experiments]
     }));
-    onNavigate(`/act?experimentId=${experiment.id}`);
+    onNavigate(submitIntent === "case" ? "/" : `/act?experimentId=${experiment.id}`);
   }
 
-  const experiments = [...data.experiments].sort(byUpdated);
+  const experiments = [...data.experiments.filter((experiment) => !selectedCaseId || experiment.caseId === selectedCaseId)].sort(byUpdated);
   const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const emptyStateCaseLabel = selectedCase ? `${selectedCase.displayName}の` : "";
 
   return (
     <>
-      <PageHeader title="支援を決める" description="今ここ：一つだけ変える。次にすること：変えた後の本人の反応を見ます。" image="decide.png" stageMeta={taskStageMeta.Decide} compact />
+      <PageHeader title="支援を決める" description="今ここ：一つだけ変える。反応を見て、見立てが合っていたかを確かめます。" image="decide.png" stageMeta={taskStageMeta.Decide} compact />
 
-      <Section title="変える場所を決める">
+      <Section title="今回、一つだけ変える場所">
         {hypotheses.length === 0 ? (
           <EmptyState>
-            見立てがまだありません。<Link href="/orient" className="font-medium text-skyline">見立てを入力</Link>から始めてください。
+            {emptyStateCaseLabel}支援を決めるには、先に見立てを入力してください。<Link href="/orient" className="font-medium text-skyline">見立てを入力</Link>から始めます。
           </EmptyState>
         ) : (
           <form id="task-form" onSubmit={handleCreateExperiment} className="grid gap-5 rounded-md border border-ink/10 bg-white p-4 shadow-sm support-form-shell" noValidate>
-            {formError ? <FormError>{formError}</FormError> : null}
             <Notice>
               <strong>今回は、一つだけ変えます。</strong>
+              <br />
+              本人を変えるのではなく、支援者が変えられる場面の一部を変えます。
               <br />
               反応を見て、見立てが合っていたかを確かめます。
             </Notice>
@@ -1640,27 +1709,24 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
 
             <div className="record-context-panel record-context-panel-decision">
               <div className="record-context-panel-head">
-                <strong>今回変える場所</strong>
-                <span>支援者が変えられるものを一つ選ぶ</span>
+                <strong>1. 今回変える場所を選ぶ</strong>
+                <span>支援者が変えられるものを一つ選びます。</span>
               </div>
-              <DecisionChoiceGroup name="decisionChecks" options={DECISION_CHANGE_OPTIONS} required />
+              <DecisionChoiceGroup name="decisionChecks" options={DECISION_CHANGE_OPTIONS} required errors={fieldErrors} />
             </div>
 
             <details className="secondary-field-details">
-              <summary>支援メニューの例を見る</summary>
+              <summary>支援例をまとめて見る</summary>
               <div className="mt-3">
                 <SupportExampleMenu />
               </div>
             </details>
 
             <Label>
-              どこを、どう変えますか？ <RequiredMark />
-              <FieldHelp>支援者が変えられるものを一つ書きます。本人の性格や努力ではなく、声かけ、手順、環境、時間、相談の出し方を変えます。</FieldHelp>
-              <Textarea name="support" rows={5} placeholder="例：質問の前にひと呼吸置く。見本を横に置く。休憩後に何から始めるかを決める。" required />
-            </Label>
-            <Label>
-              変えた後に何を見ますか？ <RequiredMark />
-              <Textarea name="targetChange" rows={3} placeholder="例：作業を始めるまでの時間、質問が出るか、席に戻った後の最初の作業" required />
+              3. 変えた後に何を見ますか？ <RequiredMark />
+              <FieldHelp>支援後の反応を見て、見立てが合っていたかを確かめます。</FieldHelp>
+              <Textarea name="targetChange" rows={3} placeholder="例：声かけ後1分以内に作業を始めるか、追加の確認が出るかを見る。" required aria-invalid={hasFieldError(fieldErrors, "targetChange")} aria-describedby={fieldErrorId("targetChange")} />
+              <FieldError errors={fieldErrors} name="targetChange" />
             </Label>
             <details className="secondary-field-details">
               <summary>今は変えない候補を残す</summary>
@@ -1709,7 +1775,17 @@ function DecideView({ data, commit, onNavigate }: { data: AppData; commit: Commi
               </Label>
             </div>
 
-            <SubmitButton>保存して、反応へ</SubmitButton>
+            <div className="support-form-actions">
+              {formError ? <FormError>{formError}</FormError> : null}
+              <div className="support-form-button-row">
+                <button type="submit" name="submitIntent" value="act" className="record-submit-button focus-ring rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-skyline">
+                  保存して反応を記録する
+                </button>
+                <button type="submit" name="submitIntent" value="case" className="record-secondary-submit-button focus-ring rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-skyline hover:text-skyline">
+                  保存してケースに戻る
+                </button>
+              </div>
+            </div>
           </form>
         )}
       </Section>
@@ -2821,12 +2897,13 @@ function ReflectionEditActions({ saveLabel, onCancel }: { saveLabel: string; onC
 
 function EditableSingleChoiceGroup({ title, name, options, selected }: { title: string; name: string; options: readonly string[]; selected: readonly string[] }) {
   const selectedValue = selected[0] ?? "";
+  const visibleOptions = selectedValue && !options.includes(selectedValue) ? [selectedValue, ...options] : options;
 
   return (
     <fieldset className="loop-update-edit-checkbox-group">
       <legend>{title}</legend>
       <div>
-        {options.map((option) => (
+        {visibleOptions.map((option) => (
           <label key={option}>
             <input type="radio" name={name} value={option} defaultChecked={selectedValue === option} />
             {option}
@@ -3327,21 +3404,58 @@ function TagRow({ tags }: { tags: string[] }) {
   );
 }
 
-function DecisionChoiceGroup({ name, options, required = false }: { name: string; options: readonly { label: string; category: string }[]; required?: boolean }) {
+function DecisionChoiceGroup({
+  name,
+  options,
+  required = false,
+  errors = {}
+}: {
+  name: string;
+  options: readonly { label: string; category: string; examples: readonly string[]; prompt: string; placeholder: string }[];
+  required?: boolean;
+  errors?: FieldErrors;
+}) {
+  const [selectedValue, setSelectedValue] = useState("");
+
   return (
-    <fieldset className="decision-choice-group">
+    <fieldset className="decision-choice-group" aria-describedby={hasFieldError(errors, name) && !selectedValue ? fieldErrorId(name) : undefined}>
       <legend className="sr-only">今回変える場所</legend>
       <div className="decision-choice-grid">
-        {options.map((option) => (
-          <label key={option.label} className="decision-choice-option">
-            <input type="radio" name={name} value={option.label} required={required} />
-            <span>
-              <strong>{option.label}</strong>
-              <small>{option.category}</small>
-            </span>
-          </label>
-        ))}
+        {options.map((option, index) => {
+          const isSelected = selectedValue === option.label;
+          const radioId = `${name}-${index}`;
+          return (
+            <div key={option.label} className={`decision-choice-option ${isSelected ? "is-selected" : ""}`}>
+              <label className="decision-choice-option-head" htmlFor={radioId}>
+                <input id={radioId} type="radio" name={name} value={option.label} required={required} checked={isSelected} onChange={() => setSelectedValue(option.label)} />
+                <span>
+                  <strong>{option.label}</strong>
+                  <small>例：{option.examples.join("、")}</small>
+                </span>
+              </label>
+              {isSelected ? (
+                <div className="decision-choice-detail">
+                  {option.label === "その他" ? (
+                    <Label>
+                      その他の変える場所 <RequiredMark />
+                      <FieldHelp>既存の分類に無理に入れず、短く残します。</FieldHelp>
+                      <Input name="supportOtherCategory" placeholder="例：道具、役割、選択肢、事前予告など" required aria-invalid={hasFieldError(errors, "supportOtherCategory")} aria-describedby={fieldErrorId("supportOtherCategory")} />
+                      <FieldError errors={errors} name="supportOtherCategory" />
+                    </Label>
+                  ) : null}
+                  <Label>
+                    2. {option.prompt} <RequiredMark />
+                    <FieldHelp>本人の性格や努力ではなく、支援者が変えられる場面の一部を書きます。</FieldHelp>
+                    <Textarea name="support" rows={4} placeholder={option.placeholder} required aria-invalid={hasFieldError(errors, "support")} aria-describedby={fieldErrorId("support")} />
+                    <FieldError errors={errors} name="support" />
+                  </Label>
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
       </div>
+      {!selectedValue ? <FieldError errors={errors} name={name} /> : null}
     </fieldset>
   );
 }
@@ -3780,7 +3894,16 @@ function listLine(label: string, values: string[] | undefined) {
 }
 
 function supportCategoryForDecision(label: string | undefined) {
-  return DECISION_CHANGE_OPTIONS.find((item) => item.label === label)?.category ?? "";
+  if (!label) return "";
+  if (label.startsWith("その他")) return "その他";
+  const legacyCategoryByLabel: Record<string, string> = {
+    "声かけを短くする": "声かけ",
+    "手順を見えるようにする": "手順",
+    "周囲の音や人の動きを減らす": "環境",
+    "時間の区切りを決める": "時間",
+    "相談をメモで出せるようにする": "相談"
+  };
+  return DECISION_CHANGE_OPTIONS.find((item) => item.label === label)?.category ?? legacyCategoryByLabel[label] ?? "";
 }
 
 function observationFactText(observation: ObservationRecord) {
@@ -3992,6 +4115,13 @@ function focusFirstError(form: HTMLFormElement, errors: FieldErrors) {
   const target = form.elements.namedItem(firstName);
   if (target instanceof HTMLElement) {
     target.focus({ preventScroll: false });
+    return;
+  }
+  if (target instanceof RadioNodeList) {
+    const first = target.item(0);
+    if (first instanceof HTMLElement) {
+      first.focus({ preventScroll: false });
+    }
   }
 }
 

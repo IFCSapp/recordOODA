@@ -3938,37 +3938,43 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 
 .decision-choice-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: 8px;
 }
 
 .decision-choice-option {
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: 8px;
-  align-items: start;
+  gap: 10px;
   min-width: 0;
   border: 1px solid rgba(55, 111, 143, 0.14);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.78);
   padding: 10px;
-  cursor: pointer;
 }
 
-.decision-choice-option:has(input:checked) {
+.decision-choice-option.is-selected {
   border-color: rgba(55, 111, 143, 0.48);
   background: rgba(55, 111, 143, 0.12);
   box-shadow: inset 0 0 0 1px rgba(55, 111, 143, 0.08);
 }
 
-.decision-choice-option input {
+.decision-choice-option-head {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.decision-choice-option-head input[type="radio"] {
   width: 16px;
   height: 16px;
   margin-top: 2px;
   accent-color: #376f8f;
 }
 
-.decision-choice-option span {
+.decision-choice-option-head span {
   display: grid;
   gap: 4px;
   min-width: 0;
@@ -3986,7 +3992,32 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   color: rgba(31, 41, 51, 0.55);
   font-size: 11px;
   font-weight: 800;
-  line-height: 1.25;
+  line-height: 1.45;
+}
+
+.decision-choice-detail {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid rgba(55, 111, 143, 0.16);
+  padding-top: 10px;
+}
+
+.support-form-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.support-form-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.support-form-button-row .record-submit-button,
+.support-form-button-row .record-secondary-submit-button {
+  min-height: 40px;
+  justify-content: center;
 }
 
 .support-example-panel,
@@ -4064,6 +4095,11 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 
   .record-context-panel-head {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .support-form-button-row {
+    align-items: stretch;
     flex-direction: column;
   }
 }
