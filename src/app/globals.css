@@ -567,6 +567,14 @@ button {
   align-items: stretch;
 }
 
+.ooda-flow-empty-guide {
+  margin: -2px 0 -4px;
+  color: rgba(31, 41, 51, 0.58);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
 .ooda-flow-map::before {
   content: "";
   position: absolute;
@@ -660,6 +668,27 @@ button {
 
 .ooda-flow-node.is-disabled {
   pointer-events: none;
+}
+
+.ooda-flow-map-empty::before {
+  background: rgba(31, 41, 51, 0.12);
+  opacity: 0.35;
+}
+
+.ooda-flow-map-empty .ooda-flow-node {
+  border-color: rgba(31, 41, 51, 0.1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(248, 250, 247, 0.62));
+  box-shadow: none;
+}
+
+.ooda-flow-map-empty .ooda-flow-node strong {
+  color: rgba(31, 41, 51, 0.54);
+}
+
+.ooda-flow-map-empty .ooda-flow-dot,
+.ooda-flow-map-empty .ooda-flow-node small {
+  background: rgba(31, 41, 51, 0.06);
+  color: rgba(31, 41, 51, 0.48);
 }
 
 .ooda-flow-dot {
@@ -5346,14 +5375,21 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 }
 
 .orient-form-note,
-.hypothesis-input-guide {
+.hypothesis-input-guide,
+.hypothesis-secondary-note {
   color: rgba(31, 41, 51, 0.62);
   font-size: 13px;
   line-height: 1.7;
 }
 
-.orient-form-note {
+.orient-form-note,
+.hypothesis-secondary-note {
   margin: 0;
+}
+
+.hypothesis-secondary-note {
+  border-left: 3px solid rgba(207, 138, 85, 0.28);
+  padding-left: 10px;
 }
 
 .hypothesis-category-descriptions {

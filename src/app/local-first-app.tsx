@@ -254,7 +254,7 @@ const OBSERVATION_FIELD_COPY = {
   },
   userBehavior: {
     label: "本人は何をしましたか？",
-    helper: "気持ちの推測ではなく、見えた行動や聞こえた言葉を書きます。例：本人は「どこからやればいいですか」と話し、マウスから手を離した。",
+    helper: "気持ちの推測ではなく、見えた行動や聞こえた言葉を書きます。良い例：「どこからやればいいですか」と言い、マウスから手を離した。避けたい例：やる気がなさそうだった。",
     examples: "見えた行動、聞こえた言葉"
   },
   consequence: {
@@ -289,14 +289,14 @@ const RESPONSE_CHECK_POINTS = [
 
 const stageLinks = [
   { href: "/observe", stage: "Observe", stageLabel: "観察", label: "観察を入力", helper: "事実を残す", tone: "observe" },
-  { href: "/orient", stage: "Orient", stageLabel: "見立て", label: "見立てを入力", helper: "仮説を置く", tone: "orient" },
+  { href: "/orient", stage: "Orient", stageLabel: "見立て", label: "見立てを入力", helper: "見立てを立てる", tone: "orient" },
   { href: "/decide", stage: "Decide", stageLabel: "支援", label: "支援を決める", helper: "一つだけ変える", tone: "decide" },
   { href: "/act", stage: "Act", stageLabel: "反応", label: "反応を入力", helper: "反応を見る", tone: "act" }
 ] as const;
 
 const taskStageMeta = {
-  Observe: { title: "観察を入力", description: "次にすること：この観察から、次に確かめる見立てを置きます。", step: "01", helper: "事実を残す", caption: "今ここ", tone: "observe" },
-  Orient: { title: "見立てを仮に置く", description: "次にすること：仮説を確かめるために、場面の一部を変えます。", step: "02", helper: "仮説を置く", caption: "今ここ", tone: "orient" },
+  Observe: { title: "観察を入力", description: "次にすること：この観察をもとに、次に確かめたい見立てを考えます。", step: "01", helper: "事実を残す", caption: "今ここ", tone: "observe" },
+  Orient: { title: "仮の見立てを立てる", description: "次にすること：仮の見立てを確かめるために、場面の一部を変えます。", step: "02", helper: "見立てを立てる", caption: "今ここ", tone: "orient" },
   Decide: { title: "支援を決める", description: "次にすること：変えた後の本人の反応を見ます。", step: "03", helper: "一つだけ変える", caption: "今ここ", tone: "decide" },
   Act: { title: "反応を入力", description: "次にすること：見立てを続けるか、修正するかを決めます。", step: "04", helper: "反応を見る", caption: "今ここ", tone: "act" }
 } as const;
@@ -403,7 +403,7 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
                 <Link href="/" className="brand-mark text-xl font-bold tracking-normal text-ink">recordOODA</Link>
                 <span className="brand-utility-links" aria-label="全体メニュー">
                   <Link href="/">TOPへ</Link>
-                  <Link href="/files">保存/復元</Link>
+                  <Link href="/files">データ管理</Link>
                 </span>
               </span>
               <span className={`record-brand-subtitle text-sm text-ink/60 ${isTaskPage ? "record-brand-subtitle-task" : ""}`}>観察から場面を少し変える支援まで、今日の一手を残す</span>
@@ -521,7 +521,7 @@ function CompactWorkflowBar({
                 selectedCaseId={selected?.id ?? ""}
                 onCaseChange={onCaseChange}
                 onCreateCase={onCreateCase}
-                submitLabel="ケースを作って観察へ"
+                submitLabel="ケースを作って観察を始める"
               />
             </div>
           </div>
@@ -614,7 +614,7 @@ function HomeStartBar({
           </>
         ) : (
           <>
-            <QuickCaseForm onCreateCase={onCreateCase} submitLabel="ケースを作って観察へ" />
+            <QuickCaseForm onCreateCase={onCreateCase} submitLabel="ケースを作って観察を始める" />
             <details className="home-start-alternative">
               <summary>既存のケースを選ぶ</summary>
               <Link href="/cases" className="home-start-secondary-link">
@@ -739,29 +739,31 @@ function CaseChangeMenu({
       <button type="button" className="case-change-menu-trigger" aria-expanded={isOpen} onClick={() => setIsOpen((current) => !current)}>
         ケースを選ぶ
       </button>
-      <div className="case-change-menu-body">
-        <label className="case-change-menu-picker case-change-menu-section case-change-menu-section-select">
-          <span className="case-change-menu-picker-head">
-            <span>既存のケースを選ぶ</span>
-            {showListLink ? (
-              <Link href="/cases" className="case-change-menu-list-link">
-                ケース一覧
-              </Link>
-            ) : null}
-          </span>
-          <select value={selectedCaseId} onChange={(event) => handleCaseChange(event.target.value)} aria-label={ariaLabel}>
-            {items.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.displayName}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="case-change-menu-create case-change-menu-section case-change-menu-section-create">
-          <span className="case-change-menu-create-title">新しいケースを作る</span>
-          <QuickCaseForm onCreateCase={handleCreateCase} submitLabel={submitLabel} />
+      {isOpen ? (
+        <div className="case-change-menu-body">
+          <label className="case-change-menu-picker case-change-menu-section case-change-menu-section-select">
+            <span className="case-change-menu-picker-head">
+              <span>既存のケースを選ぶ</span>
+              {showListLink ? (
+                <Link href="/cases" className="case-change-menu-list-link">
+                  ケース一覧
+                </Link>
+              ) : null}
+            </span>
+            <select value={selectedCaseId} onChange={(event) => handleCaseChange(event.target.value)} aria-label={ariaLabel}>
+              {items.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.displayName}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="case-change-menu-create case-change-menu-section case-change-menu-section-create">
+            <span className="case-change-menu-create-title">新しいケースを作る</span>
+            <QuickCaseForm onCreateCase={handleCreateCase} submitLabel={submitLabel} />
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -966,7 +968,8 @@ function HomeFlowHeader({
           </Link>
         ) : null}
       </div>
-      <div className="ooda-flow-map" aria-label={selectedCase ? `${selectedCase.displayName}のOODAステップ` : "OODAステップ"}>
+      {!selectedCase ? <p className="ooda-flow-empty-guide">ケースを作ると、以下の順に記録できます。</p> : null}
+      <div className={`ooda-flow-map ${selectedCase ? "" : "ooda-flow-map-empty"}`} aria-label={selectedCase ? `${selectedCase.displayName}のOODAステップ` : "OODAステップ"}>
         {stageLinks.map((item, index) => {
           const count = selectedCase ? countForCaseStage(selectedCase, item.stage) : 0;
           const isComplete = Boolean(selectedCase && count > 0);
@@ -1230,7 +1233,7 @@ function ObserveView({
     <>
       <PageHeader
         title="観察を入力"
-        description={hasCases ? "今ここ：事実を残す。次にすること：この観察から、次に確かめる見立てを置きます。" : "まず新しいケースを作ると、この画面を使えます。"}
+        description={hasCases ? "今ここ：事実を残す。次にすること：この観察をもとに、次に確かめたい見立てを考えます。" : "まず新しいケースを作ると、この画面を使えます。"}
         image="observe.png"
         stageMeta={taskStageMeta.Observe}
         compact
@@ -1240,7 +1243,7 @@ function ObserveView({
         {!hasCases ? (
           <div id="case-form" className="observe-empty-case">
             <EmptyState>新しいケースを作ると、すぐ観察を入力できます。</EmptyState>
-            <QuickCaseForm onCreateCase={onCreateCase} submitLabel="ケースを作って観察へ" />
+            <QuickCaseForm onCreateCase={onCreateCase} submitLabel="ケースを作って観察を始める" />
           </div>
         ) : (
           <form id="task-form" onSubmit={handleCreateObservation} className="observe-form-shell" noValidate>
@@ -1320,7 +1323,7 @@ function ObserveView({
 
                 <Label>
                   一行メモ <OptionalMark />
-                  <Textarea name="freeText" rows={3} placeholder="見えた流れを一行で置く" />
+                  <Textarea name="freeText" rows={3} placeholder="見えた流れを一行でまとめる" />
                 </Label>
 
                 <Label>
@@ -1438,7 +1441,7 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
       return;
     }
     if (created.length === 0) {
-      errors["statement-0"] = "主な仮説を入力してください。";
+      errors["statement-0"] = "主な見立てを入力してください。";
       setFieldErrors(errors);
       setFormError("未入力の必須項目があります。表示された項目を確認してください。");
       focusFirstError(event.currentTarget, errors);
@@ -1460,9 +1463,9 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
 
   return (
     <>
-      <PageHeader title="見立てを仮に置く" description={hasCases ? "今ここ：仮説を置く。次にすること：仮説を確かめるために、場面の一部を変えます。" : "まず新しいケースを作ると、この画面を使えます。"} image="orient.png" stageMeta={taskStageMeta.Orient} compact />
+      <PageHeader title="仮の見立てを立てる" description={hasCases ? "今ここ：仮の見立てを立てる。次にすること：仮の見立てを確かめるために、場面の一部を変えます。" : "まず新しいケースを作ると、この画面を使えます。"} image="orient.png" stageMeta={taskStageMeta.Orient} compact />
 
-      <Section title="次に確かめる仮説">
+      <Section title="次に確かめる見立て">
         {observations.length === 0 ? (
           <EmptyState>
             {!hasCases ? (
@@ -1495,12 +1498,12 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
             <div className="orient-workbench">
               <div className="orient-input-panel">
                 <div className="orient-guidance-panel">
-                  <p>見立ては、本人を説明しきる言葉ではありません。次に確かめるための仮説として書きます。</p>
+                  <p>見立ては、本人を説明しきる言葉ではありません。次に確かめるための仮の見立てとして書きます。</p>
                   <p>「やる気がない」「わがまま」などのまとめ言葉ではなく、どの場面で、何が起きやすいかを書きます。</p>
-                  <p>この見立てが違うとしたら、何を見ればよいかも一緒に置きます。</p>
+                  <p>支援の内容ではなく、何が分かれば確かめられるかも一緒に残します。</p>
                 </div>
                 <RewriteExampleList examples={ORIENT_REWRITE_EXAMPLES} />
-                <p className="orient-form-note">まず主な仮説だけを入力します。別方向からの見立ては必要な時だけ開けます。</p>
+                <p className="orient-form-note">まず主な見立てだけを入力します。別方向からの見立ては必要な時だけ開けます。</p>
                 <div id="task-form" className="orient-entry-layout">
                   <HypothesisEditor index={0} role="primary" errors={fieldErrors} />
                   <details className="optional-hypothesis-details orient-optional-bundle">
@@ -3404,7 +3407,7 @@ function HypothesisEditor({ index, role, errors = {} }: { index: number; role: "
       </legend>
       <input type="hidden" name={`confidence-${index}`} defaultValue="50" />
       <input type="hidden" name={`status-${index}`} defaultValue="未検証" />
-      {role === "primary" ? <p className="hypothesis-input-guide">必須は、カテゴリー、見立て、根拠、次に確かめたいことです。本人の性格ではなく、場面と反応のつながりを仮に置きます。</p> : null}
+      {role === "primary" ? <p className="hypothesis-input-guide">必須は、カテゴリー、見立て、根拠、次に確かめたいことです。本人の性格ではなく、場面と反応のつながりとして仮の見立てを立てます。</p> : null}
       <div className="grid gap-3">
         <Label>
           見立てカテゴリー {isRequired ? <RequiredMark /> : null}
@@ -3430,7 +3433,7 @@ function HypothesisEditor({ index, role, errors = {} }: { index: number; role: "
         </dl>
         <Label>
           どの場面で、何が起きやすいですか？ {isRequired ? <RequiredMark /> : null}
-          <FieldHelp>見立ては、次に確かめるための仮説です。断定せず「可能性がある」で残します。</FieldHelp>
+          <FieldHelp>見立ては、次に確かめるための仮の説明です。断定せず「可能性がある」で残します。</FieldHelp>
           <Textarea name={`statement-${index}`} rows={3} placeholder="例：作業の始め方が分からない場面で、手が止まりやすい可能性がある" required={isRequired} aria-invalid={hasFieldError(errors, `statement-${index}`)} aria-describedby={fieldErrorId(`statement-${index}`)} />
           <FieldError errors={errors} name={`statement-${index}`} />
         </Label>
@@ -3441,7 +3444,7 @@ function HypothesisEditor({ index, role, errors = {} }: { index: number; role: "
         </Label>
         <Label>
           次に確かめたいことは何ですか？ {isRequired ? <RequiredMark /> : null}
-          <FieldHelp>この見立てが正しい、または違うとしたら、次に何を見ればよいかを書きます。</FieldHelp>
+          <FieldHelp>ここでは、支援の内容ではなく「何が分かれば見立てを確かめられるか」を書きます。例：最初の一問が分かると、自分で作業を始められるかを見る。</FieldHelp>
           <Textarea name={`nextObservationPoints-${index}`} rows={3} placeholder="例：最初の一問を明示すると、本人が自分で開始できるかを見る" required={isRequired} aria-invalid={hasFieldError(errors, `nextObservationPoints-${index}`)} aria-describedby={fieldErrorId(`nextObservationPoints-${index}`)} />
           <FieldError errors={errors} name={`nextObservationPoints-${index}`} />
         </Label>
@@ -3466,6 +3469,7 @@ function HypothesisEditor({ index, role, errors = {} }: { index: number; role: "
             </Label>
           </div>
         </details>
+        <p className="hypothesis-secondary-note">まだ分からないことや、別の可能性も残せます。</p>
         <details className="secondary-field-details hypothesis-support-details">
           <summary>反証・未確認の補足を残す</summary>
           <div className="mt-3 grid gap-3">
@@ -3725,7 +3729,7 @@ function getCaseNextAction(item: CaseDockItem) {
     return { label: "まず観察を入力する", href: `/observe?caseId=${item.id}`, reason: "ケースを作成しました。まずは、見たこと・聞いたことを観察として残しましょう。" };
   }
   if (item.counts.hypotheses === 0) {
-    return { label: "見立てを入力する", href: item.latestObservationId ? `/orient?observationId=${item.latestObservationId}` : "/orient", reason: "観察があります。次に確かめる見立てを置きます。" };
+    return { label: "見立てを入力する", href: item.latestObservationId ? `/orient?observationId=${item.latestObservationId}` : "/orient", reason: "観察があります。次に確かめたい見立てを考えます。" };
   }
   if (item.counts.experiments === 0) {
     return { label: "支援を一つ決める", href: item.latestHypothesisId ? `/decide?hypothesisId=${item.latestHypothesisId}` : "/decide", reason: "見立てがあります。場面の一部を一つだけ変えます。" };
@@ -3962,7 +3966,7 @@ function buildSummary(data: AppData, observation: ObservationRecord) {
       ]).join("。")
     : "";
   const decisionContext = experiment?.decisionChecks.length ? `変える場所は「${experiment.decisionChecks.join("、")}」。` : "";
-  return `本日は${scene}で、「${observation.factMemo}」が見られた。行動の前には「${observation.antecedent}」があり、${behaviorSentence}その後「${observation.consequence}」があった。${observationDetails ? `${observationDetails}。` : ""}「${hypothesisText}」の可能性を置いた。${orientContext ? `${orientContext}。` : ""}次に「${support}」を行う。${decisionContext}反応として「${response}」を確認し、次回は「${review?.nextObservationPoint || hypothesis?.nextObservationPoints || observation.unknownMemo || "未確認点"}」を見る。`;
+  return `本日は${scene}で、「${observation.factMemo}」が見られた。行動の前には「${observation.antecedent}」があり、${behaviorSentence}その後「${observation.consequence}」があった。${observationDetails ? `${observationDetails}。` : ""}「${hypothesisText}」という見立てを立てた。${orientContext ? `${orientContext}。` : ""}次に「${support}」を行う。${decisionContext}反応として「${response}」を確認し、次回は「${review?.nextObservationPoint || hypothesis?.nextObservationPoints || observation.unknownMemo || "未確認点"}」を見る。`;
 }
 
 function caseName(data: AppData, caseId: string) {
