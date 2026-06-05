@@ -433,9 +433,10 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
 
   function handleTaskCaseChange(caseId: string) {
     setCurrentCase(caseId);
-    if (isStagePath(pathname, "/decide")) {
-      navigate("/");
-    }
+    const targetCase = caseItems.find((item) => item.id === caseId);
+    if (!targetCase) return;
+    const currentStage = stageLinks.find((item) => isStagePath(pathname, item.href));
+    navigate(currentStage ? hrefForCaseStage(targetCase, currentStage.href) : "/");
   }
 
   return (
