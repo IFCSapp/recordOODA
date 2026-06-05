@@ -1,16 +1,12 @@
 export const DEFAULT_STAFF_ID = "staff-demo";
 
 export const HYPOTHESIS_CATEGORIES = [
-  "起動・開始の困難",
-  "見通し・変化への弱さ",
   "理解・段取り負荷",
   "感覚・環境負荷",
   "対人・評価負荷",
-  "失敗回避・不安",
-  "援助要請の障壁",
-  "強化・回避の機能",
-  "身体状態",
-  "本人の選好・価値"
+  "疲労・体調",
+  "援助要求の難しさ",
+  "好み・価値とのずれ"
 ] as const;
 
 export const HYPOTHESIS_STATUSES = ["未検証", "検証中", "強まった", "弱まった", "保留"] as const;

@@ -13,13 +13,13 @@ const dateLike = z.coerce.date();
 const optionalNumber = z.coerce.number().int().nonnegative().optional();
 
 export const caseSchema = z.object({
-  displayName: requiredText("記録したい人や場面"),
+  displayName: requiredText("ケース名"),
   memo: optionalText,
   isActive: z.coerce.boolean().optional().default(true)
 });
 
 export const observationSchema = z.object({
-  caseId: requiredText("記録先"),
+  caseId: requiredText("ケース"),
   staffId: z.string().trim().optional(),
   observedAt: dateLike,
   location: requiredText("場所"),
@@ -45,7 +45,7 @@ export const observationSchema = z.object({
 });
 
 export const hypothesisSchema = z.object({
-  caseId: requiredText("記録先"),
+  caseId: requiredText("ケース"),
   observationId: z.string().trim().optional(),
   staffId: z.string().trim().optional(),
   category: z.enum(HYPOTHESIS_CATEGORIES),
@@ -53,17 +53,17 @@ export const hypothesisSchema = z.object({
   evidence: requiredText("根拠"),
   counterEvidence: optionalText,
   unknowns: optionalText,
-  nextObservationPoints: optionalText,
+  nextObservationPoints: requiredText("次に確かめたいこと"),
   confidence: z.coerce.number().int().min(0).max(100).default(50),
   status: z.enum(HYPOTHESIS_STATUSES).default("未検証")
 });
 
 export const smallExperimentSchema = z.object({
-  caseId: requiredText("記録先"),
+  caseId: requiredText("ケース"),
   hypothesisId: requiredText("見立て"),
   staffId: z.string().trim().optional(),
   support: requiredText("どこをどう変えるか"),
-  supportCategory: requiredText("支援カテゴリー"),
+  supportCategory: requiredText("今回変える場所"),
   targetChange: requiredText("変えた後に見る点"),
   metric: z.enum(METRIC_OPTIONS),
   reviewDueAt: dateLike,
@@ -74,13 +74,13 @@ export const smallExperimentSchema = z.object({
 });
 
 export const actReviewSchema = z.object({
-  caseId: requiredText("記録先"),
+  caseId: requiredText("ケース"),
   experimentId: requiredText("実験カード"),
   hypothesisId: requiredText("見立て"),
   staffId: z.string().trim().optional(),
   implementation: requiredText("実施内容"),
   implementationStatus: z.enum(IMPLEMENTATION_STATUSES),
-  immediateResponse: requiredText("支援の後に見えた変化"),
+  immediateResponse: requiredText("本人の反応"),
   laterResponse: optionalText,
   measuredValue: optionalText,
   comparison: optionalText,
@@ -90,7 +90,7 @@ export const actReviewSchema = z.object({
 });
 
 export const reflectionMemoSchema = z.object({
-  caseId: requiredText("記録先"),
+  caseId: requiredText("ケース"),
   observationId: z.string().trim().optional(),
   hypothesisId: z.string().trim().optional(),
   staffId: z.string().trim().optional(),
@@ -99,7 +99,7 @@ export const reflectionMemoSchema = z.object({
 });
 
 export const exportSummarySchema = z.object({
-  caseId: requiredText("記録先"),
+  caseId: requiredText("ケース"),
   observationId: requiredText("観察"),
   hypothesisId: z.string().trim().optional(),
   experimentId: z.string().trim().optional(),

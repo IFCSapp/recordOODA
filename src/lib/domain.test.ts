@@ -45,16 +45,16 @@ describe("OODA MVP domain rules", () => {
     const hypothesis = createHypothesisDraft({
       caseId: "case-a",
       observationId: "obs-a",
-      category: "見通し・変化への弱さ",
-      statement: "予定変更による見通しの崩れが影響している可能性がある。",
+      category: "理解・段取り負荷",
+      statement: "作業の始め方が曖昧な場面で、手が止まりやすい可能性がある。",
       evidence: "席替え後に開始まで時間がかかった。",
       counterEvidence: "昼食後の疲労もありうる。",
       unknowns: "事前予告の有無",
-      nextObservationPoints: "予告ありの日の開始時間",
+      nextObservationPoints: "最初の一問を明示すると開始できるかを見る。",
       confidence: 55
     });
 
-    expect(hypothesis.category).toBe("見通し・変化への弱さ");
+    expect(hypothesis.category).toBe("理解・段取り負荷");
   });
 
   it("仮説が1つだけのときに追加仮説の促しが出る", () => {

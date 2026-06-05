@@ -754,6 +754,19 @@ button {
   align-items: center;
 }
 
+.record-section-action-link {
+  color: #376f8f;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+.record-section-action-link:hover,
+.record-section-action-link:focus-visible {
+  text-decoration: underline;
+}
+
 .record-page-title.record-page-title-fit {
   line-height: 1.18;
   overflow-wrap: anywhere;
@@ -2214,6 +2227,11 @@ input.record-field[type="time"]::-webkit-date-and-time-value {
   box-shadow: none;
 }
 
+.record-notice strong {
+  color: inherit;
+  font-weight: 900;
+}
+
 main table {
   background: var(--surface);
 }
@@ -3323,6 +3341,14 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   line-height: 1.2;
 }
 
+.case-dock-form-help {
+  color: rgba(31, 41, 51, 0.56);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
 .case-dock-form-error {
   margin: 0;
   border-left: 3px solid #a45f45;
@@ -3568,6 +3594,15 @@ main fieldset label:has(input[type="checkbox"]:checked) {
   font-size: 13px;
   font-weight: 800;
   line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.observe-block-example {
+  margin: -6px 0 0;
+  color: rgba(31, 41, 51, 0.58);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.6;
   overflow-wrap: anywhere;
 }
 
@@ -3864,6 +3899,65 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 .record-context-panel-decision {
   border-color: rgba(55, 111, 143, 0.18);
   background: rgba(55, 111, 143, 0.06);
+}
+
+.decision-choice-group {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.decision-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 8px;
+}
+
+.decision-choice-option {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  min-width: 0;
+  border: 1px solid rgba(55, 111, 143, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 10px;
+  cursor: pointer;
+}
+
+.decision-choice-option:has(input:checked) {
+  border-color: rgba(55, 111, 143, 0.48);
+  background: rgba(55, 111, 143, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(55, 111, 143, 0.08);
+}
+
+.decision-choice-option input {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: #376f8f;
+}
+
+.decision-choice-option span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.decision-choice-option strong {
+  color: #1f2933;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.decision-choice-option small {
+  color: rgba(31, 41, 51, 0.55);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
 }
 
 .support-example-panel,
@@ -5260,6 +5354,41 @@ main fieldset label:has(input[type="checkbox"]:checked) {
 
 .orient-form-note {
   margin: 0;
+}
+
+.hypothesis-category-descriptions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 7px;
+  margin: 0;
+  border: 1px solid rgba(31, 41, 51, 0.08);
+  border-radius: 8px;
+  background: rgba(248, 250, 247, 0.78);
+  padding: 9px;
+}
+
+.hypothesis-category-descriptions > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  border-left: 3px solid rgba(55, 111, 143, 0.18);
+  padding: 3px 0 3px 8px;
+}
+
+.hypothesis-category-descriptions dt {
+  color: #1f2933;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.hypothesis-category-descriptions dd {
+  margin: 0;
+  color: rgba(31, 41, 51, 0.62);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .orient-guidance-panel {

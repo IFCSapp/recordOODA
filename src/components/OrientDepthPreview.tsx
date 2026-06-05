@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { HYPOTHESIS_CATEGORIES } from "@/lib/constants";
 
 type ObservationPreview = {
   caseName: string;
@@ -29,9 +28,9 @@ type HypothesisPreview = {
   smallStep: string;
 };
 
-const emptyHypotheses = [0, 1, 2].map((index) => ({
+const emptyHypotheses = [0, 1, 2].map(() => ({
   statement: "",
-  category: HYPOTHESIS_CATEGORIES[index] ?? HYPOTHESIS_CATEGORIES[0],
+  category: "",
   evidence: "",
   counterEvidence: "",
   unknowns: "",
@@ -63,7 +62,7 @@ export function OrientDepthPreview({ observation }: { observation: ObservationPr
       setHypotheses(
         [0, 1, 2].map((index) => ({
           statement: valueOf(`statement-${index}`),
-          category: valueOf(`category-${index}`) || HYPOTHESIS_CATEGORIES[index] || HYPOTHESIS_CATEGORIES[0],
+          category: valueOf(`category-${index}`),
           evidence: valueOf(`evidence-${index}`),
           counterEvidence: valueOf(`counterEvidence-${index}`),
           unknowns: valueOf(`unknowns-${index}`),
@@ -138,7 +137,7 @@ export function OrientDepthPreview({ observation }: { observation: ObservationPr
           {hypotheses.map((hypothesis, index) => (
             <div key={index} className={`orient-depth-card orient-hypothesis-plane orient-hypothesis-plane-${index + 1}`}>
               <LayerLabel number={`0${index + 2}`} label={`可能性 ${index + 1}`} />
-              <div className="mt-2 text-xs font-semibold text-skyline">{hypothesis.category}</div>
+              <div className="mt-2 text-xs font-semibold text-skyline">{hypothesis.category || "カテゴリー未選択"}</div>
               <p className="mt-2 min-h-12 text-sm leading-6 text-ink/80">
                 {hypothesis.statement || "ここに仮説を入力すると、観察から浮かぶ可能性として見えます。"}
               </p>
@@ -170,8 +169,8 @@ export function OrientDepthPreview({ observation }: { observation: ObservationPr
               value={firstFilled(hypotheses.map((item) => item.unknowns)) || "まだ分からない点を残す"}
             />
             <CheckRow
-              label="次に見る点"
-              value={firstFilled(hypotheses.map((item) => item.nextObservationPoints)) || "次の観察で見る点を決める"}
+              label="次に確かめたいこと"
+              value={firstFilled(hypotheses.map((item) => item.nextObservationPoints)) || "次に何を見るかを決める"}
             />
           </div>
         </div>
