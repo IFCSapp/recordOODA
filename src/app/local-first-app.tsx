@@ -484,11 +484,11 @@ export default function LocalFirstApp({ view }: { view: LocalFirstView }) {
         ) : view === "observe" ? (
           <ObserveView data={data} selectedCaseId={selectedCase?.id ?? ""} commit={commit} onNavigate={navigate} onCreateCase={createCaseAndStartObservation} />
         ) : view === "orient" ? (
-          <OrientView data={data} commit={commit} onNavigate={navigate} />
+          <OrientView data={data} selectedCaseId={selectedCase?.id ?? ""} commit={commit} onNavigate={navigate} />
         ) : view === "decide" ? (
           <DecideView data={data} selectedCaseId={selectedCase?.id ?? ""} commit={commit} onNavigate={navigate} />
         ) : view === "act" ? (
-          <ActView data={data} commit={commit} onNavigate={navigate} />
+          <ActView data={data} selectedCaseId={selectedCase?.id ?? ""} commit={commit} onNavigate={navigate} />
         ) : view === "reflect" || view === "search" ? (
           <ReflectView data={data} selectedCaseId={selectedCase?.id ?? ""} commit={commit} onNavigate={navigate} onCreateCase={createCaseAndOpenReflection} />
         ) : view === "export" ? (
@@ -898,10 +898,11 @@ function HomeView({
   const hasCases = data.cases.length > 0;
   const caseItems = buildCaseDockItems(data);
   const selectedCase = caseItems.find((item) => item.id === selectedCaseId) ?? caseItems[0] ?? null;
-  const recentObservations = [...data.observations].sort(byNewest).slice(0, 4);
-  const activeHypotheses = data.hypotheses.filter((item) => item.status === "未検証" || item.status === "検証中").sort(byUpdated).slice(0, 4);
-  const dueExperiments = data.experiments.filter((item) => item.status === "予定" || item.status === "実施中").sort((a, b) => a.reviewDueAt.localeCompare(b.reviewDueAt)).slice(0, 4);
-  const recentReviews = [...data.actReviews].sort(byNewest).slice(0, 4);
+  const currentCaseId = selectedCase?.id ?? "";
+  const recentObservations = data.observations.filter((item) => item.caseId === currentCaseId).sort(byNewest).slice(0, 4);
+  const activeHypotheses = data.hypotheses.filter((item) => item.caseId === currentCaseId && (item.status === "未検証" || item.status === "検証中")).sort(byUpdated).slice(0, 4);
+  const dueExperiments = data.experiments.filter((item) => item.caseId === currentCaseId && (item.status === "予定" || item.status === "実施中")).sort((a, b) => a.reviewDueAt.localeCompare(b.reviewDueAt)).slice(0, 4);
+  const recentReviews = data.actReviews.filter((item) => item.caseId === currentCaseId).sort(byNewest).slice(0, 4);
 
   return (
     <>
@@ -1268,9 +1269,9 @@ function ObserveView({
     onNavigate(`/orient?observationId=${observation.id}`);
   }
 
-  const recentObservations = [...data.observations].sort(byNewest).slice(0, 8);
   const hasCases = data.cases.length > 0;
   const observationCaseId = selectedCaseId || data.cases[0]?.id || "";
+  const recentObservations = data.observations.filter((observation) => observation.caseId === observationCaseId).sort(byNewest).slice(0, 8);
   const justCreatedCase = searchParams.get("created") === "1";
   const observationListHref = observationCaseId ? `/reflect?caseId=${observationCaseId}` : "/reflect";
 
@@ -1413,11 +1414,13 @@ function ObserveView({
   );
 }
 
-function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commit; onNavigate: (href: string) => void }) {
+function OrientView({ data, selectedCaseId, commit, onNavigate }: { data: AppData; selectedCaseId: string; commit: Commit; onNavigate: (href: string) => void }) {
   const searchParams = useSearchParams();
   const [formError, setFormError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const observations = [...data.observations].sort(byNewest);
+  const selectedCase = selectedCaseId ? data.cases.find((item) => item.id === selectedCaseId) ?? null : null;
+  const currentCaseId = selectedCase?.id ?? "";
+  const observations = [...data.observations.filter((observation) => !currentCaseId || observation.caseId === currentCaseId)].sort(byNewest);
   const requestedObservationId = searchParams.get("observationId") ?? "";
   const [selectedObservationId, setSelectedObservationId] = useState(requestedObservationId);
   const selected = observations.find((item) => item.id === selectedObservationId) ?? observations.find((item) => item.id === requestedObservationId) ?? observations[0] ?? null;
@@ -1503,7 +1506,8 @@ function OrientView({ data, commit, onNavigate }: { data: AppData; commit: Commi
     onNavigate(`/decide?hypothesisId=${created[0].id}`);
   }
 
-  const accumulatedHypotheses = selected ? data.hypotheses.filter((hypothesis) => hypothesis.caseId === selected.caseId).sort(byUpdated) : [...data.hypotheses].sort(byUpdated);
+  const accumulatedCaseId = selected?.caseId ?? currentCaseId;
+  const accumulatedHypotheses = accumulatedCaseId ? data.hypotheses.filter((hypothesis) => hypothesis.caseId === accumulatedCaseId).sort(byUpdated) : [];
   const hasCases = data.cases.length > 0;
 
   return (
@@ -1809,10 +1813,11 @@ function DecideView({ data, selectedCaseId, commit, onNavigate }: { data: AppDat
   );
 }
 
-function ActView({ data, commit, onNavigate }: { data: AppData; commit: Commit; onNavigate: (href: string) => void }) {
+function ActView({ data, selectedCaseId, commit, onNavigate }: { data: AppData; selectedCaseId: string; commit: Commit; onNavigate: (href: string) => void }) {
   const searchParams = useSearchParams();
   const [formError, setFormError] = useState("");
-  const experiments = [...data.experiments].sort((a, b) => a.reviewDueAt.localeCompare(b.reviewDueAt));
+  const currentCaseId = selectedCaseId || data.cases[0]?.id || "";
+  const experiments = data.experiments.filter((experiment) => !currentCaseId || experiment.caseId === currentCaseId).sort((a, b) => a.reviewDueAt.localeCompare(b.reviewDueAt));
   const selected = experiments.find((item) => item.id === searchParams.get("experimentId")) ?? experiments[0] ?? null;
   const selectedHypothesis = selected ? data.hypotheses.find((item) => item.id === selected.hypothesisId) ?? null : null;
 
